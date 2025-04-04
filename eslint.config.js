@@ -1,15 +1,26 @@
-import {defineConfig} from "eslint/config";
-import globals from "globals";
-import tseslint from "typescript-eslint";
-import eslintPluginPrettier from "eslint-plugin-prettier";
-import react from "@vitejs/plugin-react";
+import { defineConfig } from 'eslint/config'
+import globals from 'globals'
+import tseslint from 'typescript-eslint'
+import eslintPluginPrettier from 'eslint-plugin-prettier/recommended'
+import js from '@eslint/js'
 
-
-export default defineConfig([
-    {files: ["**/src/*.t(s|sx)"], languageOptions: {globals: globals.browser}},
-    {
-        files: ["**/src/*.t(s|sx)"],
-        plugins: {react, eslintPluginPrettier},
-    },
-    tseslint.configs.recommended,
-]);
+export default tseslint
+    .config(
+        { ignores: ['dist'] },
+        {
+            extends: [js.configs.recommended, ...tseslint.configs.recommended],
+            files: ['**/src/*.t(s|sx)'],
+            languageOptions: {
+                ecmaVersion: 2020,
+                globals: globals.browser,
+            },
+            plugins: ['@typescript-eslint', 'react'],
+            rules: {
+                'react-refresh/only-export-components': [
+                    'warn',
+                    { allowConstantExport: true },
+                ],
+            },
+        }
+    )
+    .concat(eslintPluginPrettier)

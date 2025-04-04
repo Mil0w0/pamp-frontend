@@ -12,7 +12,7 @@
 ## How to run
 
 - In local : run ```npm run start```
-- With Dockerfile : ````docker build . ```` at the root of the project then ```docker run``` the image.
+- With Dockerfile, run at the root : ```docker build -t pamp-frontend . && docker run -it pamp-frontend```
 
 ## How to test (with vitest)
 
