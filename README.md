@@ -1,54 +1,31 @@
-# React + TypeScript + Vite
+# PAMP 
+## Projet annuel : project manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+    This is the React + TypeScript + Vite app for the PAMP project.
+    It 's a plateform for students and teacher to manage projects.
+    Teachers can create promotions, add students (manually or via a file), 
+    create projects, manage their details, and oversee deliverables and reports. 
+    Students, on the other hand, access the projects created by teachers, 
+    can view project information, create groups, submit deliverables, and write reports online. 
+    Accounts are automatically created by teachers, and authentication is done via SSO.
 
-Currently, two official plugins are available:
+## How to run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- In local : run ```npm run start```
+- With Dockerfile : ````docker build . ```` at the root of the project then ```docker run``` the image.
 
-## Expanding the ESLint configuration
+## How to test (with vitest)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+```npm run test```
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## How to contribute
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Create a new branch from main
+Always run ```npm run lint:fix``` before commiting to format and check the code.
+Then open a PR to merge your new branch on main
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Authors:
+- Loriane HILDERAL
+- Clarence HIRSCH
+- Malik LAFIA
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
