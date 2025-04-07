@@ -11,9 +11,13 @@
 
 ## How to run
 
-- In local : run ```npm run start```
-- With Dockerfile, run at the root : ```docker build -t pamp-frontend . && docker run -it pamp-frontend```
 
+- In local : 
+    - ```npm ci```
+    - ```npm run start```
+- Prod like with Dockerfile, 
+  - run at the root : ```docker build -t pamp-frontend . && docker run -p 80:80 -it pamp-frontend```
+      (website will run on port 80 of your machine)
 ## How to test (with vitest)
 
 ```npm run test```
