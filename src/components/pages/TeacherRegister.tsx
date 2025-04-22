@@ -1,16 +1,13 @@
-import {cn} from "@/lib/utils.ts";
-import {GalleryVerticalEnd} from "lucide-react";
-import {Label} from "@/components/ui/label.tsx";
-import {Input} from "@/components/ui/input.tsx";
-import {Button} from "@/components/ui/button.tsx";
-import React from "react";
+import { cn } from '@/lib/utils.ts'
+import { GalleryVerticalEnd } from 'lucide-react'
+import { Label } from '@/components/ui/label.tsx'
+import { Input } from '@/components/ui/input.tsx'
+import { Button } from '@/components/ui/button.tsx'
+import React from 'react'
 
-function TeacherRegister({ className, ...props }: React.ComponentProps<'div'>){
-    return(
-        <div
-            className={cn('flex flex-col w-1/4 gap-6', className)}
-            {...props}
-        >
+function TeacherRegister({ className, ...props }: React.ComponentProps<'div'>) {
+    return (
+        <div className={cn('flex flex-col w-1/4 gap-6', className)} {...props}>
             <form>
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col items-center gap-2">
@@ -23,9 +20,7 @@ function TeacherRegister({ className, ...props }: React.ComponentProps<'div'>){
                             </div>
                             <span className="sr-only">PAMP</span>
                         </a>
-                        <h1 className="text-xl font-bold">
-                            Welcome to PAMP.
-                        </h1>
+                        <h1 className="text-xl font-bold">Welcome to PAMP.</h1>
                         <div className="text-center text-sm">
                             Already have an account ?{' '}
                             <a
@@ -34,8 +29,8 @@ function TeacherRegister({ className, ...props }: React.ComponentProps<'div'>){
                             >
                                 Log in
                             </a>
-                            <br/>
-                            A student account can only be created via the teacher interface.
+                            <br />A student account can only be created via the
+                            teacher interface.
                         </div>
                     </div>
                     <div className="flex flex-col gap-6">
@@ -90,4 +85,4 @@ function TeacherRegister({ className, ...props }: React.ComponentProps<'div'>){
     )
 }
 
-export default TeacherRegister;
+export default TeacherRegister
