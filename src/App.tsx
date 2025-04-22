@@ -1,11 +1,13 @@
 import './App.css'
 import 'react'
+import {LogIn} from "@/components/pages/LogIn.tsx";
 
 function App() {
     return (
         <>
-            <h1>Test</h1>
-            <p>tehs</p>
+        <div className="main h-svh w-svw p-2 flex justify-center items-center">
+            <LogIn/>
+        </div>
         </>
     )
 }
