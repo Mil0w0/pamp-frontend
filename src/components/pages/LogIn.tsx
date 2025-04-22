@@ -6,9 +6,8 @@ import { Input } from '@/components/ui/input.tsx'
 import { Label } from '@/components/ui/label.tsx'
 import React from 'react'
 
-export function LogIn({ className, ...props }: React.ComponentProps<'div'>) {
+export default function LogIn({ className, ...props }: React.ComponentProps<'div'>) {
     return (
-        <div className="main h-svh w-svw p-2 flex justify-center items-center">
             <div
                 className={cn('flex flex-col w-1/4 gap-6', className)}
                 {...props}
@@ -31,7 +30,7 @@ export function LogIn({ className, ...props }: React.ComponentProps<'div'>) {
                             <div className="text-center text-sm">
                                 Don&apos;t have an account?{' '}
                                 <a
-                                    href="#"
+                                    href="/register/teacher"
                                     className="underline underline-offset-4"
                                 >
                                     Sign up
@@ -88,10 +87,9 @@ export function LogIn({ className, ...props }: React.ComponentProps<'div'>) {
                 </form>
                 <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
                     By clicking continue, you agree to our{' '}
-                    <a href="#">Terms of Service</a> and{' '}
-                    <a href="#">Privacy Policy</a>.
+                    <a href="/termsOfServices">Terms of Service</a> and{' '}
+                    <a href="/privacyPolicies">Privacy Policy</a>.
                 </div>
             </div>
-        </div>
     )
 }

@@ -1,7 +1,7 @@
-import './App.css'
+
 import 'react'
 function App() {
-    return <></>
+    return <>app</>
 }
 
 export default App
