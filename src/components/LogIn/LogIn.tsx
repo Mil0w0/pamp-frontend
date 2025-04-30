@@ -4,15 +4,47 @@ import { cn } from '@/lib/utils.ts'
 import { Button } from '@/components/ui/button.tsx'
 import { Input } from '@/components/ui/input.tsx'
 import { Label } from '@/components/ui/label.tsx'
-import React from 'react'
+import React, { ChangeEvent, FormEvent, useState } from 'react'
+import { authService } from '@/services/auth-api-client.ts'
+import { toast } from 'sonner'
+import { UserLoginDto, UserLoginResponse } from '@/components/LogIn/types.ts'
 
 export default function LogIn({
     className,
     ...props
 }: React.ComponentProps<'div'>) {
+    const [formData, setFormData] = useState<UserLoginDto>({
+        email: '',
+        password: '',
+    })
+
+    const [isLoading, setIsLoading] = useState(false)
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.currentTarget
+        setFormData((prev) => ({ ...prev, [id]: value }))
+    }
+
+    const handleLoginSubmit = async (e: FormEvent) => {
+        e.preventDefault()
+        setIsLoading(true)
+        try {
+            const response: UserLoginResponse =
+                await authService.login(formData)
+            if (response.success) {
+                window.location.href = '/'
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error('Une erreur est survenue.')
+            console.error(error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
     return (
         <div className={cn('flex flex-col w-1/4 gap-6', className)} {...props}>
-            <form>
+            <form onSubmit={handleLoginSubmit}>
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col items-center gap-2">
                         <a
@@ -43,6 +75,7 @@ export default function LogIn({
                                 type="email"
                                 placeholder="m@example.com"
                                 required
+                                onChange={handleChange}
                             />
                         </div>
                         <div className="grid gap-3">
@@ -52,9 +85,15 @@ export default function LogIn({
                                 type="password"
                                 placeholder="********"
                                 required
+                                onChange={handleChange}
                             />
                         </div>
-                        <Button type="submit" className="w-full">
+                        <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={isLoading}
+                            style={{ cursor: 'pointer' }}
+                        >
                             Login
                         </Button>
                     </div>
@@ -68,6 +107,11 @@ export default function LogIn({
                             variant="outline"
                             type="button"
                             className="w-full"
+                            disabled={isLoading}
+                            onClick={() =>
+                                (window.location.href =
+                                    'http://localhost:3000/auth/google')
+                            }
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"

@@ -4,6 +4,7 @@ import {
     TeacherRegisterDto,
     TeacherRegisterResponse,
 } from '@/components/Register/types.ts'
+import { UserLoginDto, UserLoginResponse } from '@/components/LogIn/types.ts'
 
 const AUTH_API_URL: string =
     import.meta.env.VITE_AUTH_API_URL || 'http://localhost:3000'
@@ -11,6 +12,9 @@ const AUTH_API_URL: string =
 const handleApiError = (error: string): TeacherRegisterResponse => {
     console.error('API Erreur:', error)
     return { success: false, error: error }
+}
+export type ApiErrorMessage = {
+    message: string
 }
 
 export const authService = {
@@ -27,10 +31,26 @@ export const authService = {
                 }
             )
             if (!response.ok) {
-                const error = await response.json()
+                const error: ApiErrorMessage = await response.json()
                 return handleApiError(error.message)
             }
             return { success: response.ok }
+        } catch (error) {
+            const err = error as Error
+            return handleApiError(err.message)
+        }
+    },
+    login: async (loginData: UserLoginDto): Promise<UserLoginResponse> => {
+        console.log(loginData)
+        return { success: false, error: 'Not implemented yet' }
+    },
+    ssoLogin: async () => {
+        try {
+            const response = await fetch(`${AUTH_API_URL}/auth/callback/google`)
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiError(error.message)
+            }
         } catch (error) {
             const err = error as Error
             return handleApiError(err.message)
