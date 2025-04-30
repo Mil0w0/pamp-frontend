@@ -29,7 +29,7 @@ export default function StudentBatchesPage() {
     ]
     return (
         <>
-            {/*<h2>My student batches</h2>*/}
+            <h1>My student batches</h1>
             {/*<PampButton />*/}
             <Table>
                 <TableHeader>
