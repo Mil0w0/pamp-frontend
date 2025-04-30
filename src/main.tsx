@@ -16,11 +16,11 @@ createRoot(document.getElementById('root')!).render(
             <Route element={<CenteredLayout />}>
                 <Route path="/login" element={<LogIn />} />
                 <Route path="/register/teacher" element={<TeacherRegister />} />
-                <Route
-                    path="/student-batches/"
-                    element={<StudentBatchesPage />}
-                />
             </Route>
+            <Route
+                path="/student-batches/"
+                element={<StudentBatchesPage />}
+            />
             <Route path="/" element={<App />} />
             <Route path="*" element={<Error404 />} />
         </Routes>
