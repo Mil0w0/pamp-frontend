@@ -6,11 +6,12 @@ import LogIn from '@/components/LogIn/LogIn.tsx'
 import TeacherRegister from '@/components/Register/TeacherRegister.tsx'
 import CenteredLayout from '@/components/layout/CenteredLayout.tsx'
 import CustomHeader from '@/components/CustomHeader.tsx'
-import StudentBatchesPage from '@/components/ManageStudentBatches'
+import StudentBatchesPage from '@/components/ManageStudentBatches/StudentBatchesPage.tsx'
 import { Error404 } from '@/components/Error/Error404.tsx'
 import { Toaster } from 'sonner'
 import StudentBatchById from '@/components/ManageStudentBatches/StudentBatchById.tsx'
 import { ThemeProvider } from '@/components/ui/theme-provider'
+import AuthCallback from '@/components/LogIn/AuthCallback.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
@@ -33,6 +34,7 @@ createRoot(document.getElementById('root')!).render(
                     element={<StudentBatchById />}
                 />
                 <Route path="/" element={<App />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="*" element={<Error404 />} />
             </Routes>
             <Toaster richColors position={'top-right'} />

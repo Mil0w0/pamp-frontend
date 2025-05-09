@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button.tsx'
 import { Input } from '@/components/ui/input.tsx'
 import { Label } from '@/components/ui/label.tsx'
 import React, { ChangeEvent, FormEvent, useState } from 'react'
-import { authService } from '@/services/auth-api-client.ts'
+import { authService } from '@/services/UserService/auth-api-client.ts'
 import { toast } from 'sonner'
 import { UserLoginDto, UserLoginResponse } from '@/components/LogIn/types.ts'
 

@@ -6,3 +6,19 @@ export type StudentBatches = {
     createdAt: Date
     tags: string
 }[]
+
+export type StudentBatch = {
+    id: string
+    state: string
+    name: string
+    students: Student[]
+    createdAt: string
+    tags: string
+}
+
+export type Student = {
+    id: string
+    email: string
+    first_name: string
+    last_name: string
+}

@@ -5,6 +5,7 @@ import {
     TeacherRegisterResponse,
 } from '@/components/Register/types.ts'
 import { UserLoginDto, UserLoginResponse } from '@/components/LogIn/types.ts'
+import { StudentBatch } from '@/components/ManageStudentBatches/types.ts'
 
 const AUTH_API_URL: string =
     import.meta.env.VITE_AUTH_API_URL || 'http://localhost:3000'
@@ -16,14 +17,61 @@ const handleApiError = (error: string): TeacherRegisterResponse => {
 export type ApiErrorMessage = {
     message: string
 }
+export type BatchServiceResponse = {
+    error?: string
+    success: boolean
+    data?: StudentBatch
+}
 
+const oneStudentStudentBatch: StudentBatch = {
+    id: 'sjdk',
+    state: 'Active',
+    createdAt: '15/04/2025',
+    tags: 'ESGI',
+    name: 'Default Promotion',
+    students: [
+        {
+            id: 'first',
+            first_name: 'Loriane',
+            last_name: 'HILDERAL',
+            email: 'loriane@gmail.com',
+        },
+    ],
+}
+
+export const batchService = {
+    getOneById: async (id: string): Promise<BatchServiceResponse> => {
+        try {
+            // const response = await fetch(
+            //     `${AUTH_API_URL}/students/batches/${id}`
+            // )
+            // if (!response.ok) {
+            //     const error: ApiErrorMessage = await response.json()
+            //     return handleApiError(error.message)
+            // } else {
+            //     const batch: StudentBatch = await response.json()
+            //     return {
+            //         success: true,
+            //         data: batch,
+            //     }
+            // }
+            return {
+                success: true,
+                data: oneStudentStudentBatch,
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleApiError(err.message)
+        }
+    },
+}
 export const authService = {
     register: async (
         teacherRegisterData: TeacherRegisterDto
     ): Promise<TeacherRegisterResponse> => {
         try {
             const response = await fetch(
-                `${AUTH_API_URL}/auth/register/teacher`,
+                `${AUTH_API_URL}/user-api/auth/register/teacher`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -46,7 +94,9 @@ export const authService = {
     },
     ssoLogin: async () => {
         try {
-            const response = await fetch(`${AUTH_API_URL}/auth/callback/google`)
+            const response = await fetch(
+                `${AUTH_API_URL}/user-api/auth/callback/google`
+            )
             if (!response.ok) {
                 const error: ApiErrorMessage = await response.json()
                 return handleApiError(error.message)
