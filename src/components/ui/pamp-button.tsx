@@ -12,7 +12,9 @@ export default function PampButton({ message, onClick }: PampButtonProps) {
             style={{ cursor: 'pointer' }}
             onClick={onClick}
         >
-            <Button size="icon">+</Button>
+            <Button size="icon" className="border-1 border-ring">
+                +
+            </Button>
             {message}
         </Card>
     )
