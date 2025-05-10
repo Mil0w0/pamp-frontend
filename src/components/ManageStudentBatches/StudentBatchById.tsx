@@ -9,13 +9,15 @@ import {
     TableRow,
 } from '@/components/ui/table.tsx'
 import { Badge } from '@/components/ui/badge.tsx'
-import { useEffect, useState } from 'react'
+import { ChangeEvent, useEffect, useState } from 'react'
 import { batchService } from '@/services/UserService/auth-api-client.ts'
 import { toast } from 'sonner'
-import { StudentBatch } from '@/components/ManageStudentBatches/types.ts'
+import {
+    Student,
+    StudentBatch,
+} from '@/components/ManageStudentBatches/types.ts'
 import StudentBatchDroppableContainers from '@/components/AddStudentToStudentBatch/StudentBatchDroppableContainers.tsx'
 import { Input } from '@/components/ui/input.tsx'
-import log from 'eslint-plugin-react/lib/util/log'
 import { Button } from '@/components/ui/button.tsx'
 
 export default function StudentBatchById() {
@@ -23,14 +25,30 @@ export default function StudentBatchById() {
     const studentBatchId = params.id || 'unknown'
     const [isLoading, setIsLoading] = useState(true)
     const [batch, setBatch] = useState<StudentBatch>({} as StudentBatch)
+    const [batchEditData, setBatchEditData] = useState({} as StudentBatch)
 
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.currentTarget
+        setBatchEditData((prev) => ({ ...prev, [id]: value }))
+    }
+    const updateSelectedStudents = (selectedStudents: Student[]) => {
+        console.log(selectedStudents)
+        setBatchEditData((prev) => ({
+            ...prev,
+            students: [...selectedStudents],
+        }))
+    }
+
+    useEffect(() => {
+        console.log(batchEditData)
+    }, [batchEditData])
     async function getStudentBatchInfo(
         id: string
     ): Promise<StudentBatch | undefined> {
         try {
             const response = await batchService.getOneById(id)
             if (response.success) {
-                return response.data
+                return response.data as StudentBatch
             } else {
                 toast.error(response.error)
             }
@@ -42,14 +60,35 @@ export default function StudentBatchById() {
         }
     }
 
-    //fixme
+    async function handleEditBatch() {
+        setIsLoading(true)
+        try {
+            const response = await batchService.editBatch(
+                studentBatchId,
+                batchEditData
+            )
+            if (response.success) {
+                setBatch(response.data as StudentBatch)
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error('Une erreur est survenue.')
+            console.error(error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    //fixme ?
     useEffect(() => {
         getStudentBatchInfo(studentBatchId).then((batch) => {
             if (typeof batch !== 'undefined') {
                 setBatch(batch)
+                setBatchEditData(batch)
             }
         })
-    })
+    }, [studentBatchId])
 
     if (studentBatchId === 'unknown') {
         return <Error404 />
@@ -65,7 +104,6 @@ export default function StudentBatchById() {
                     <span className="text-lg font-semibold">{batch.name}</span>
                 </h1>
                 <Table>
-                    {/*Make input in the cell so we can edit it*/}
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-[100px]">State</TableHead>
@@ -94,30 +132,32 @@ export default function StudentBatchById() {
                                     type="text"
                                     placeholder="Ex: Classe"
                                     required
-                                    value={batch.name}
-                                    onChange={() => console.log('ok')}
+                                    defaultValue={batch.name}
+                                    onChange={handleChange}
                                 />
                             </TableCell>
                             <TableCell>{batch.students.length}</TableCell>
                             <TableCell>{batch.createdAt}</TableCell>
                             <TableCell>
-                                {' '}
                                 <Input
                                     id="tags"
                                     type="text"
                                     placeholder="Ex: ESGI"
                                     required
-                                    value={batch.tags}
-                                    onChange={() => console.log('ok')}
+                                    defaultValue={batch.tags}
+                                    onChange={handleChange}
                                 />
                             </TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
             </div>
-            <StudentBatchDroppableContainers />
+            <StudentBatchDroppableContainers
+                selectedStudents={batchEditData.students}
+                setSelectedStudents={updateSelectedStudents}
+            />
 
-            <Button>Save this batch</Button>
+            <Button onClick={handleEditBatch}>Save this batch</Button>
         </div>
     )
 }
