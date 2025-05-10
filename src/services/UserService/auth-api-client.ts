@@ -31,6 +31,7 @@ export type BatchServiceResponse = {
 }
 
 export const batchService = {
+    //todo: put back when connecting to backend
     getOneById: async (id: string): Promise<BatchServiceResponse> => {
         try {
             // const response = await fetch(
@@ -85,6 +86,7 @@ export const batchService = {
         batchEditData: EditBatchDTO
     ): Promise<BatchServiceResponse> => {
         try {
+            console.log(batchEditData)
             const response = await fetch(
                 `${AUTH_API_URL}/students/batches/${id}`,
                 {

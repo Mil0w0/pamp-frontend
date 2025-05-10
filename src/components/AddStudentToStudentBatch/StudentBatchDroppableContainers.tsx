@@ -100,7 +100,7 @@ export default function StudentBatchDroppableContainers({
                 onDragEnd={handleDragEnd}
             >
                 <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Container 1: Available student */}
+                    {/* Container 1: Available students */}
                     <div className="flex-1">
                         <h2 className="text-xl font-bold mb-2">
                             Available Students
