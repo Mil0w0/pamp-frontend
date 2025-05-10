@@ -4,6 +4,7 @@ import { Student } from '@/components/ManageStudentBatches/types.ts'
 import { DroppableZone } from '@/components/AddStudentToStudentBatch/DroppableZone.tsx'
 import { DraggableStudent } from '@/components/AddStudentToStudentBatch/DraggableStudent.tsx'
 import { Button } from '@/components/ui/button.tsx'
+import AddStudentModal from '@/components/AddStudentToStudentBatch/AddStudentModal.tsx'
 
 const initialStudents = [
     {
@@ -170,9 +171,10 @@ export default function StudentBatchDroppableContainers({
                                 )}
                             </div>
                         </DroppableZone>
-                        <Button className="mt-4" variant="outline">
-                            Add a new student
-                        </Button>
+                        <AddStudentModal
+                            setSelectedStudents={setSelectedStudents}
+                            selectedStudents={selectedStudents}
+                        />
                     </div>
                 </div>
             </DndContext>
