@@ -39,9 +39,6 @@ export default function StudentBatchById() {
         }))
     }
 
-    useEffect(() => {
-        console.log(batchEditData)
-    }, [batchEditData])
     async function getStudentBatchInfo(
         id: string
     ): Promise<StudentBatch | undefined> {

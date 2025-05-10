@@ -2,7 +2,7 @@ import { useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
 export default function AuthCallback() {
-    const [params, setSearchParams] = useSearchParams()
+    const [params] = useSearchParams()
     const navigate = useNavigate()
     const token = params.get('token') || 'unknown'
     console.log(params)

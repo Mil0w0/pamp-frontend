@@ -10,11 +10,9 @@ import { Button } from '@/components/ui/button.tsx'
 import { Input } from '@/components/ui/input.tsx'
 import { Label } from '@/components/ui/label.tsx'
 import { ChangeEvent, useState } from 'react'
-import {
-    Student,
-    StudentBatch,
-} from '@/components/ManageStudentBatches/types.ts'
-import {toast} from "sonner";
+import { Student } from '@/components/ManageStudentBatches/types.ts'
+import { toast } from 'sonner'
+import { makeStudentsFromFile } from '@/utils/studentCsvParser.ts'
 type AddStudentModalProps = {
     selectedStudents: Student[]
     setSelectedStudents: (students: Student[]) => void
@@ -26,7 +24,19 @@ export default function AddStudentModal({
 }: AddStudentModalProps) {
     const [openModal, setOpenModal] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-    const [studentData, setStudentData] = useState<Student>({} as Student)
+    const [studentData, setStudentData] = useState<Student>({
+        last_name: '',
+        id: 'nobody',
+        first_name: '',
+        email: '',
+    })
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null
+        setSelectedFile(file)
+    }
+
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.currentTarget
         setStudentData((prev) => ({ ...prev, [id]: value }))
@@ -34,19 +44,53 @@ export default function AddStudentModal({
     function addSingleNewStudent() {
         console.log(selectedStudents)
         setIsLoading(true)
-        setSelectedStudents([...selectedStudents, studentData]) //todo: what if the user already exist tho ?
+
+        if (
+            studentData.last_name != '' &&
+            studentData.first_name != '' &&
+            studentData.email != ''
+        ) {
+            setSelectedStudents([...selectedStudents, studentData]) //todo: what if the user already exist tho ?
+        } else {
+            toast('Missing field for new student')
+        }
+
         setIsLoading(false)
         setOpenModal(false)
     }
 
-    function addMultipleNewStudent(){
-        //validate format: .xlsx only
+    async function addMultipleNewStudent() {
+        setIsLoading(true)
+        const extension =
+            selectedFile?.name.split('.').pop()?.toLowerCase() || ''
+        const allowedExtensions = ['csv']
+        const allowedTypes = ['text/csv']
 
-        //parse file then add to selected
-        try{
+        if (!selectedFile) {
+            toast.error('No file selected')
+            return
+        }
+        if (!allowedExtensions.includes(extension)) {
+            toast.error('Invalid file extension')
+            return
+        }
+        if (!allowedTypes.includes(selectedFile.type)) {
+            toast.error('Unsupported file type')
+            return
+        }
 
-        }catch(e){
-            toast("Something went wrong but idk where")
+        try {
+            const newStudents = await makeStudentsFromFile(
+                selectedFile,
+                extension
+            )
+            console.log(newStudents)
+            setSelectedStudents([...selectedStudents, ...newStudents])
+        } catch (e) {
+            toast('Something went wrong: ' + e)
+        } finally {
+            setIsLoading(false)
+            setOpenModal(false)
         }
     }
 
@@ -69,10 +113,12 @@ export default function AddStudentModal({
                     Add multiple students
                 </h3>
                 <div className="grid w-full max-w-sm items-center gap-1.5">
-                    <Label htmlFor="studentsExcel">
-                        Excel file(.xlsx only)
-                    </Label>
-                    <Input id="studentsExcel" type="file" />
+                    <Label htmlFor="studentsExcel">CSV file</Label>
+                    <Input
+                        id="studentsExcel"
+                        type="file"
+                        onChange={handleFileUpload}
+                    />
                 </div>
                 <Button
                     style={{ cursor: 'pointer' }}
@@ -124,12 +170,13 @@ export default function AddStudentModal({
                     </div>
                     <Button
                         style={{ cursor: 'pointer' }}
+                        variant="secondary"
                         type="submit"
                         className="w-full"
                         onClick={() => addSingleNewStudent()}
                         disabled={isLoading}
                     >
-                        Add new student
+                        Add one
                     </Button>
                 </div>
             </DialogContent>
