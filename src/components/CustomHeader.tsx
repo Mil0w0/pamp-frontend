@@ -34,16 +34,11 @@ function CustomHeader() {
                             className="size-6"
                             fill="none"
                             viewBox="0 0 24 24"
-                            stroke-width="1.5"
                             stroke="currentColor"
                             aria-hidden="true"
                             data-slot="icon"
                         >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-                            />
+                            <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                         </svg>
                     </button>
                 </div>
@@ -58,7 +53,7 @@ function CustomHeader() {
                         My students batches
                     </a>
                 </div>
-                <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+                <div className="hidden lg:flex lg:flex-1  lg:items-center lg:justify-end">
                     <a href="/login" className="text-sm/6 font-semibold">
                         Log in <span aria-hidden="true">&rarr;</span>
                     </a>
@@ -143,16 +138,11 @@ function CustomHeader() {
                                     className="size-6"
                                     fill="none"
                                     viewBox="0 0 24 24"
-                                    stroke-width="1.5"
                                     stroke="currentColor"
                                     aria-hidden="true"
                                     data-slot="icon"
                                 >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        d="M6 18 18 6M6 6l12 12"
-                                    />
+                                    <path d="M6 18 18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
