@@ -15,6 +15,9 @@ export type StudentBatch = {
     createdAt: string
     tags: string
 }
+export type NewStudentBatch = {
+    name: string
+}
 
 export type Student = {
     id: string
