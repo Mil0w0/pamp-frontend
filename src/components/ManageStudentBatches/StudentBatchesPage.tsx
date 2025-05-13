@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router'
 import { batchService } from '@/services/UserService/auth-api-client.ts'
 import { useEffect, useState } from 'react'
 import AddStudentBatchModal from '@/components/ManageStudentBatches/AddStudentBatchModal.tsx'
+import {formatToShortDate} from "@/utils/dateFormatter.ts";
 export default function StudentBatchesPage() {
     const navigate = useNavigate()
     const [isLoading, setIsLoading] = useState(false)
@@ -44,8 +45,31 @@ export default function StudentBatchesPage() {
                 return []
             }
         } catch (error) {
-            toast.error('Une erreur est survenue.')
+            toast.error(`Une erreur est survenue. ${error}`)
             return []
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    async function deleteItem(itemId: string): Promise<void> {
+        setIsLoading(true)
+        try {
+            const response = await batchService.deleteBatch(itemId)
+            if (response.success) {
+                toast.success('Deleted succesfully')
+                //remove item from list visually
+                if (studentBatches !== undefined && studentBatches?.length) {
+                    const updatedBatches = studentBatches.filter(
+                        (batch) => batch.id !== itemId
+                    )
+                    setStudentBatches(updatedBatches)
+                }
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error(`Une erreur est survenue. ${error}`)
         } finally {
             setIsLoading(false)
         }
@@ -55,7 +79,7 @@ export default function StudentBatchesPage() {
         getBatchesStudents().then((data) => {
             setStudentBatches(data)
         })
-    })
+    }, [])
     return (
         <div className="p-24 flex flex-col gap-8">
             <div className="flex justify-between">
@@ -88,8 +112,8 @@ export default function StudentBatchesPage() {
                                 </Badge>
                             </TableCell>
                             <TableCell>{batch.name}</TableCell>
-                            <TableCell>{batch.students.length}</TableCell>
-                            <TableCell>{batch.createdAt}</TableCell>
+                            <TableCell>{0}</TableCell> {/*TODO: add batch.students/length later*/}
+                            <TableCell>{formatToShortDate(batch.createdAt)}</TableCell>
                             <TableCell>{batch.tags}</TableCell>
                             <TableCell>
                                 <DropdownMenu>
@@ -108,11 +132,14 @@ export default function StudentBatchesPage() {
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                             style={{ cursor: 'pointer' }}
+                                            disabled={isLoading}
+                                            onClick={() => deleteItem(batch.id)}
                                         >
                                             Delete this
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
                                             style={{ cursor: 'pointer' }}
+                                            disabled={isLoading}
                                             onClick={() =>
                                                 goToStudentBatchesById(batch.id)
                                             }

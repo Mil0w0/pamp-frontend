@@ -9,13 +9,12 @@ import {
     EditBatchDTO,
     StudentBatch,
 } from '@/components/ManageStudentBatches/types.ts'
-import {
-    oneStudentStudentBatch,
-    severalStudentBatches,
-} from '@/components/ManageStudentBatches/mocks.ts'
 
-const AUTH_API_URL: string =
+export const AUTH_API_URL: string =
     import.meta.env.VITE_AUTH_API_URL || 'http://localhost:3000'
+
+export const PROJECT_API_URL: string =
+    import.meta.env.VITE_PROJECT_API_URL || 'http://localhost:3000'
 
 const handleApiError = (error: string): TeacherRegisterResponse => {
     console.error('API Erreur:', error)
@@ -30,27 +29,30 @@ export type BatchServiceResponse = {
     data?: StudentBatch | StudentBatch[]
 }
 
+export type CreateBatchDTO = {
+    name: string
+}
+
 export const batchService = {
-    //todo: put back when connecting to backend
     getOneById: async (id: string): Promise<BatchServiceResponse> => {
         try {
-            // const response = await fetch(
-            //     `${AUTH_API_URL}/students/batches/${id}`
-            // )
-            // if (!response.ok) {
-            //     const error: ApiErrorMessage = await response.json()
-            //     return handleApiError(error.message)
-            // } else {
-            //     const batch: StudentBatch = await response.json()
-            //     return {
-            //         success: true,
-            //         data: batch,
-            //     }
-            // }
-            return {
-                success: true,
-                data: oneStudentStudentBatch,
+            const response = await fetch(
+                `${PROJECT_API_URL}/student-batches/${id}`
+            )
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiError(error.message)
+            } else {
+                const batch: StudentBatch = await response.json()
+                return {
+                    success: true,
+                    data: { ...batch, students: [] }, //TODO: change when backend sends students
+                }
             }
+            // return {
+            //     success: true,
+            //     data: oneStudentStudentBatch,
+            // }
         } catch (error) {
             const err = error as ApiErrorMessage
             return handleApiError(err.message)
@@ -58,37 +60,33 @@ export const batchService = {
     },
     getAll: async (): Promise<BatchServiceResponse> => {
         try {
-            // const response = await fetch(
-            //     `${AUTH_API_URL}/students/batches`
-            // )
-            // if (!response.ok) {
-            //     const error: ApiErrorMessage = await response.json()
-            //     return handleApiError(error.message)
-            // } else {
-            //     const batches: StudentBatch[] = await response.json()
-            //     return {
-            //         success: true,
-            //         data: batches,
-            //     }
-            // }
-            return {
-                success: true,
-                data: severalStudentBatches,
+            const response = await fetch(`${PROJECT_API_URL}/student-batches`)
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiError(error.message)
+            } else {
+                const batches: StudentBatch[] = await response.json()
+                return {
+                    success: true,
+                    data: batches,
+                }
             }
+            // return {
+            //     success: true,
+            //     data: severalStudentBatches,
+            // }
         } catch (error) {
             const err = error as ApiErrorMessage
             return handleApiError(err.message)
         }
     },
-
     editBatch: async (
         id: string,
         batchEditData: EditBatchDTO
     ): Promise<BatchServiceResponse> => {
         try {
-            console.log(batchEditData)
             const response = await fetch(
-                `${AUTH_API_URL}/students/batches/${id}`,
+                `${PROJECT_API_URL}/student-batches/${id}`,
                 {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -110,6 +108,59 @@ export const batchService = {
             return handleApiError(err.message)
         }
     },
+
+    createBatch: async (
+        createBatchData: CreateBatchDTO
+    ): Promise<BatchServiceResponse> => {
+        try {
+            const response = await fetch(`${PROJECT_API_URL}/student-batches`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(createBatchData),
+            })
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiError(error.message)
+            }
+            const batch: StudentBatch = await response.json()
+            return { success: response.ok, data: batch }
+            // return { success: true, data: {
+            //     name: "Test",
+            //         id: "1",
+            //         tags: "",
+            //         createdAt: "12/05/25",
+            //         students: [],
+            //         state: "Active",
+            //     }
+            //}
+        } catch (error) {
+            const err = error as Error
+            return handleApiError(err.message)
+        }
+    },
+    deleteBatch: async (id: string): Promise<BatchServiceResponse> => {
+        try {
+            const response = await fetch(
+                `${PROJECT_API_URL}/student-batches/${id}`,
+                {
+                    method: 'DELETE',
+                }
+            )
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiError(error.message)
+            } else {
+                const batch: StudentBatch = await response.json()
+                return {
+                    success: true,
+                    data: batch, //TODO: change when backend sends students
+                }
+            }
+        }catch (error) {
+            const err = error as ApiErrorMessage
+            return handleApiError(err.message)
+        }
+    }
 }
 export const authService = {
     register: async (

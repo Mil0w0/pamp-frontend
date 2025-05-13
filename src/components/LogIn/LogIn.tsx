@@ -5,7 +5,10 @@ import { Button } from '@/components/ui/button.tsx'
 import { Input } from '@/components/ui/input.tsx'
 import { Label } from '@/components/ui/label.tsx'
 import React, { ChangeEvent, FormEvent, useState } from 'react'
-import { authService } from '@/services/UserService/auth-api-client.ts'
+import {
+    AUTH_API_URL,
+    authService,
+} from '@/services/UserService/auth-api-client.ts'
 import { toast } from 'sonner'
 import { UserLoginDto, UserLoginResponse } from '@/components/LogIn/types.ts'
 
@@ -109,8 +112,7 @@ export default function LogIn({
                             className="w-full"
                             disabled={isLoading}
                             onClick={() =>
-                                (window.location.href =
-                                    'http://localhost:3000/auth/google')
+                                (window.location.href = `${AUTH_API_URL}/user-api/login/google`)
                             }
                         >
                             <svg

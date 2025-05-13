@@ -19,6 +19,7 @@ import {
 import StudentBatchDroppableContainers from '@/components/AddStudentToStudentBatch/StudentBatchDroppableContainers.tsx'
 import { Input } from '@/components/ui/input.tsx'
 import { Button } from '@/components/ui/button.tsx'
+import {formatToShortDate} from "@/utils/dateFormatter.ts";
 
 export default function StudentBatchById() {
     const params = useParams()
@@ -133,8 +134,8 @@ export default function StudentBatchById() {
                                     onChange={handleChange}
                                 />
                             </TableCell>
-                            <TableCell>{batch.students.length}</TableCell>
-                            <TableCell>{batch.createdAt}</TableCell>
+                            <TableCell>{0}</TableCell>{/*TODO: add batch.students/length later*/}
+                            <TableCell>{formatToShortDate(batch.createdAt)}</TableCell>
                             <TableCell>
                                 <Input
                                     id="tags"
