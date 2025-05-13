@@ -19,7 +19,7 @@ import {
 import StudentBatchDroppableContainers from '@/components/AddStudentToStudentBatch/StudentBatchDroppableContainers.tsx'
 import { Input } from '@/components/ui/input.tsx'
 import { Button } from '@/components/ui/button.tsx'
-import {formatToShortDate} from "@/utils/dateFormatter.ts";
+import { formatToShortDate } from '@/utils/dateFormatter.ts'
 
 export default function StudentBatchById() {
     const params = useParams()
@@ -67,23 +67,21 @@ export default function StudentBatchById() {
             )
             if (response.success) {
                 setBatch(response.data as StudentBatch)
+                toast.success('Successfully edited.')
             } else {
                 toast.error(response.error)
             }
         } catch (error) {
-            toast.error('Une erreur est survenue.')
-            console.error(error)
+            toast.error(`Une erreur est survenue. ${error}`)
         } finally {
             setIsLoading(false)
         }
     }
 
-    //fixme ?
     useEffect(() => {
         getStudentBatchInfo(studentBatchId).then((batch) => {
             if (typeof batch !== 'undefined') {
                 setBatch(batch)
-                setBatchEditData(batch)
             }
         })
     }, [studentBatchId])
@@ -134,8 +132,11 @@ export default function StudentBatchById() {
                                     onChange={handleChange}
                                 />
                             </TableCell>
-                            <TableCell>{0}</TableCell>{/*TODO: add batch.students/length later*/}
-                            <TableCell>{formatToShortDate(batch.createdAt)}</TableCell>
+                            <TableCell>{0}</TableCell>
+                            {/*TODO: add batch.students/length later*/}
+                            <TableCell>
+                                {formatToShortDate(batch.createdAt)}
+                            </TableCell>
                             <TableCell>
                                 <Input
                                     id="tags"
@@ -151,7 +152,7 @@ export default function StudentBatchById() {
                 </Table>
             </div>
             <StudentBatchDroppableContainers
-                selectedStudents={batchEditData.students}
+                selectedStudents={batchEditData.students || []}
                 setSelectedStudents={updateSelectedStudents}
             />
 

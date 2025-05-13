@@ -84,6 +84,7 @@ export const batchService = {
         id: string,
         batchEditData: EditBatchDTO
     ): Promise<BatchServiceResponse> => {
+        console.log(batchEditData)
         try {
             const response = await fetch(
                 `${PROJECT_API_URL}/student-batches/${id}`,

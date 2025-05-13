@@ -30,6 +30,5 @@ export type EditBatchDTO = {
     state: string
     name: string
     students: Student[]
-    createdAt: string
     tags: string
 }
