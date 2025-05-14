@@ -9,7 +9,7 @@ export const severalStudentBatches: StudentBatch[] = [
         name: 'Default Promotion',
         students: [
             {
-                id: 'first',
+                user_id: 'first',
                 first_name: 'Loriane',
                 last_name: 'HILDERAL',
                 email: 'loriane@gmail.com',
@@ -24,13 +24,13 @@ export const severalStudentBatches: StudentBatch[] = [
         name: 'Promotion A',
         students: [
             {
-                id: 'first',
+                user_id: 'first',
                 first_name: 'Loriane',
                 last_name: 'HILDERAL',
                 email: 'loriane@gmail.com',
             },
             {
-                id: 'first',
+                user_id: 'first',
                 first_name: 'Nino',
                 last_name: 'RUTH',
                 email: 'nino@gmail.com',
@@ -47,7 +47,7 @@ export const oneStudentStudentBatch: StudentBatch = {
     name: 'Default Promotion',
     students: [
         {
-            id: 'first',
+            user_id: 'first',
             first_name: 'Loriane',
             last_name: 'HILDERAL',
             email: 'loriane@gmail.com',

@@ -6,4 +6,5 @@ export type UserLoginDto = {
 export type UserLoginResponse = {
     success: boolean
     error?: string
+    token?: string
 }

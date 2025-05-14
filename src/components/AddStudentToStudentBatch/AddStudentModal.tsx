@@ -26,7 +26,7 @@ export default function AddStudentModal({
     const [isLoading, setIsLoading] = useState(false)
     const [studentData, setStudentData] = useState<Student>({
         last_name: '',
-        id: 'nobody',
+        user_id: 'nobody',
         first_name: '',
         email: '',
     })
