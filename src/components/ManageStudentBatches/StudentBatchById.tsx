@@ -33,7 +33,6 @@ export default function StudentBatchById() {
         setBatchEditData((prev) => ({ ...prev, [id]: value }))
     }
     const updateSelectedStudents = (selectedStudents: Student[]) => {
-        console.log(selectedStudents)
         setBatchEditData((prev) => ({
             ...prev,
             students: [...selectedStudents],
@@ -132,8 +131,7 @@ export default function StudentBatchById() {
                                     onChange={handleChange}
                                 />
                             </TableCell>
-                            <TableCell>{0}</TableCell>
-                            {/*TODO: add batch.students/length later*/}
+                            <TableCell>{batch.students.length}</TableCell>
                             <TableCell>
                                 {formatToShortDate(batch.createdAt)}
                             </TableCell>

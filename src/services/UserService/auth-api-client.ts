@@ -37,16 +37,22 @@ export const batchService = {
     getOneById: async (id: string): Promise<BatchServiceResponse> => {
         try {
             const response = await fetch(
-                `${PROJECT_API_URL}/student-batches/${id}`
+                `${PROJECT_API_URL}/student-batches/${id}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
             )
             if (!response.ok) {
                 const error: ApiErrorMessage = await response.json()
                 return handleApiError(error.message)
             } else {
                 const batch: StudentBatch = await response.json()
+                console.log(batch)
                 return {
                     success: true,
-                    data: { ...batch, students: [] }, //TODO: change when backend sends students
+                    data: batch,
                 }
             }
             // return {
@@ -60,7 +66,11 @@ export const batchService = {
     },
     getAll: async (): Promise<BatchServiceResponse> => {
         try {
-            const response = await fetch(`${PROJECT_API_URL}/student-batches`)
+            const response = await fetch(`${PROJECT_API_URL}/student-batches`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                },
+            })
             if (!response.ok) {
                 const error: ApiErrorMessage = await response.json()
                 return handleApiError(error.message)
@@ -116,7 +126,10 @@ export const batchService = {
         try {
             const response = await fetch(`${PROJECT_API_URL}/student-batches`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                },
                 body: JSON.stringify(createBatchData),
             })
             if (!response.ok) {
@@ -145,6 +158,9 @@ export const batchService = {
                 `${PROJECT_API_URL}/student-batches/${id}`,
                 {
                     method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
                 }
             )
             if (!response.ok) {
@@ -157,11 +173,11 @@ export const batchService = {
                     data: batch, //TODO: change when backend sends students
                 }
             }
-        }catch (error) {
+        } catch (error) {
             const err = error as ApiErrorMessage
             return handleApiError(err.message)
         }
-    }
+    },
 }
 export const authService = {
     register: async (
@@ -186,19 +202,28 @@ export const authService = {
             return handleApiError(err.message)
         }
     },
+    // login: async (loginData: UserLoginDto): Promise<UserLoginResponse> => {
+    //     console.log(loginData)
+    //     return { success: false, error: 'Not implemented yet' }
+    // },
     login: async (loginData: UserLoginDto): Promise<UserLoginResponse> => {
-        console.log(loginData)
-        return { success: false, error: 'Not implemented yet' }
-    },
-    ssoLogin: async () => {
         try {
             const response = await fetch(
-                `${AUTH_API_URL}/user-api/auth/callback/google`
+                `${AUTH_API_URL}/user-api/login/teacher`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(loginData),
+                }
             )
             if (!response.ok) {
                 const error: ApiErrorMessage = await response.json()
                 return handleApiError(error.message)
             }
+            const data: { token: string } = await response.json()
+            //TODO: get a secure cookie instead of local storage late
+            localStorage.setItem('auth_token', data.token)
+            return { success: response.ok, token: data.token }
         } catch (error) {
             const err = error as Error
             return handleApiError(err.message)

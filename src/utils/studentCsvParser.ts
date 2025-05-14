@@ -21,7 +21,7 @@ export async function makeStudentsFromFile(
                 for (const student of studentsParsed) {
                     students.push({
                         ...student,
-                        id: `id-${Date.now()}-${index}`,
+                        user_id: `id-${Date.now()}-${index}`,
                     })
                     index++
                 }

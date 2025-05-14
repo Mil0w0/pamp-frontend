@@ -22,7 +22,8 @@ import { useNavigate } from 'react-router'
 import { batchService } from '@/services/UserService/auth-api-client.ts'
 import { useEffect, useState } from 'react'
 import AddStudentBatchModal from '@/components/ManageStudentBatches/AddStudentBatchModal.tsx'
-import {formatToShortDate} from "@/utils/dateFormatter.ts";
+import { formatToShortDate } from '@/utils/dateFormatter.ts'
+
 export default function StudentBatchesPage() {
     const navigate = useNavigate()
     const [isLoading, setIsLoading] = useState(false)
@@ -112,8 +113,10 @@ export default function StudentBatchesPage() {
                                 </Badge>
                             </TableCell>
                             <TableCell>{batch.name}</TableCell>
-                            <TableCell>{0}</TableCell> {/*TODO: add batch.students/length later*/}
-                            <TableCell>{formatToShortDate(batch.createdAt)}</TableCell>
+                            <TableCell>{batch.students.length}</TableCell>
+                            <TableCell>
+                                {formatToShortDate(batch.createdAt)}
+                            </TableCell>
                             <TableCell>{batch.tags}</TableCell>
                             <TableCell>
                                 <DropdownMenu>

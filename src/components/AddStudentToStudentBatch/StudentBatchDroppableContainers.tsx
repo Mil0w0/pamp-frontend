@@ -8,43 +8,43 @@ import AddStudentModal from '@/components/AddStudentToStudentBatch/AddStudentMod
 
 const initialStudents = [
     {
-        id: '1',
+        user_id: '1',
         first_name: 'Lara',
         last_name: 'CROFT',
         email: 'lara@gmail.com',
     },
     {
-        id: '2',
+        user_id: '2',
         first_name: 'Max',
         last_name: 'CHARLES',
         email: 'nino@gmail.com',
     },
     {
-        id: '3',
+        user_id: '3',
         first_name: 'Lara',
         last_name: 'CROFT',
         email: 'lara@gmail.com',
     },
     {
-        id: '42',
+        user_id: '42',
         first_name: 'Max',
         last_name: 'CHARLES',
         email: 'nino@gmail.com',
     },
     {
-        id: '492',
+        user_id: '492',
         first_name: 'Max',
         last_name: 'CHARLES',
         email: 'nino@gmail.com',
     },
     {
-        id: '20',
+        user_id: '20',
         first_name: 'Max',
         last_name: 'CHARLES',
         email: 'nino@gmail.com',
     },
     {
-        id: '219',
+        user_id: '219',
         first_name: 'Max',
         last_name: 'CHARLES',
         email: 'nino@gmail.com',
@@ -60,20 +60,20 @@ export default function StudentBatchDroppableContainers({
     setSelectedStudents,
 }: StudentBatchDroppableContainersProps) {
     const [allStudents, setAllStudents] = useState<Student[]>(initialStudents) //todo: getAllStudents from the DB or from the teacher Default promotion ?
-    const selectedIds = selectedStudents.map((s) => s.id)
+    const selectedIds = selectedStudents.map((s) => s.user_id)
     const availableStudents = allStudents.filter(
-        (s) => !selectedIds.includes(s.id)
+        (s) => !selectedIds.includes(s.user_id)
     )
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { over, active } = event
         if (over?.id === 'selected' && active?.id) {
             const draggedStudent = availableStudents.find(
-                (s) => s.id === active.id
+                (s) => s.user_id === active.id
             )
             if (
                 draggedStudent &&
-                !selectedStudents.some((s) => s.id === active.id)
+                !selectedStudents.some((s) => s.user_id === active.id)
             ) {
                 setSelectedStudents([...selectedStudents, draggedStudent])
             }
@@ -81,12 +81,12 @@ export default function StudentBatchDroppableContainers({
     }
 
     const handleRemove = (id: string) => {
-        setSelectedStudents(selectedStudents.filter((s) => s.id !== id))
+        setSelectedStudents(selectedStudents.filter((s) => s.user_id !== id))
     }
 
     const handleAddAll = () => {
         const toAdd = availableStudents.filter(
-            (s) => !selectedStudents.find((ss) => ss.id === s.id)
+            (s) => !selectedStudents.find((ss) => ss.user_id === s.user_id)
         )
         setSelectedStudents(toAdd)
     }
@@ -114,7 +114,7 @@ export default function StudentBatchDroppableContainers({
                                 ) : (
                                     availableStudents.map((student) => (
                                         <DraggableStudent
-                                            key={student.id}
+                                            key={student.user_id}
                                             student={student}
                                         />
                                     ))
@@ -149,7 +149,7 @@ export default function StudentBatchDroppableContainers({
                                 ) : (
                                     selectedStudents.map((student) => (
                                         <div
-                                            key={student.id}
+                                            key={student.user_id}
                                             className="p-2 m-2 bg-white dark:bg-sidebar-accent border rounded shadow cursor-move flex items-center gap-2"
                                         >
                                             <span>
@@ -159,7 +159,9 @@ export default function StudentBatchDroppableContainers({
                                             </span>
                                             <button
                                                 onClick={() =>
-                                                    handleRemove(student.id)
+                                                    handleRemove(
+                                                        student.user_id
+                                                    )
                                                 }
                                                 style={{ cursor: 'pointer' }}
                                                 className="text-red-500 hover:text-red-700"

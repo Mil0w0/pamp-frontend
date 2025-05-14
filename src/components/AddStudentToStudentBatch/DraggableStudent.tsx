@@ -3,7 +3,7 @@ import { Student } from '@/components/ManageStudentBatches/types.ts'
 
 export const DraggableStudent = ({ student }: { student: Student }) => {
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
-        id: student.id,
+        id: student.user_id,
     })
 
     return (
