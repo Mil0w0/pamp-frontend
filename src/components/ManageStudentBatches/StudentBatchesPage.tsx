@@ -99,61 +99,74 @@ export default function StudentBatchesPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {studentBatches?.map((batch) => (
-                        <TableRow key={batch.id} className="h-4">
-                            <TableCell className="font-medium">
-                                <Badge
-                                    variant={
-                                        batch.state.toUpperCase() === 'ACTIVE'
-                                            ? 'default'
-                                            : 'secondary'
-                                    }
-                                >
-                                    {batch.state}
-                                </Badge>
-                            </TableCell>
-                            <TableCell>{batch.name}</TableCell>
-                            <TableCell>{batch.students.length}</TableCell>
+                    {studentBatches?.length === 0 ? (
+                        <TableRow>
                             <TableCell>
-                                {formatToShortDate(batch.createdAt)}
-                            </TableCell>
-                            <TableCell>{batch.tags}</TableCell>
-                            <TableCell>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            style={{ cursor: 'pointer' }}
-                                            variant="outline"
-                                        >
-                                            ...
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuLabel>
-                                            I want to ...{' '}
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                            style={{ cursor: 'pointer' }}
-                                            disabled={isLoading}
-                                            onClick={() => deleteItem(batch.id)}
-                                        >
-                                            Delete this
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            style={{ cursor: 'pointer' }}
-                                            disabled={isLoading}
-                                            onClick={() =>
-                                                goToStudentBatchesById(batch.id)
-                                            }
-                                        >
-                                            Modify this
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                Nothing yet, add your first promotion.
                             </TableCell>
                         </TableRow>
-                    ))}
+                    ) : (
+                        studentBatches?.map((batch) => (
+                            <TableRow key={batch.id} className="h-4">
+                                <TableCell className="font-medium">
+                                    <Badge
+                                        variant={
+                                            batch.state.toUpperCase() ===
+                                            'ACTIVE'
+                                                ? 'default'
+                                                : 'secondary'
+                                        }
+                                    >
+                                        {batch.state}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>{batch.name}</TableCell>
+                                <TableCell>{batch.students.length}</TableCell>
+                                <TableCell>
+                                    {formatToShortDate(batch.createdAt)}
+                                </TableCell>
+                                <TableCell>{batch.tags}</TableCell>
+                                <TableCell>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                style={{ cursor: 'pointer' }}
+                                                variant="outline"
+                                            >
+                                                ...
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuLabel>
+                                                I want to ...{' '}
+                                            </DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                style={{ cursor: 'pointer' }}
+                                                disabled={isLoading}
+                                                onClick={() =>
+                                                    deleteItem(batch.id)
+                                                }
+                                            >
+                                                Delete this
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                style={{ cursor: 'pointer' }}
+                                                disabled={isLoading}
+                                                onClick={() =>
+                                                    goToStudentBatchesById(
+                                                        batch.id
+                                                    )
+                                                }
+                                            >
+                                                Modify this
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    )}
                 </TableBody>
             </Table>
         </div>
