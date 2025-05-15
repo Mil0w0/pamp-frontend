@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label.tsx'
 import { ChangeEvent, useState } from 'react'
 import {
     NewStudentBatch,
-    StudentBatch,
 } from '@/components/ManageStudentBatches/types.ts'
 import { toast } from 'sonner'
 import PampButton from '@/components/ui/pamp-button.tsx'
