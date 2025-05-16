@@ -24,6 +24,7 @@ createRoot(document.getElementById('root')!).render(
                         path="/register/teacher"
                         element={<TeacherRegister />}
                     />
+                    <Route path="/" element={<App />} />
                 </Route>
                 <Route
                     path="/student-batches/"
@@ -33,7 +34,6 @@ createRoot(document.getElementById('root')!).render(
                     path="/student-batches/:id"
                     element={<StudentBatchById />}
                 />
-                <Route path="/" element={<App />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="*" element={<Error404 />} />
             </Routes>
