@@ -113,7 +113,7 @@ export default function LogIn({
                             className="w-full"
                             disabled={isLoading}
                             onClick={() =>
-                                (window.location.href = `${AUTH_API_URL}/user-api/login/google`)
+                                (window.location.href = `${AUTH_API_URL}/login/google`)
                             }
                         >
                             <svg
