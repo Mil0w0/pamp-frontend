@@ -8,7 +8,7 @@ function CustomHeader() {
     return (
         <header className="bg-sidebar-primary text-sidebar-primary-foreground ">
             <nav
-                className="mx-auto flex max-w-7xl items-center justify-right p-6 lg:px-8 border-b-1 border-white"
+                className="mx-auto flex max-w-7xl items-center justify-right p-6 lg:px-8 border-b-1 border-secondary"
                 aria-label="Global"
             >
                 <div className="flex mr-4">

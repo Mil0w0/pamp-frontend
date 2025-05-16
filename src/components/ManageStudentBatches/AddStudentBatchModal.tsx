@@ -10,9 +10,7 @@ import { Button } from '@/components/ui/button.tsx'
 import { Input } from '@/components/ui/input.tsx'
 import { Label } from '@/components/ui/label.tsx'
 import { ChangeEvent, useState } from 'react'
-import {
-    NewStudentBatch,
-} from '@/components/ManageStudentBatches/types.ts'
+import { NewStudentBatch } from '@/components/ManageStudentBatches/types.ts'
 import { toast } from 'sonner'
 import PampButton from '@/components/ui/pamp-button.tsx'
 import { useNavigate } from 'react-router'
@@ -31,12 +29,11 @@ export default function AddStudentBatchModal() {
     }
 
     async function createNewStudentBatch() {
-        let id: string
         try {
             const response = await batchService.createBatch(studentBatchData)
             if (response.success) {
                 if (response.data && !(response.data instanceof Array)) {
-                    id = response.data.id
+                    const id = response.data.id
                     toast.success('Successfully created')
                     navigate(`/student-batches/${id}`)
                 }

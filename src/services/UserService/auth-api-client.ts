@@ -1,4 +1,4 @@
-// Client pour le micro service d'auth en rust
+// Client pour le micro service d'auth/users en rust
 
 import {
     TeacherRegisterDto,
@@ -7,8 +7,10 @@ import {
 import { UserLoginDto, UserLoginResponse } from '@/components/LogIn/types.ts'
 import {
     EditBatchDTO,
+    Student,
     StudentBatch,
 } from '@/components/ManageStudentBatches/types.ts'
+import { User } from '@/services/UserService/types.ts'
 
 export const AUTH_API_URL: string =
     import.meta.env.VITE_AUTH_API_URL || 'http://localhost:3000'
@@ -26,7 +28,7 @@ export type ApiErrorMessage = {
 export type BatchServiceResponse = {
     error?: string
     success: boolean
-    data?: StudentBatch | StudentBatch[]
+    data?: StudentBatch | StudentBatch[] | Student[]
 }
 
 export type CreateBatchDTO = {
@@ -138,15 +140,6 @@ export const batchService = {
             }
             const batch: StudentBatch = await response.json()
             return { success: response.ok, data: batch }
-            // return { success: true, data: {
-            //     name: "Test",
-            //         id: "1",
-            //         tags: "",
-            //         createdAt: "12/05/25",
-            //         students: [],
-            //         state: "Active",
-            //     }
-            //}
         } catch (error) {
             const err = error as Error
             return handleApiError(err.message)
@@ -170,7 +163,7 @@ export const batchService = {
                 const batch: StudentBatch = await response.json()
                 return {
                     success: true,
-                    data: batch, //TODO: change when backend sends students
+                    data: batch,
                 }
             }
         } catch (error) {
@@ -202,10 +195,31 @@ export const authService = {
             return handleApiError(err.message)
         }
     },
-    // login: async (loginData: UserLoginDto): Promise<UserLoginResponse> => {
-    //     console.log(loginData)
-    //     return { success: false, error: 'Not implemented yet' }
-    // },
+    getStudents: async (): Promise<BatchServiceResponse> => {
+        try {
+            const response = await fetch(`${AUTH_API_URL}/user-api/users`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                },
+            })
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiError(error.message)
+            } else {
+                const users: User[] = await response.json()
+                const students = users.filter(
+                    (user) => user.role.toLowerCase() === 'student'
+                )
+                return {
+                    success: true,
+                    data: students as Student[],
+                }
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleApiError(err.message)
+        }
+    },
     login: async (loginData: UserLoginDto): Promise<UserLoginResponse> => {
         try {
             const response = await fetch(

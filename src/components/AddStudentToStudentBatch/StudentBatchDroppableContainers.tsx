@@ -1,55 +1,13 @@
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Student } from '@/components/ManageStudentBatches/types.ts'
 import { DroppableZone } from '@/components/AddStudentToStudentBatch/DroppableZone.tsx'
 import { DraggableStudent } from '@/components/AddStudentToStudentBatch/DraggableStudent.tsx'
 import { Button } from '@/components/ui/button.tsx'
 import AddStudentModal from '@/components/AddStudentToStudentBatch/AddStudentModal.tsx'
+import { authService } from '@/services/UserService/auth-api-client.ts'
+import { toast } from 'sonner'
 
-const initialStudents = [
-    {
-        user_id: '1',
-        first_name: 'Lara',
-        last_name: 'CROFT',
-        email: 'lara@gmail.com',
-    },
-    {
-        user_id: '2',
-        first_name: 'Max',
-        last_name: 'CHARLES',
-        email: 'nino@gmail.com',
-    },
-    {
-        user_id: '3',
-        first_name: 'Lara',
-        last_name: 'CROFT',
-        email: 'lara@gmail.com',
-    },
-    {
-        user_id: '42',
-        first_name: 'Max',
-        last_name: 'CHARLES',
-        email: 'nino@gmail.com',
-    },
-    {
-        user_id: '492',
-        first_name: 'Max',
-        last_name: 'CHARLES',
-        email: 'nino@gmail.com',
-    },
-    {
-        user_id: '20',
-        first_name: 'Max',
-        last_name: 'CHARLES',
-        email: 'nino@gmail.com',
-    },
-    {
-        user_id: '219',
-        first_name: 'Max',
-        last_name: 'CHARLES',
-        email: 'nino@gmail.com',
-    },
-]
 export type StudentBatchDroppableContainersProps = {
     selectedStudents: Student[]
     setSelectedStudents: (students: Student[]) => void
@@ -59,7 +17,7 @@ export default function StudentBatchDroppableContainers({
     selectedStudents,
     setSelectedStudents,
 }: StudentBatchDroppableContainersProps) {
-    const [allStudents, setAllStudents] = useState<Student[]>(initialStudents) //todo: getAllStudents from the DB or from the teacher Default promotion ?
+    const [allStudents, setAllStudents] = useState<Student[]>([])
     const selectedIds = selectedStudents.map((s) => s.user_id)
     const availableStudents = allStudents.filter(
         (s) => !selectedIds.includes(s.user_id)
@@ -93,6 +51,28 @@ export default function StudentBatchDroppableContainers({
 
     const handleFilterStudents = () => {}
 
+    const getAllStudents = async () => {
+        try {
+            const response = await authService.getStudents()
+            if (response.success) {
+                return response.data as Student[]
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error('Something went wrong.')
+            console.error(error)
+        }
+    }
+    useEffect(() => {
+        getAllStudents()
+            .then((students) => {
+                if (typeof students !== 'undefined') {
+                    setAllStudents(students)
+                }
+            })
+            .catch((error) => console.log(error))
+    }, [])
     return (
         <div className="p-6 space-y-6">
             <DndContext

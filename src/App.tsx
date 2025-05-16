@@ -1,6 +1,7 @@
 import 'react'
+
 function App() {
-    return <>app</>
+    return <>Pamp home page</>
 }
 
 export default App
