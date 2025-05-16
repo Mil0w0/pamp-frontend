@@ -188,7 +188,7 @@ export const authService = {
     ): Promise<TeacherRegisterResponse> => {
         try {
             const response = await fetch(
-                `${AUTH_API_URL}/auth/register/teacher`,
+                `${AUTH_API_URL}/register/teacher`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
