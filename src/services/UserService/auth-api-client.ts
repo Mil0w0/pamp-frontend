@@ -12,8 +12,18 @@ import {
 } from '@/components/ManageStudentBatches/types.ts'
 import { User } from '@/services/UserService/types.ts'
 
+declare global {
+    interface Window {
+        RUNTIME_CONFIG?: {
+            AUTH_API_URL?: string
+        }
+    }
+}
+
 export const AUTH_API_URL: string =
-    import.meta.env.VITE_AUTH_API_URL || 'http://localhost:3000'
+    window.RUNTIME_CONFIG?.AUTH_API_URL ||
+    import.meta.env.VITE_AUTH_API_URL ||
+    'http://localhost:3000'
 
 export const PROJECT_API_URL: string =
     import.meta.env.VITE_PROJECT_API_URL || 'http://localhost:3000'
@@ -178,7 +188,7 @@ export const authService = {
     ): Promise<TeacherRegisterResponse> => {
         try {
             const response = await fetch(
-                `${AUTH_API_URL}/user-api/auth/register/teacher`,
+                `${AUTH_API_URL}/auth/register/teacher`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -197,7 +207,7 @@ export const authService = {
     },
     getStudents: async (): Promise<BatchServiceResponse> => {
         try {
-            const response = await fetch(`${AUTH_API_URL}/user-api/users`, {
+            const response = await fetch(`${AUTH_API_URL}/users`, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
                 },
@@ -223,7 +233,7 @@ export const authService = {
     login: async (loginData: UserLoginDto): Promise<UserLoginResponse> => {
         try {
             const response = await fetch(
-                `${AUTH_API_URL}/user-api/login/teacher`,
+                `${AUTH_API_URL}/login/teacher`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
