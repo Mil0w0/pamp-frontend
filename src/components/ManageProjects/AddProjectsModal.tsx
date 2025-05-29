@@ -10,32 +10,33 @@ import { Button } from '@/components/ui/button.tsx'
 import { Input } from '@/components/ui/input.tsx'
 import { Label } from '@/components/ui/label.tsx'
 import { ChangeEvent, useState } from 'react'
-import { NewStudentBatch } from '@/components/ManageStudentBatches/types.ts'
 import { toast } from 'sonner'
 import PampButton from '@/components/ui/pamp-button.tsx'
 import { useNavigate } from 'react-router'
-import { batchService } from '@/services/UserService/auth-api-client.ts'
+import { CreateProjectDto } from '@/components/ManageProjects/types.ts'
+import { projectService } from '@/services/ProjectService/project-api-client.ts'
 
-export default function AddStudentBatchModal() {
+export default function AddProjectModal() {
     const navigate = useNavigate()
     const [openModal, setOpenModal] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-    const [studentBatchData, setstudentBatchData] = useState<NewStudentBatch>({
+    const [projectData, setprojectData] = useState<CreateProjectDto>({
         name: '',
+        description: '',
     })
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.currentTarget
-        setstudentBatchData((prev) => ({ ...prev, [id]: value }))
+        setprojectData((prev) => ({ ...prev, [id]: value }))
     }
 
-    async function createNewStudentBatch() {
+    async function createProject() {
         try {
-            const response = await batchService.createBatch(studentBatchData)
+            const response = await projectService.createBatch(projectData)
             if (response.success) {
                 if (response.data && !(response.data instanceof Array)) {
                     const id = response.data.id
                     toast.success('Successfully created')
-                    navigate(`/student-batches/${id}`)
+                    navigate(`/projects/${id}`)
                 }
             } else {
                 toast.error(response.error)
@@ -51,13 +52,14 @@ export default function AddStudentBatchModal() {
     return (
         <Dialog open={openModal} onOpenChange={setOpenModal}>
             <DialogTrigger asChild>
-                <PampButton message={'New batch'} />
+                <PampButton message={'New project'} />
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Create a new promotion</DialogTitle>
+                    <DialogTitle>Create a new project</DialogTitle>
                     <DialogDescription>
-                        Name it now and add students to it right after.
+                        One project is linked to one student batch. Copy it and
+                        change the studentBatch if u want to re-use it.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -66,7 +68,17 @@ export default function AddStudentBatchModal() {
                     <Input
                         id="name"
                         type="text"
-                        placeholder="Ex: Promotion Z"
+                        placeholder="Ex: Projet ZA"
+                        required
+                        onChange={handleChange}
+                    />
+                </div>
+                <div className="grid gap-3">
+                    <Label htmlFor="firstName">Description</Label>
+                    <Input
+                        id="description"
+                        type="text"
+                        placeholder="Ex: This is a project"
                         required
                         onChange={handleChange}
                     />
@@ -75,7 +87,7 @@ export default function AddStudentBatchModal() {
                     style={{ cursor: 'pointer' }}
                     type="submit"
                     className="w-full"
-                    onClick={() => createNewStudentBatch()}
+                    onClick={() => createProject()}
                     disabled={isLoading}
                 >
                     Create
