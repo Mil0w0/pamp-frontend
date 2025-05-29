@@ -34,7 +34,8 @@ export default function LogIn({
             const response: UserLoginResponse =
                 await authService.login(formData)
             if (response.success) {
-                toast.success(`Logged in successfully: ${response.token}`)
+                toast.success(`Logged in successfully`)
+                console.log(response.token)
                 window.location.href = '/'
             } else {
                 toast.error(response.error)
