@@ -13,6 +13,7 @@ import StudentBatchById from '@/components/ManageStudentBatches/StudentBatchById
 import { ThemeProvider } from '@/components/ui/theme-provider'
 import AuthCallback from '@/components/LogIn/AuthCallback.tsx'
 import Logout from '@/components/LogIn/Logout.tsx'
+import ProjectsPage from "@/components/ManageProjects/ProjectsPage.tsx";
 
 createRoot(document.getElementById('root')!).render(
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
@@ -30,6 +31,10 @@ createRoot(document.getElementById('root')!).render(
                 <Route
                     path="/student-batches/"
                     element={<StudentBatchesPage />}
+                />
+                <Route
+                    path="/projects/"
+                    element={<ProjectsPage />}
                 />
                 <Route
                     path="/student-batches/:id"
