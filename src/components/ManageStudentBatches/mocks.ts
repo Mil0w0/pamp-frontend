@@ -15,6 +15,7 @@ export const severalStudentBatches: StudentBatch[] = [
                 email: 'loriane@gmail.com',
             },
         ],
+        projects: [],
     },
     {
         id: '2',
@@ -36,6 +37,7 @@ export const severalStudentBatches: StudentBatch[] = [
                 email: 'nino@gmail.com',
             },
         ],
+        projects: [],
     },
 ]
 
@@ -53,4 +55,5 @@ export const oneStudentStudentBatch: StudentBatch = {
             email: 'loriane@gmail.com',
         },
     ],
+    projects: [],
 }
