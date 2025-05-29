@@ -79,6 +79,25 @@ export default function ProjectsPage() {
             setProjects(data)
         })
     }, [])
+
+    async function copyProject(itemId: string) {
+        setIsLoading(true)
+        try {
+            const response = await projectService.copyProject(itemId)
+            if (response.success) {
+                toast.success('Copied successfully')
+                const copiedProject = response.data as Project
+                navigate(`/projects/${copiedProject.id}`)
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error(`Une erreur est survenue. ${error}`)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     return (
         <div className="p-24 flex flex-col gap-8">
             <div className="flex justify-between">
@@ -165,9 +184,7 @@ export default function ProjectsPage() {
                                                 style={{ cursor: 'pointer' }}
                                                 disabled={isLoading}
                                                 onClick={() =>
-                                                    toast.warning(
-                                                        'Not implemented yet'
-                                                    )
+                                                    copyProject(project.id)
                                                 }
                                             >
                                                 Copy this

@@ -90,6 +90,29 @@ export const projectService = {
             return handleApiError(err.message)
         }
     },
+    copyProject: async (projectId: string): Promise<ProjectApiResponse> => {
+        try {
+            const response = await fetch(
+                `${PROJECT_API_URL}/projects/${projectId}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
+            )
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiError(error.message)
+            }
+            const project: Project = await response.json()
+            return { success: response.ok, data: project }
+        } catch (error) {
+            const err = error as Error
+            return handleApiError(err.message)
+        }
+    },
     deleteBatch: async (id: string): Promise<ProjectApiResponse> => {
         try {
             const response = await fetch(`${PROJECT_API_URL}/projects/${id}`, {

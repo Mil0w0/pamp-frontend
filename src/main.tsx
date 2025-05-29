@@ -14,6 +14,7 @@ import { ThemeProvider } from '@/components/ui/theme-provider'
 import AuthCallback from '@/components/LogIn/AuthCallback.tsx'
 import Logout from '@/components/LogIn/Logout.tsx'
 import ProjectsPage from "@/components/ManageProjects/ProjectsPage.tsx";
+import ProjectByIdPage from "@/components/ManageProjects/ProjectByIdPage.tsx";
 
 createRoot(document.getElementById('root')!).render(
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
@@ -39,6 +40,10 @@ createRoot(document.getElementById('root')!).render(
                 <Route
                     path="/student-batches/:id"
                     element={<StudentBatchById />}
+                />
+                <Route
+                    path="/projects/:id"
+                    element={<ProjectByIdPage />}
                 />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/logout" element={<Logout />} />
