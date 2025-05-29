@@ -93,6 +93,7 @@ export default function StudentBatchesPage() {
                         <TableHead className="w-[100px]">State</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Students</TableHead>
+                        <TableHead>Projects</TableHead>
                         <TableHead>Created at</TableHead>
                         <TableHead>Tags</TableHead>
                         <TableHead>Actions</TableHead>
@@ -122,6 +123,7 @@ export default function StudentBatchesPage() {
                                 </TableCell>
                                 <TableCell>{batch.name}</TableCell>
                                 <TableCell>{batch.students.length}</TableCell>
+                                <TableCell>{batch.projects.length}</TableCell>
                                 <TableCell>
                                     {formatToShortDate(batch.createdAt)}
                                 </TableCell>

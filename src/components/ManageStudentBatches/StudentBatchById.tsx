@@ -92,6 +92,7 @@ export default function StudentBatchById() {
     if (isLoading) {
         return 'is loading'
     }
+    //TODO:  error handling
     return (
         <div className="p-24 flex flex-col gap-8">
             <div className="flex justify-between">
@@ -105,6 +106,7 @@ export default function StudentBatchById() {
                             <TableHead className="w-[100px]">State</TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Students</TableHead>
+                            <TableHead>Projects</TableHead>
                             <TableHead>Created at</TableHead>
                             <TableHead>Tags</TableHead>
                         </TableRow>
@@ -133,6 +135,7 @@ export default function StudentBatchById() {
                                 />
                             </TableCell>
                             <TableCell>{batch.students.length}</TableCell>
+                            <TableCell>{batch.projects.length}</TableCell>
                             <TableCell>
                                 {formatToShortDate(batch.createdAt)}
                             </TableCell>
