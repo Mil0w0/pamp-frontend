@@ -13,6 +13,7 @@ import { ChangeEvent, useState } from 'react'
 import { Student } from '@/components/ManageStudentBatches/types.ts'
 import { toast } from 'sonner'
 import { makeStudentsFromFile } from '@/utils/studentCsvParser.ts'
+
 type AddStudentModalProps = {
     selectedStudents: Student[]
     setSelectedStudents: (students: Student[]) => void
@@ -26,9 +27,9 @@ export default function AddStudentModal({
     const [isLoading, setIsLoading] = useState(false)
     const [studentData, setStudentData] = useState<Student>({
         last_name: '',
-        user_id: 'nobody',
         first_name: '',
         email: '',
+        user_id: '',
     })
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
@@ -39,10 +40,14 @@ export default function AddStudentModal({
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.currentTarget
+        //make a fake id to handle the draggable object
+        if (id === 'email') {
+            setStudentData((prev) => ({ ...prev, ['user_id']: value }))
+        }
         setStudentData((prev) => ({ ...prev, [id]: value }))
     }
+
     function addSingleNewStudent() {
-        console.log(selectedStudents)
         setIsLoading(true)
 
         if (
@@ -50,7 +55,7 @@ export default function AddStudentModal({
             studentData.first_name != '' &&
             studentData.email != ''
         ) {
-            setSelectedStudents([...selectedStudents, studentData]) //todo: what if the user already exist tho ?
+            setSelectedStudents([...selectedStudents, studentData])
         } else {
             toast('Missing field for new student')
         }

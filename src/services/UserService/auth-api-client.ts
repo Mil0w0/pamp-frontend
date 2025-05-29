@@ -6,6 +6,7 @@ import {
 } from '@/components/Register/types.ts'
 import { UserLoginDto, UserLoginResponse } from '@/components/LogIn/types.ts'
 import {
+    BetterEditBatchDTO,
     EditBatchDTO,
     Student,
     StudentBatch,
@@ -107,6 +108,20 @@ export const batchService = {
         id: string,
         batchEditData: EditBatchDTO
     ): Promise<BatchServiceResponse> => {
+        //transform the object from the form to the format for the API
+        const newBatchEditData: BetterEditBatchDTO = {
+            ...batchEditData,
+        }
+
+        if (batchEditData.students && batchEditData.students.length > 0) {
+            newBatchEditData.students = batchEditData.students.map(
+                (student) => ({
+                    email: student.email,
+                    first_name: student.first_name,
+                    last_name: student.last_name,
+                })
+            )
+        }
         try {
             const response = await fetch(
                 `${PROJECT_API_URL}/student-batches/${id}`,
@@ -116,7 +131,7 @@ export const batchService = {
                         'Content-Type': 'application/json',
                         Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
                     },
-                    body: JSON.stringify(batchEditData),
+                    body: JSON.stringify(newBatchEditData),
                 }
             )
             if (!response.ok) {
