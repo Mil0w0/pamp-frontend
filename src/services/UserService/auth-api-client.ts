@@ -88,6 +88,7 @@ export const batchService = {
                 return handleApiError(error.message)
             } else {
                 const batches: StudentBatch[] = await response.json()
+                console.log(batches)
                 return {
                     success: true,
                     data: batches,
@@ -106,13 +107,15 @@ export const batchService = {
         id: string,
         batchEditData: EditBatchDTO
     ): Promise<BatchServiceResponse> => {
-        console.log(batchEditData)
         try {
             const response = await fetch(
                 `${PROJECT_API_URL}/student-batches/${id}`,
                 {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
                     body: JSON.stringify(batchEditData),
                 }
             )
@@ -187,14 +190,11 @@ export const authService = {
         teacherRegisterData: TeacherRegisterDto
     ): Promise<TeacherRegisterResponse> => {
         try {
-            const response = await fetch(
-                `${AUTH_API_URL}/register/teacher`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(teacherRegisterData),
-                }
-            )
+            const response = await fetch(`${AUTH_API_URL}/register/teacher`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(teacherRegisterData),
+            })
             if (!response.ok) {
                 const error: ApiErrorMessage = await response.json()
                 return handleApiError(error.message)
@@ -232,14 +232,11 @@ export const authService = {
     },
     login: async (loginData: UserLoginDto): Promise<UserLoginResponse> => {
         try {
-            const response = await fetch(
-                `${AUTH_API_URL}/login/teacher`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(loginData),
-                }
-            )
+            const response = await fetch(`${AUTH_API_URL}/login/teacher`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(loginData),
+            })
             if (!response.ok) {
                 const error: ApiErrorMessage = await response.json()
                 return handleApiError(error.message)

@@ -1,9 +1,16 @@
 import { useTheme } from '@/components/ui/theme-provider.tsx'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 function CustomHeader() {
     const { theme, setTheme } = useTheme()
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [loginLogoutLink, setLoginLogoutLink] = useState(
+        !localStorage.getItem('auth_token')
+    )
+
+    useEffect(() => {
+        setLoginLogoutLink(!loginLogoutLink)
+    }, [localStorage.getItem('auth_token')])
 
     return (
         <header className="bg-sidebar-primary text-sidebar-primary-foreground ">
@@ -12,12 +19,12 @@ function CustomHeader() {
                 aria-label="Global"
             >
                 <div className="flex mr-4">
-                    <a href="#" className="-m-1.5 p-1.5">
+                    <a href="/" className="-m-1.5 p-1.5">
                         <span className="sr-only">PAMP</span>
                         <img
-                            className="h-8 w-auto"
-                            src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=yellow&shade=400"
-                            alt=""
+                            className="h-12 w-auto"
+                            src="/logo/PAMP-logo@0.5x.png"
+                            alt="pamp logo"
                         />
                     </a>
                 </div>
@@ -54,8 +61,12 @@ function CustomHeader() {
                     </a>
                 </div>
                 <div className="hidden lg:flex lg:flex-1  lg:items-center lg:justify-end">
-                    <a href="/login" className="text-sm/6 font-semibold">
-                        Log in <span aria-hidden="true">&rarr;</span>
+                    <a
+                        href={!loginLogoutLink ? '/login' : '/logout'}
+                        className="text-sm/6 font-semibold"
+                    >
+                        {!loginLogoutLink ? 'Log in' : 'Log out'}{' '}
+                        <span aria-hidden="true">&rarr;</span>
                     </a>
                     <div
                         className="flex flex-col justify-center ml-3"
@@ -119,11 +130,11 @@ function CustomHeader() {
                     <div className="fixed inset-0 z-10"></div>
                     <div className="fixed inset-y-0 right-0 z-10 w-full overflow-y-auto bg-sidebar-primary px-6 py-6 dark:sm:ring-white sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
                         <div className="flex items-center justify-between">
-                            <a href="#" className="-m-1.5 p-1.5">
-                                <span className="sr-only">Your Company</span>
+                            <a href="/" className="-m-1.5 p-1.5">
+                                <span className="sr-only">PAMP</span>
                                 <img
                                     className="h-8 w-auto"
-                                    src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=yellow&shade=400"
+                                    src="/logo/PAMP-logo@0.5x.png"
                                     alt=""
                                 />
                             </a>
@@ -164,10 +175,16 @@ function CustomHeader() {
                                 </div>
                                 <div className="py-6">
                                     <a
-                                        href="/login"
+                                        href={
+                                            !loginLogoutLink
+                                                ? '/login'
+                                                : '/logout'
+                                        }
                                         className="-mx-3 block rounded-lg px-3 py-2.5 text-base/7 font-semibold hover:bg-gray-50"
                                     >
-                                        Log in
+                                        {!loginLogoutLink
+                                            ? 'Log in'
+                                            : 'Log out'}
                                     </a>
                                     <div
                                         className="flex flex-col justify-center mt-4"

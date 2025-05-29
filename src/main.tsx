@@ -12,6 +12,7 @@ import { Toaster } from 'sonner'
 import StudentBatchById from '@/components/ManageStudentBatches/StudentBatchById.tsx'
 import { ThemeProvider } from '@/components/ui/theme-provider'
 import AuthCallback from '@/components/LogIn/AuthCallback.tsx'
+import Logout from '@/components/LogIn/Logout.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
@@ -35,6 +36,7 @@ createRoot(document.getElementById('root')!).render(
                     element={<StudentBatchById />}
                 />
                 <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/logout" element={<Logout />} />
                 <Route path="*" element={<Error404 />} />
             </Routes>
             <Toaster richColors position={'top-right'} />
