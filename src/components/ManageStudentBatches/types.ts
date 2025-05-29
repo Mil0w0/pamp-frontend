@@ -27,10 +27,21 @@ export type Student = {
     is_active?: boolean
     role?: string
 }
+export type PostStudent = {
+    email: string
+    first_name: string
+    last_name: string
+}
 
 export type EditBatchDTO = {
     state: string
     name: string
     students: Student[]
+    tags: string
+}
+export type BetterEditBatchDTO = {
+    state: string
+    name: string
+    students: PostStudent[]
     tags: string
 }

@@ -81,6 +81,7 @@ export default function StudentBatchById() {
         getStudentBatchInfo(studentBatchId).then((batch) => {
             if (typeof batch !== 'undefined') {
                 setBatch(batch)
+                setBatchEditData({ students: batch.students } as StudentBatch) //ugly but i need it to display default selected students
             }
         })
     }, [studentBatchId])
