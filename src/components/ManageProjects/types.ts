@@ -7,8 +7,12 @@ export type Project = {
     isPublished: boolean
     createdAt: string
     studentBatch: StudentBatch
+    maxGroups: number
+    maxPerGroup: number
+    minPerGroup: number
+    groupsCreator: 'TEACHER' | 'STUDENT' | 'RANDOM'
+    creationGroupDeadLineDate: string
 }
-
 export type CreateProjectDto = {
     name: string
     description: string
