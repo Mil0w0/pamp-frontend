@@ -30,7 +30,7 @@ export default function ProjectsPage() {
     const [projects, setProjects] = useState<Project[] | null>(null)
 
     function goToProjectById(id: string) {
-        navigate(`/projects/${id}`)
+        navigate(`/projects/${id}/settings`)
     }
 
     async function getProjects(): Promise<Project[]> {

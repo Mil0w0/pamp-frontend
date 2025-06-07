@@ -14,36 +14,57 @@ import { ThemeProvider } from '@/components/ui/theme-provider'
 import AuthCallback from '@/components/LogIn/AuthCallback.tsx'
 import Logout from '@/components/LogIn/Logout.tsx'
 import ProjectsPage from '@/components/ManageProjects/ProjectsPage.tsx'
-import ProjectByIdPage from '@/components/ManageProjects/ProjectByIdPage.tsx'
+import SidebarLayout from '@/components/layout/SidebarLayout.tsx'
+import ProjectByIdPageGeneral from '@/components/ProjectPages/ProjectByIdPageGeneral.tsx'
+import ProjectByIdPageGroups from '@/components/ProjectPages/ProjectByIdPageGroups.tsx'
+import { Provider } from 'react-redux'
+import { store } from '@/store'
 
 createRoot(document.getElementById('root')!).render(
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-        <BrowserRouter>
-            <CustomHeader />
-            <Routes>
-                <Route element={<CenteredLayout />}>
-                    <Route path="/login" element={<LogIn />} />
+    <Provider store={store}>
+        <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+            <BrowserRouter>
+                <CustomHeader />
+                <Routes>
+                    <Route element={<CenteredLayout />}>
+                        <Route path="/login" element={<LogIn />} />
+                        <Route
+                            path="/register/teacher"
+                            element={<TeacherRegister />}
+                        />
+                        <Route path="/" element={<App />} />
+                    </Route>
                     <Route
-                        path="/register/teacher"
-                        element={<TeacherRegister />}
+                        path="/student-batches/"
+                        element={<StudentBatchesPage />}
                     />
-                    <Route path="/" element={<App />} />
-                </Route>
-                <Route
-                    path="/student-batches/"
-                    element={<StudentBatchesPage />}
-                />
-                <Route path="/projects/" element={<ProjectsPage />} />
-                <Route
-                    path="/student-batches/:id"
-                    element={<StudentBatchById />}
-                />
-                <Route path="/projects/:id" element={<ProjectByIdPage />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/logout" element={<Logout />} />
-                <Route path="*" element={<Error404 />} />
-            </Routes>
-            <Toaster richColors position={'top-right'} />
-        </BrowserRouter>
-    </ThemeProvider>
+                    <Route path="/projects/" element={<ProjectsPage />} />
+                    <Route
+                        path="/student-batches/:id"
+                        element={<StudentBatchById />}
+                    />
+
+                    <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route path="/logout" element={<Logout />} />
+
+                    <Route
+                        path="/projects/:projectId/*"
+                        element={<SidebarLayout />}
+                    >
+                        <Route
+                            path="settings"
+                            element={<ProjectByIdPageGeneral />}
+                        />
+                        <Route
+                            path="groups"
+                            element={<ProjectByIdPageGroups />}
+                        />
+                    </Route>
+
+                    <Route path="*" element={<Error404 />} />
+                </Routes>
+                <Toaster richColors position={'top-right'} />
+            </BrowserRouter>
+        </ThemeProvider>
+    </Provider>
 )
