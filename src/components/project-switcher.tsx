@@ -7,7 +7,6 @@ import {
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
-    DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -16,23 +15,26 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar'
+import { Project } from '@/components/ManageProjects/types.ts'
+import { useEffect } from 'react'
+import { Skeleton } from '@/components/ui/skeleton.tsx'
 
 export function ProjectSwitcher({
     projects,
+    currentProject,
 }: {
-    projects: {
-        name: string
-        logo: React.ElementType
-        plan: string
-    }[]
+    projects: Project[]
+    currentProject: Project | null
 }) {
     const { isMobile } = useSidebar()
-    const [activeTeam, setActiveTeam] = React.useState(projects[0])
+    const [project, setActiveProject] = React.useState(currentProject)
 
-    if (!activeTeam) {
-        return null
+    useEffect(() => {
+        setActiveProject(currentProject)
+    }, [currentProject])
+    if (!project) {
+        return <Skeleton />
     }
-
     return (
         <SidebarMenu>
             <SidebarMenuItem>
@@ -43,14 +45,16 @@ export function ProjectSwitcher({
                             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                         >
                             <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                                <activeTeam.logo className="size-4" />
+                                {project.name[0]}
                             </div>
                             <div className="grid flex-1 text-left text-sm leading-tight">
                                 <span className="truncate font-medium">
-                                    {activeTeam.name}
+                                    {project.name}
                                 </span>
                                 <span className="truncate text-xs">
-                                    {activeTeam.plan}
+                                    {project.isPublished
+                                        ? 'PUBLISHED'
+                                        : 'DRAFT'}
                                 </span>
                             </div>
                             <ChevronsUpDown className="ml-auto" />
@@ -65,19 +69,16 @@ export function ProjectSwitcher({
                         <DropdownMenuLabel className="text-muted-foreground text-xs">
                             All projects
                         </DropdownMenuLabel>
-                        {projects.map((project, index) => (
+                        {projects.map((project) => (
                             <DropdownMenuItem
                                 key={project.name}
-                                onClick={() => setActiveTeam(project)}
+                                onClick={() => setActiveProject(project)}
                                 className="gap-2 p-2"
                             >
                                 <div className="flex size-6 items-center justify-center rounded-md border">
-                                    <project.logo className="size-3.5 shrink-0" />
+                                    {project.name[0]}
                                 </div>
                                 {project.name}
-                                <DropdownMenuShortcut>
-                                    ⌘{index + 1}
-                                </DropdownMenuShortcut>
                             </DropdownMenuItem>
                         ))}
                         <DropdownMenuSeparator />
