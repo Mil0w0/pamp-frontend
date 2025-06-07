@@ -1,5 +1,5 @@
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { AppSidebar } from '@/components/app-sidebar.tsx'
+import { AppSidebar } from '@/components/Navbar/app-sidebar.tsx'
 import { Outlet, useNavigate, useParams } from 'react-router'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
@@ -33,7 +33,7 @@ export default function SidebarLayout() {
                 allProjects={allProjects}
                 currentProject={currentProject}
             />
-            <main>
+            <main className="w-full">
                 <SidebarTrigger />
                 <Outlet />
             </main>

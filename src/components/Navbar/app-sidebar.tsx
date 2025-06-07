@@ -1,14 +1,14 @@
 import * as React from 'react'
 import { BookOpen, Footprints, Settings2, UsersRound } from 'lucide-react'
 
-import { NavMain } from '@/components/nav-main'
-import { ProjectSwitcher } from '@/components/project-switcher.tsx'
+import { NavMain } from '@/components/Navbar/nav-main.tsx'
+import { ProjectSwitcher } from '@/components/Navbar/project-switcher.tsx'
 import {
     Sidebar,
     SidebarContent,
     SidebarHeader,
     SidebarRail,
-} from '@/components/ui/sidebar'
+} from '@/components/ui/sidebar.tsx'
 import { Project } from '@/components/ManageProjects/types.ts'
 import { useEffect } from 'react'
 
