@@ -9,8 +9,28 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label.tsx'
 import { Input } from '@/components/ui/input.tsx'
+import { useDispatch, useSelector } from 'react-redux'
+import { AppDispatch, RootState } from '@/store'
+import { useEffect } from 'react'
+import { fetchAllProjects, fetchProjectById } from '@/store/project.slice.ts'
+import { useParams } from 'react-router'
+import { Skeleton } from '@/components/ui/skeleton.tsx'
 
 export default function ProjectByIdPageGeneral() {
+    const { projectId } = useParams()
+    const dispatch = useDispatch<AppDispatch>()
+    const { currentProject } = useSelector((state: RootState) => state.project)
+
+    useEffect(() => {
+        if (projectId) {
+            dispatch(fetchProjectById(projectId))
+        }
+        dispatch(fetchAllProjects())
+    }, [dispatch, projectId])
+
+    if (!currentProject) {
+        return <Skeleton />
+    }
     return (
         <div>
             <div className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -22,8 +42,14 @@ export default function ProjectByIdPageGeneral() {
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem className="hidden md:block">
+                                <BreadcrumbLink href="/projects">
+                                    Projects
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="hidden md:block" />
+                            <BreadcrumbItem className="hidden md:block">
                                 <BreadcrumbLink href="#">
-                                    Project X
+                                    {currentProject.name}
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
                             <BreadcrumbSeparator className="hidden md:block" />
@@ -38,35 +64,26 @@ export default function ProjectByIdPageGeneral() {
             </div>
 
             <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                <h1 className="text-2xl">Title: Project X</h1>
-                <div className="grid auto-rows-min gap-4 md:grid-cols-2">
+                <h1 className="text-2xl">Title: {currentProject.name}</h1>
+                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
                     <div>
-                        <h2 className="text-xl">Description</h2>
+                        <h2 className="text-lg font-semibold">Description</h2>
+                        <p className="text-sm">{currentProject.description}</p>
+                    </div>
+
+                    <div>
+                        <h2 className="text-lg font-semibold">
+                            From student batch
+                        </h2>
                         <p className="text-sm">
-                            On the other hand, we denounce with righteous
-                            indignation and dislike men who are so beguiled and
-                            demoralized by the charms of pleasure of the moment,
-                            so blinded by desire, that they cannot foresee the
-                            pain and trouble that are bound to ensue; and equal
-                            blame belongs to those who fail in their duty
-                            through weakness of will, which is the same as
-                            saying through shrinking from toil and pain. These
-                            cases are perfectly simple and easy to distinguish.
-                            In a free hour, when our power of choice is
-                            untrammelled and when nothing prevents our being
-                            able to do what we like best, every pleasure is to
-                            be welcomed and every pain avoided. But in certain
-                            circumstances and owing to the claims of duty or the
-                            obligations of business it will frequently occur
-                            that pleasures have to be repudiated and annoyances
-                            accepted. The wise man therefore always holds in
-                            these matters to this principle of selection: he
-                            rejects pleasures to secure other greater pleasures,
-                            or else he endures pains to avoid worse pains.
+                            {currentProject.studentBatch.name}
                         </p>
                     </div>
+
                     <div className="grid w-full max-w-sm justify-end">
-                        <Label htmlFor="studentsExcel">Upload file</Label>
+                        <Label htmlFor="studentsExcel" className="mb-1">
+                            Upload project syllabus
+                        </Label>
                         <Input id="uploadProject" type="file" />
                     </div>
                 </div>

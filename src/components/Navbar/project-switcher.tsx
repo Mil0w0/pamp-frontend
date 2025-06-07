@@ -8,13 +8,13 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@/components/ui/dropdown-menu.tsx'
 import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
     useSidebar,
-} from '@/components/ui/sidebar'
+} from '@/components/ui/sidebar.tsx'
 import { Project } from '@/components/ManageProjects/types.ts'
 import { useEffect } from 'react'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
