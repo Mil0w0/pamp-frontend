@@ -33,6 +33,7 @@ import StudentDashboard from '@/components/StudentPages/StudentDashboard.tsx'
 import { StudentReport } from '@/components/StudentPages'
 import { StepById } from '@/components/ProjectPages/Steps/StepById.tsx'
 import ProjectByIdOralsPlanning from '@/components/ProjectPages/OralsPlanning/ProjectByIdOralsPlanning.tsx'
+import { FileSimilarityVisualizationPage } from '@/components/FileSimilarityVisualization'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -140,6 +141,10 @@ createRoot(document.getElementById('root')!).render(
                                 <TeacherReviewReport />
                             </ProtectedRoute>
                         }
+                    />
+                    <Route
+                        path="/similarity/test/refactoring"
+                        element={<FileSimilarityVisualizationPage />}
                     />
                     <Route path="*" element={<Error404 />} />
                 </Routes>
