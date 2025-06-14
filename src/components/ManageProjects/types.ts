@@ -12,7 +12,21 @@ export type Project = {
     minPerGroup: number
     groupsCreator: 'TEACHER' | 'STUDENT' | 'RANDOM'
     creationGroupDeadLineDate: string
+    groups: ProjectGroup[]
+    steps: Step[]
 }
+
+export type ProjectGroup = {
+    id: string
+    name: string
+    studentIds: string
+}
+
+export type Step = {
+    id: string
+    name: string
+}
+
 export type CreateProjectDto = {
     name: string
     description: string

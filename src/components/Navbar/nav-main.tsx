@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronRight, type LucideIcon } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 
 import {
     Collapsible,
@@ -17,21 +17,9 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar.tsx'
+import { NavItem } from '@/components/Navbar/app-sidebar.tsx'
 
-export function NavMain({
-    items,
-}: {
-    items: {
-        title: string
-        url: string
-        icon?: LucideIcon
-        isActive?: boolean
-        items?: {
-            title: string
-            url: string
-        }[]
-    }[]
-}) {
+export function NavMain({ items }: { items: NavItem[] }) {
     return (
         <SidebarGroup>
             <SidebarGroupLabel>Project Overview</SidebarGroupLabel>
