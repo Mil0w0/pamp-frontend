@@ -16,9 +16,10 @@ import Logout from '@/components/LogIn/Logout.tsx'
 import ProjectsPage from '@/components/ManageProjects/ProjectsPage.tsx'
 import SidebarLayout from '@/components/layout/SidebarLayout.tsx'
 import ProjectByIdPageGeneral from '@/components/ProjectPages/ProjectByIdPageGeneral.tsx'
-import ProjectByIdPageGroups from '@/components/ProjectPages/ProjectByIdPageGroups.tsx'
+import ProjectByIdPageGroupConfig from '@/components/ProjectPages/ProjectByIdPageGroupConfig.tsx'
 import { Provider } from 'react-redux'
 import { store } from '@/store'
+import ProjectByIdPageGroups from '@/components/ProjectPages/ProjectByIdPageGroups.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -57,7 +58,15 @@ createRoot(document.getElementById('root')!).render(
                         />
                         <Route
                             path="groups"
+                            element={<ProjectByIdPageGroupConfig />}
+                        />
+                        <Route
+                            path="groups/:groupId"
                             element={<ProjectByIdPageGroups />}
+                        />
+                        <Route
+                            path="steps"
+                            element={<ProjectByIdPageGroupConfig />}
                         />
                     </Route>
 

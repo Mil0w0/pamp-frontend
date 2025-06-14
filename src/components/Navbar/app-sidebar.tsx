@@ -12,23 +12,36 @@ import {
 import { Project } from '@/components/ManageProjects/types.ts'
 import { useEffect } from 'react'
 
+export type NavSubItem = {
+    title: string
+    url: string
+}
+
+export type NavItem = {
+    title: string
+    url: string
+    icon: React.ElementType
+    isActive?: boolean
+    items?: NavSubItem[]
+}
+
 // This is inital fake data.
 const navMain = [
     {
         title: 'Groups settings',
-        url: '/projects/4ac3a0a2-3abe-4868-9339-be30339e7e0b/groups',
+        url: '/projects/?/groups',
         icon: UsersRound,
         isActive: true,
         items: [
             {
                 title: 'Composition',
-                url: '/projects/4ac3a0a2-3abe-4868-9339-be30339e7e0b/settings',
+                url: '/projects/?/settings',
             },
         ],
     },
     {
         title: 'Project steps',
-        url: '#',
+        url: '/projects/?/steps',
         icon: Footprints,
     },
     {
@@ -56,51 +69,46 @@ export function AppSidebar({
     console.log(currentProject)
     console.log(allProjects)
 
-    const [navLinks, setNavLinks] = React.useState<any>(navMain)
+    const [navLinks, setNavLinks] = React.useState<NavItem[]>(navMain)
 
     useEffect(() => {
+        if (!currentProject) return
+
+        const groupItems: NavSubItem[] =
+            currentProject.groups?.map((group) => ({
+                title: group.name,
+                url: `/projects/${currentProject.id}/groups/${group.id}`,
+            })) || []
+        const stepItems: NavSubItem[] =
+            currentProject.steps?.map((step) => ({
+                title: step.name,
+                url: `/projects/${currentProject.id}/steps/${step.id}`,
+            })) || []
+
         setNavLinks([
             {
                 title: 'Groups settings',
-                url: `/projects/${currentProject?.id}/groups`,
+                url: `/projects/${currentProject.id}/groups`,
                 icon: UsersRound,
                 isActive: true,
                 items: [
                     {
                         title: 'Composition',
-                        url: `/projects/${currentProject?.id}/groups`,
+                        url: `/projects/${currentProject.id}/groups`,
                     },
-                    {
-                        title: 'Group 1',
-                        url: `/projects/${currentProject?.id}/groups/:groupID`,
-                    },
-                    {
-                        title: 'Group 2',
-                        url: '#',
-                    },
-                    {
-                        title: 'Group 3',
-                        url: '#',
-                    },
+                    ...groupItems,
                 ],
             },
             {
                 title: 'Project steps',
-                url: '#',
+                url: `/projects/${currentProject.id}/steps`,
                 icon: Footprints,
                 items: [
                     {
-                        title: 'Step 1',
-                        url: `/projects/${currentProject?.id}/steps/:stepID`,
+                        title: 'Configuration',
+                        url: `/projects/${currentProject?.id}/steps/config`,
                     },
-                    {
-                        title: 'Step 2',
-                        url: '#',
-                    },
-                    {
-                        title: 'Step 3',
-                        url: '#',
-                    },
+                    ...stepItems,
                 ],
             },
             {
