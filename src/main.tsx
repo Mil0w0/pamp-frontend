@@ -13,8 +13,8 @@ import StudentBatchById from '@/components/ManageStudentBatches/StudentBatchById
 import { ThemeProvider } from '@/components/ui/theme-provider'
 import AuthCallback from '@/components/LogIn/AuthCallback.tsx'
 import Logout from '@/components/LogIn/Logout.tsx'
-import ProjectsPage from "@/components/ManageProjects/ProjectsPage.tsx";
-import ProjectByIdPage from "@/components/ManageProjects/ProjectByIdPage.tsx";
+import ProjectsPage from '@/components/ManageProjects/ProjectsPage.tsx'
+import ProjectByIdPage from '@/components/ManageProjects/ProjectByIdPage.tsx'
 import SimilarityTestPage from '@/components/SimilarityTest/SimilarityTestPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
@@ -34,21 +34,18 @@ createRoot(document.getElementById('root')!).render(
                     path="/student-batches/"
                     element={<StudentBatchesPage />}
                 />
-                <Route
-                    path="/projects/"
-                    element={<ProjectsPage />}
-                />
+                <Route path="/projects/" element={<ProjectsPage />} />
                 <Route
                     path="/student-batches/:id"
                     element={<StudentBatchById />}
                 />
-                <Route
-                    path="/projects/:id"
-                    element={<ProjectByIdPage />}
-                />
+                <Route path="/projects/:id" element={<ProjectByIdPage />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/logout" element={<Logout />} />
-                <Route path="/similarity/test" element={<SimilarityTestPage />} />
+                <Route
+                    path="/similarity/test"
+                    element={<SimilarityTestPage />}
+                />
                 <Route path="*" element={<Error404 />} />
             </Routes>
             <Toaster richColors position={'top-right'} />
