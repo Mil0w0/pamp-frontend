@@ -22,6 +22,9 @@ import { store } from '@/store'
 import ProjectGroupsById from '@/components/ProjectPages/ProjectGroups/ProjectGroupsById.tsx'
 import ProjectByIdPageStepConfig from '@/components/ProjectPages/ProjectByIdPageStepsConfig.tsx'
 import ProtectedRoute from '@/components/Routes/ProtectedRoutes.tsx'
+import ProjectByIdPageReportDefinition from '@/components/ProjectPages/ProjectByIdPageReportDefinition.tsx'
+import StudentReportClassic from '@/components/StudentPages/StudentReportClassic.tsx'
+import StudentReportQuestionnaire from '@/components/StudentPages/StudentReportQuestionnaire.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -88,7 +91,19 @@ createRoot(document.getElementById('root')!).render(
                             element={<ProjectByIdPageStepConfig />}
                         />
                         <Route path="*" element={<Error404 />} />
+                        <Route
+                            path="report-definition"
+                            element={<ProjectByIdPageReportDefinition />}
+                        />
                     </Route>
+                    <Route
+                        path="test/classic-report"
+                        element={<StudentReportClassic />}
+                    />
+                    <Route
+                        path="test/questionnaire-report"
+                        element={<StudentReportQuestionnaire />}
+                    />
 
                     <Route path="*" element={<Error404 />} />
                 </Routes>
