@@ -105,14 +105,11 @@ export default function StudentReportQuestionnaire() {
             // Set up onChange listener to update answers
             editor.onChange(async () => {
                 const content = editor.document
-                // Simple text extraction - get text content from all blocks
-                const htmlContent = await editor.blocksToFullHTML(content)
-                const textContent = htmlContent.replace(/<[^>]*>/g, '').trim()
 
                 setAnswers((prev) =>
                     prev.map((a) =>
                         a.questionId === question.id
-                            ? { ...a, answer: content, textContent }
+                            ? { ...a, answer: content }
                             : a
                     )
                 )
