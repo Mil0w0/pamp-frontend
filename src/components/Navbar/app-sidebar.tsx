@@ -45,7 +45,7 @@ const navMain = [
         icon: Footprints,
     },
     {
-        title: 'Rapport settings',
+        title: 'Report settings',
         url: '#',
         icon: BookOpen,
     },
@@ -111,8 +111,8 @@ export function AppSidebar({
                 ],
             },
             {
-                title: 'Rapport settings',
-                url: `/projects/${currentProject?.id}/rapports`,
+                title: 'Report settings',
+                url: `/projects/${currentProject?.id}/report-definition`,
                 icon: BookOpen,
             },
             {
@@ -124,7 +124,7 @@ export function AppSidebar({
     }, [currentProject])
 
     return (
-        <Sidebar collapsible="icon" {...props}>
+        <Sidebar collapsible="icon" {...props} className={'top-24'}>
             <SidebarHeader>
                 <ProjectSwitcher
                     projects={allProjects}
