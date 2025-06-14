@@ -116,6 +116,7 @@ export const batchService = {
         if (batchEditData.students && batchEditData.students.length > 0) {
             newBatchEditData.students = batchEditData.students.map(
                 (student) => ({
+                    user_id: student.user_id,
                     email: student.email,
                     first_name: student.first_name,
                     last_name: student.last_name,

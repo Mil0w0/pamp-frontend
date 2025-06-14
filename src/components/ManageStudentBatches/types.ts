@@ -1,4 +1,4 @@
-import {Project} from "@/components/ManageProjects/types.ts";
+import { Project } from '@/components/ManageProjects/types.ts'
 
 export type StudentBatches = {
     id: string
@@ -31,6 +31,7 @@ export type Student = {
     role?: string
 }
 export type PostStudent = {
+    user_id: string
     email: string
     first_name: string
     last_name: string
