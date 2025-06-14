@@ -19,13 +19,17 @@ import ProjectByIdPageGeneral from '@/components/ProjectPages/ProjectByIdPageGen
 import ProjectByIdPageGroups from '@/components/ProjectPages/ProjectByIdPageGroups.tsx'
 import { Provider } from 'react-redux'
 import { store } from '@/store'
+import ProjectByIdPageReportDefinition from '@/components/ProjectPages/ProjectByIdPageReportDefinition.tsx'
+import StudentReportClassic from '@/components/StudentPages/StudentReportClassic.tsx'
+import StudentReportQuestionnaire from '@/components/StudentPages/StudentReportQuestionnaire.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
         <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
             <BrowserRouter>
                 <CustomHeader />
-                <Routes>
+                <div className="pt-24">
+                    <Routes>
                     <Route element={<CenteredLayout />}>
                         <Route path="/login" element={<LogIn />} />
                         <Route
@@ -59,10 +63,23 @@ createRoot(document.getElementById('root')!).render(
                             path="groups"
                             element={<ProjectByIdPageGroups />}
                         />
+                        <Route
+                            path="report-definition"
+                            element={<ProjectByIdPageReportDefinition />}
+                        />
                     </Route>
+                    <Route
+                        path="test/classic-report"
+                        element={<StudentReportClassic />}
+                    />
+                    <Route
+                        path="test/questionnaire-report"
+                        element={<StudentReportQuestionnaire />}
+                    />
 
                     <Route path="*" element={<Error404 />} />
-                </Routes>
+                    </Routes>
+                </div>
                 <Toaster richColors position={'top-right'} />
             </BrowserRouter>
         </ThemeProvider>
