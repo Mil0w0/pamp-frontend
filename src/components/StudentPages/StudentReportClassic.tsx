@@ -18,12 +18,17 @@ import {
 import SplitCollapsibleRightLayout from '@/components/layout/SplitCollapsibleRightLayout.tsx'
 import { useTheme } from '@/components/ui/theme-provider'
 import { BlockNoteEditor, PartialBlock } from '@blocknote/core'
-import { useCreateBlockNote } from '@blocknote/react'
+import { useCreateBlockNoteWithLiveblocks } from '@liveblocks/react-blocknote'
 import { BlockNoteView } from '@blocknote/mantine'
 import '@blocknote/core/fonts/inter.css'
 import '@blocknote/mantine/style.css'
 import { useMemo, useState } from 'react'
 import { SaveIcon, SendIcon } from 'lucide-react'
+import {
+    ClientSideSuspense,
+    LiveblocksProvider,
+    RoomProvider,
+} from '@liveblocks/react/suspense'
 
 // Mock data for demonstration
 const mockProject = {
@@ -57,13 +62,13 @@ const initialContent: PartialBlock[] = [
     },
 ]
 
-export default function StudentReportClassic() {
+function StudentReportClassicContent() {
     const { theme } = useTheme()
     const [isSaving, setIsSaving] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Create BlockNote editor with theme support
-    const editor: BlockNoteEditor = useCreateBlockNote({
+    // Create collaborative BlockNote editor with theme support
+    const editor: BlockNoteEditor = useCreateBlockNoteWithLiveblocks({
         initialContent,
     })
 
@@ -178,8 +183,8 @@ export default function StudentReportClassic() {
                                         Your Report
                                     </CardTitle>
                                     <CardDescription>
-                                        Write your project report using the rich
-                                        text editor below
+                                        Write your project report using the
+                                        collaborative rich text editor below
                                     </CardDescription>
                                 </div>
                                 <div className="flex gap-2">
@@ -220,7 +225,10 @@ export default function StudentReportClassic() {
                                     💡 <strong>Tip:</strong> Your work is
                                     automatically saved as you type. Use the
                                     toolbar to format your text, add headings,
-                                    lists, and more.
+                                    lists, and more.{' '}
+                                    <strong>
+                                        Real-time collaboration enabled!
+                                    </strong>
                                 </p>
                             </div>
                         </CardContent>
@@ -250,5 +258,29 @@ export default function StudentReportClassic() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function StudentReportClassic() {
+    const apiKey =
+        window.RUNTIME_CONFIG?.AUTH_API_URL ||
+        import.meta.env.VITE_LIVEBLOCKS_KEY
+
+    if (!apiKey) {
+        throw new Error(
+            'Please set your Liveblocks public API key in the environment variables.'
+        )
+    }
+
+    return (
+        <LiveblocksProvider publicApiKey={apiKey}>
+            <RoomProvider id="student-report-classic">
+                <ClientSideSuspense
+                    fallback={<div>Loading collaborative editor...</div>}
+                >
+                    <StudentReportClassicContent />
+                </ClientSideSuspense>
+            </RoomProvider>
+        </LiveblocksProvider>
     )
 }
