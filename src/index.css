@@ -126,11 +126,3 @@
 .question-blocknote .bn-editor {
   min-height: 20vh;
 }
-
-.full-height-blocknote .bn-editor {
-  min-height: 75vh;
-}
-
-.question-blocknote .bn-editor {
-  min-height: 20vh;
-}
