@@ -1,5 +1,10 @@
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import "@blocknote/core/fonts/inter.css"
+import "@blocknote/mantine/style.css"
+import "@liveblocks/react-ui/styles.css"
+import "@liveblocks/react-ui/styles/dark/media-query.css"
+import "@liveblocks/react-blocknote/styles.css"
 import App from './App.tsx'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import LogIn from '@/components/LogIn/LogIn.tsx'
@@ -25,6 +30,7 @@ import ProtectedRoute from '@/components/Routes/ProtectedRoutes.tsx'
 import ProjectByIdPageReportDefinition from '@/components/ProjectPages/ProjectByIdPageReportDefinition.tsx'
 import StudentReportClassic from '@/components/StudentPages/StudentReportClassic.tsx'
 import StudentReportQuestionnaire from '@/components/StudentPages/StudentReportQuestionnaire.tsx'
+import TestCollaboration from '@/components/StudentPages/TestCollaboration.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
