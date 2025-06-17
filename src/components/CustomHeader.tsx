@@ -82,6 +82,8 @@ function CustomHeader() {
                             name="light-switch"
                             className="light-switch sr-only"
                             checked={theme === 'light'}
+                            onChange={() => {}} // Controlled by parent div onClick
+                            readOnly
                         />
                         <label
                             className="relative cursor-pointer p-2"
@@ -200,6 +202,8 @@ function CustomHeader() {
                                             name="light-switch-mobile"
                                             className="light-switch sr-only"
                                             checked={theme === 'light'}
+                                            onChange={() => {}} // Controlled by parent div onClick
+                                            readOnly
                                         />
                                         <label
                                             className="relative cursor-pointer p-2"
