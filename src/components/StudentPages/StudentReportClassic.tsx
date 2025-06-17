@@ -22,13 +22,15 @@ import { useCreateBlockNoteWithLiveblocks } from '@liveblocks/react-blocknote'
 import { BlockNoteView } from '@blocknote/mantine'
 import '@blocknote/core/fonts/inter.css'
 import '@blocknote/mantine/style.css'
-import { useMemo, useState } from 'react'
-import { SaveIcon, SendIcon } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { CheckCircle2, SendIcon } from 'lucide-react'
 import {
     ClientSideSuspense,
     LiveblocksProvider,
     RoomProvider,
+    useStatus,
 } from '@liveblocks/react/suspense'
+import { Badge } from '@/components/ui/badge'
 
 // Mock data for demonstration
 const mockProject = {
@@ -66,11 +68,86 @@ function StudentReportClassicContent() {
     const { theme } = useTheme()
     const [isSaving, setIsSaving] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [reportStatus, setReportStatus] = useState<'draft' | 'submitted'>(
+        'draft'
+    )
+    const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date())
+    const status = useStatus()
 
     // Create collaborative BlockNote editor with theme support
     const editor: BlockNoteEditor = useCreateBlockNoteWithLiveblocks({
         initialContent,
     })
+
+    // Update sync time when connection status changes to connected
+    useEffect(() => {
+        if (status === 'connected') {
+            setLastSyncTime(new Date())
+        }
+    }, [status])
+
+    // Real-time sync time display
+    const syncTimeDisplay = useMemo(() => {
+        const now = new Date()
+        const diffInSeconds = Math.floor(
+            (now.getTime() - lastSyncTime.getTime()) / 1000
+        )
+
+        if (diffInSeconds < 30) {
+            return 'Synced just now'
+        } else if (diffInSeconds < 60) {
+            return `Synced ${diffInSeconds}s ago`
+        } else if (diffInSeconds < 3600) {
+            const minutes = Math.floor(diffInSeconds / 60)
+            return `Synced ${minutes}m ago`
+        } else {
+            return lastSyncTime.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+            })
+        }
+    }, [lastSyncTime])
+
+    // Update sync time display every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Force re-render to update the sync time display
+            setLastSyncTime((prev) => prev)
+        }, 30000)
+
+        return () => clearInterval(interval)
+    }, [])
+
+    // Get sync status indicator
+    const getSyncStatus = () => {
+        switch (status) {
+            case 'connected':
+                return {
+                    icon: <CheckCircle2 className="w-4 h-4 text-green-500" />,
+                    text: syncTimeDisplay,
+                }
+            case 'connecting':
+            case 'reconnecting':
+                return {
+                    icon: (
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    ),
+                    text: 'Syncing...',
+                }
+            case 'disconnected':
+                return {
+                    icon: <div className="w-4 h-4 bg-red-500 rounded-full" />,
+                    text: 'Disconnected',
+                }
+            default:
+                return {
+                    icon: <div className="w-4 h-4 bg-gray-400 rounded-full" />,
+                    text: 'Initializing...',
+                }
+        }
+    }
+
+    const syncStatus = getSyncStatus()
 
     // Determine if we should use dark theme for BlockNote
     const isDarkMode = useMemo(() => {
@@ -97,12 +174,21 @@ function StudentReportClassicContent() {
     const handleSubmit = async () => {
         setIsSubmitting(true)
         try {
-            const content = editor.document
-            console.log('Submitting report content:', content)
-            // TODO: Implement submit functionality
-            await new Promise((resolve) => setTimeout(resolve, 1500)) // Simulate API call
+            // TODO: Replace with actual API call
+            // const response = await submitReport({
+            //     content: editor.document,
+            //     reportId: 'current-report-id'
+            // })
+
+            // Simulate API call for now
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+
+            setReportStatus('submitted')
+            console.log('Report submitted successfully')
+            // TODO: Handle success response
         } catch (error) {
-            console.error('Error submitting report:', error)
+            console.error('Failed to submit report:', error)
+            // TODO: Handle error (show toast, etc.)
         } finally {
             setIsSubmitting(false)
         }
@@ -179,36 +265,67 @@ function StudentReportClassicContent() {
                         <CardHeader>
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <CardTitle className="text-lg">
-                                        Your Report
-                                    </CardTitle>
+                                    <div className="flex items-center gap-3">
+                                        <CardTitle className="text-lg">
+                                            Your Report
+                                        </CardTitle>
+                                        <Badge
+                                            variant={
+                                                reportStatus === 'submitted'
+                                                    ? 'default'
+                                                    : 'secondary'
+                                            }
+                                            className={
+                                                reportStatus === 'submitted'
+                                                    ? 'bg-green-600 text-white '
+                                                    : 'bg-orange-500 text-white'
+                                            }
+                                        >
+                                            {reportStatus === 'draft'
+                                                ? 'Draft'
+                                                : 'Submitted'}
+                                        </Badge>
+                                    </div>
                                     <CardDescription>
                                         Write your project report using the
                                         collaborative rich text editor below
                                     </CardDescription>
                                 </div>
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleSave}
-                                        disabled={isSaving}
-                                        className="flex items-center gap-2"
-                                    >
-                                        <SaveIcon className="h-4 w-4" />
-                                        {isSaving ? 'Saving...' : 'Save Draft'}
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        onClick={handleSubmit}
-                                        disabled={isSubmitting}
-                                        className="flex items-center gap-2"
-                                    >
-                                        <SendIcon className="h-4 w-4" />
-                                        {isSubmitting
-                                            ? 'Submitting...'
-                                            : 'Submit Report'}
-                                    </Button>
+                                <div className="flex items-center gap-3">
+                                    {/* Sync Status Indicator */}
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-3 py-1 rounded-md">
+                                        {syncStatus.icon}
+                                        <span>{syncStatus.text}</span>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            onClick={handleSubmit}
+                                            disabled={
+                                                isSubmitting ||
+                                                reportStatus === 'submitted'
+                                            }
+                                            className="flex items-center gap-2"
+                                        >
+                                            {isSubmitting ? (
+                                                <>
+                                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                                    Submitting...
+                                                </>
+                                            ) : reportStatus === 'submitted' ? (
+                                                <>
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                    Submitted
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <SendIcon className="w-4 h-4" />
+                                                    Submit Report
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         </CardHeader>
@@ -240,7 +357,17 @@ function StudentReportClassicContent() {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span>
                             Status:{' '}
-                            <strong className="text-orange-600">Draft</strong>
+                            <strong
+                                className={
+                                    reportStatus === 'submitted'
+                                        ? 'text-green-600'
+                                        : 'text-orange-600'
+                                }
+                            >
+                                {reportStatus === 'draft'
+                                    ? 'Draft'
+                                    : 'Submitted'}
+                            </strong>
                         </span>
                         <span>
                             Last saved: <strong>2 minutes ago</strong>
