@@ -17,6 +17,7 @@ declare global {
     interface Window {
         RUNTIME_CONFIG?: {
             AUTH_API_URL?: string
+            VITE_LIVEBLOCKS_KEY?: string
         }
     }
 }

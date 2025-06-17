@@ -1,5 +1,10 @@
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import "@blocknote/core/fonts/inter.css"
+import "@blocknote/mantine/style.css"
+import "@liveblocks/react-ui/styles.css"
+import "@liveblocks/react-ui/styles/dark/media-query.css"
+import "@liveblocks/react-blocknote/styles.css"
 import App from './App.tsx'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import LogIn from '@/components/LogIn/LogIn.tsx'
@@ -22,6 +27,7 @@ import { store } from '@/store'
 import ProjectByIdPageReportDefinition from '@/components/ProjectPages/ProjectByIdPageReportDefinition.tsx'
 import StudentReportClassic from '@/components/StudentPages/StudentReportClassic.tsx'
 import StudentReportQuestionnaire from '@/components/StudentPages/StudentReportQuestionnaire.tsx'
+import TestCollaboration from '@/components/StudentPages/TestCollaboration.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -30,54 +36,60 @@ createRoot(document.getElementById('root')!).render(
                 <CustomHeader />
                 <div className="pt-24">
                     <Routes>
-                    <Route element={<CenteredLayout />}>
-                        <Route path="/login" element={<LogIn />} />
+                        <Route element={<CenteredLayout />}>
+                            <Route path="/login" element={<LogIn />} />
+                            <Route
+                                path="/register/teacher"
+                                element={<TeacherRegister />}
+                            />
+                            <Route path="/" element={<App />} />
+                        </Route>
                         <Route
-                            path="/register/teacher"
-                            element={<TeacherRegister />}
+                            path="/student-batches/"
+                            element={<StudentBatchesPage />}
                         />
-                        <Route path="/" element={<App />} />
-                    </Route>
-                    <Route
-                        path="/student-batches/"
-                        element={<StudentBatchesPage />}
-                    />
-                    <Route path="/projects/" element={<ProjectsPage />} />
-                    <Route
-                        path="/student-batches/:id"
-                        element={<StudentBatchById />}
-                    />
+                        <Route path="/projects/" element={<ProjectsPage />} />
+                        <Route
+                            path="/student-batches/:id"
+                            element={<StudentBatchById />}
+                        />
 
-                    <Route path="/auth/callback" element={<AuthCallback />} />
-                    <Route path="/logout" element={<Logout />} />
+                        <Route
+                            path="/auth/callback"
+                            element={<AuthCallback />}
+                        />
+                        <Route path="/logout" element={<Logout />} />
 
-                    <Route
-                        path="/projects/:projectId/*"
-                        element={<SidebarLayout />}
-                    >
                         <Route
-                            path="settings"
-                            element={<ProjectByIdPageGeneral />}
+                            path="/projects/:projectId/*"
+                            element={<SidebarLayout />}
+                        >
+                            <Route
+                                path="settings"
+                                element={<ProjectByIdPageGeneral />}
+                            />
+                            <Route
+                                path="groups"
+                                element={<ProjectByIdPageGroups />}
+                            />
+                            <Route
+                                path="report-definition"
+                                element={<ProjectByIdPageReportDefinition />}
+                            />
+                        </Route>
+                        <Route
+                            path="test/classic-report"
+                            element={<StudentReportClassic />}
                         />
                         <Route
-                            path="groups"
-                            element={<ProjectByIdPageGroups />}
+                            path="test/questionnaire-report"
+                            element={<StudentReportQuestionnaire />}
                         />
                         <Route
-                            path="report-definition"
-                            element={<ProjectByIdPageReportDefinition />}
+                            path="test/collaboration"
+                            element={<TestCollaboration />}
                         />
-                    </Route>
-                    <Route
-                        path="test/classic-report"
-                        element={<StudentReportClassic />}
-                    />
-                    <Route
-                        path="test/questionnaire-report"
-                        element={<StudentReportQuestionnaire />}
-                    />
-
-                    <Route path="*" element={<Error404 />} />
+                        <Route path="*" element={<Error404 />} />
                     </Routes>
                 </div>
                 <Toaster richColors position={'top-right'} />
