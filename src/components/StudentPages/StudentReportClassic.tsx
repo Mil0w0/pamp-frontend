@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/card'
 import SplitCollapsibleRightLayout from '@/components/layout/SplitCollapsibleRightLayout.tsx'
 import { useTheme } from '@/components/ui/theme-provider'
-import { BlockNoteEditor, PartialBlock } from '@blocknote/core'
+import { BlockNoteEditor } from '@blocknote/core'
 import { useCreateBlockNoteWithLiveblocks } from '@liveblocks/react-blocknote'
 import { BlockNoteView } from '@blocknote/mantine'
 import '@blocknote/core/fonts/inter.css'
@@ -53,17 +53,6 @@ const mockInstructions = `Please provide a comprehensive report covering the fol
 
 Your report should be well-structured, professional, and demonstrate critical thinking about your development process. Include specific examples and evidence to support your points.`
 
-const initialContent: PartialBlock[] = [
-    {
-        type: 'heading',
-        content: 'Project Report',
-    },
-    {
-        type: 'paragraph',
-        content: 'Start writing your report here...',
-    },
-]
-
 function StudentReportClassicContent() {
     const { theme } = useTheme()
     const [isSaving, setIsSaving] = useState(false)
@@ -75,9 +64,7 @@ function StudentReportClassicContent() {
     const status = useStatus()
 
     // Create collaborative BlockNote editor with theme support
-    const editor: BlockNoteEditor = useCreateBlockNoteWithLiveblocks({
-        initialContent,
-    })
+    const editor: BlockNoteEditor = useCreateBlockNoteWithLiveblocks()
 
     // Update sync time when connection status changes to connected
     useEffect(() => {
@@ -261,128 +248,99 @@ function StudentReportClassicContent() {
                     }
                 >
                     {/* Editor Card */}
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
+                    <div className="flex justify-center">
+                        <Card className="w-full max-w-[1500px]">
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <CardTitle className="text-lg">
+                                                Your Report
+                                            </CardTitle>
+                                            <Badge
+                                                variant={
+                                                    reportStatus === 'submitted'
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                }
+                                                className={
+                                                    reportStatus === 'submitted'
+                                                        ? 'bg-green-600 text-white '
+                                                        : 'bg-orange-500 text-white'
+                                                }
+                                            >
+                                                {reportStatus === 'draft'
+                                                    ? 'Draft'
+                                                    : 'Submitted'}
+                                            </Badge>
+                                        </div>
+                                        <CardDescription>
+                                            Write your project report using the
+                                            collaborative rich text editor below
+                                        </CardDescription>
+                                    </div>
                                     <div className="flex items-center gap-3">
-                                        <CardTitle className="text-lg">
-                                            Your Report
-                                        </CardTitle>
-                                        <Badge
-                                            variant={
-                                                reportStatus === 'submitted'
-                                                    ? 'default'
-                                                    : 'secondary'
-                                            }
-                                            className={
-                                                reportStatus === 'submitted'
-                                                    ? 'bg-green-600 text-white '
-                                                    : 'bg-orange-500 text-white'
-                                            }
-                                        >
-                                            {reportStatus === 'draft'
-                                                ? 'Draft'
-                                                : 'Submitted'}
-                                        </Badge>
-                                    </div>
-                                    <CardDescription>
-                                        Write your project report using the
-                                        collaborative rich text editor below
-                                    </CardDescription>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    {/* Sync Status Indicator */}
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-3 py-1 rounded-md">
-                                        {syncStatus.icon}
-                                        <span>{syncStatus.text}</span>
-                                    </div>
+                                        {/* Sync Status Indicator */}
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-3 py-1 rounded-md">
+                                            {syncStatus.icon}
+                                            <span>{syncStatus.text}</span>
+                                        </div>
 
-                                    <div className="flex gap-2">
-                                        <Button
-                                            size="sm"
-                                            onClick={handleSubmit}
-                                            disabled={
-                                                isSubmitting ||
-                                                reportStatus === 'submitted'
-                                            }
-                                            className="flex items-center gap-2"
-                                        >
-                                            {isSubmitting ? (
-                                                <>
-                                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                                    Submitting...
-                                                </>
-                                            ) : reportStatus === 'submitted' ? (
-                                                <>
-                                                    <CheckCircle2 className="w-4 h-4" />
-                                                    Submitted
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <SendIcon className="w-4 h-4" />
-                                                    Submit Report
-                                                </>
-                                            )}
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                onClick={handleSubmit}
+                                                disabled={
+                                                    isSubmitting ||
+                                                    reportStatus === 'submitted'
+                                                }
+                                                className="flex items-center gap-2"
+                                            >
+                                                {isSubmitting ? (
+                                                    <>
+                                                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                                        Submitting...
+                                                    </>
+                                                ) : reportStatus ===
+                                                  'submitted' ? (
+                                                    <>
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        Submitted
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <SendIcon className="w-4 h-4" />
+                                                        Submit Report
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="min-h-[75vh] border rounded-md">
-                                <BlockNoteView
-                                    editor={editor}
-                                    theme={isDarkMode ? 'dark' : 'light'}
-                                    className="full-height-blocknote"
-                                />
-                            </div>
-                            <div className="mt-4 text-xs text-muted-foreground">
-                                <p>
-                                    💡 <strong>Tip:</strong> Your work is
-                                    automatically saved as you type. Use the
-                                    toolbar to format your text, add headings,
-                                    lists, and more.{' '}
-                                    <strong>
-                                        Real-time collaboration enabled!
-                                    </strong>
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="min-h-[75vh] border rounded-md">
+                                    <BlockNoteView
+                                        editor={editor}
+                                        theme={isDarkMode ? 'dark' : 'light'}
+                                        className="full-height-blocknote"
+                                    />
+                                </div>
+                                <div className="mt-4 text-xs text-muted-foreground">
+                                    <p>
+                                        💡 <strong>Tip:</strong> Your work is
+                                        automatically saved as you type. Use the
+                                        toolbar to format your text, add
+                                        headings, lists, and more.{' '}
+                                        <strong>
+                                            Real-time collaboration enabled!
+                                        </strong>
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </SplitCollapsibleRightLayout>
-
-                {/* Status Bar */}
-                <div className="flex items-center justify-between py-4 px-6 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>
-                            Status:{' '}
-                            <strong
-                                className={
-                                    reportStatus === 'submitted'
-                                        ? 'text-green-600'
-                                        : 'text-orange-600'
-                                }
-                            >
-                                {reportStatus === 'draft'
-                                    ? 'Draft'
-                                    : 'Submitted'}
-                            </strong>
-                        </span>
-                        <span>
-                            Last saved: <strong>2 minutes ago</strong>
-                        </span>
-                        <span>
-                            Words: <strong>0</strong>
-                        </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                        Due date:{' '}
-                        <strong className="text-foreground">
-                            March 15, 2024
-                        </strong>
-                    </div>
-                </div>
             </div>
         </div>
     )
