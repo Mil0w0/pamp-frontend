@@ -18,17 +18,22 @@ import {
 import SplitCollapsibleRightLayout from '@/components/layout/SplitCollapsibleRightLayout.tsx'
 import { useTheme } from '@/components/ui/theme-provider'
 import { BlockNoteEditor } from '@blocknote/core'
-import { useCreateBlockNoteWithLiveblocks } from '@liveblocks/react-blocknote'
+import {
+    FloatingComposer,
+    FloatingThreads,
+    useCreateBlockNoteWithLiveblocks,
+} from '@liveblocks/react-blocknote'
 import { BlockNoteView } from '@blocknote/mantine'
 import '@blocknote/core/fonts/inter.css'
 import '@blocknote/mantine/style.css'
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, SendIcon } from 'lucide-react'
+import { CheckCircle2, MessageSquare, SendIcon } from 'lucide-react' // Mock data for demonstration
 import {
     ClientSideSuspense,
     LiveblocksProvider,
     RoomProvider,
     useStatus,
+    useThreads,
 } from '@liveblocks/react/suspense'
 import { Badge } from '@/components/ui/badge'
 
@@ -62,6 +67,9 @@ function StudentReportClassicContent() {
     )
     const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date())
     const status = useStatus()
+
+    // Get threads for comment count
+    const { threads } = useThreads({ query: { resolved: false } })
 
     // Create collaborative BlockNote editor with theme support
     const editor: BlockNoteEditor = useCreateBlockNoteWithLiveblocks()
@@ -273,10 +281,17 @@ function StudentReportClassicContent() {
                                                     ? 'Draft'
                                                     : 'Submitted'}
                                             </Badge>
+                                            {threads.length > 0 && (
+                                                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                                                    <MessageSquare className="w-3 h-3 mr-1" />
+                                                    {threads.length} Comments
+                                                </Badge>
+                                            )}
                                         </div>
                                         <CardDescription>
                                             Write your project report using the
-                                            collaborative rich text editor below
+                                            collaborative rich text editor
+                                            below.
                                         </CardDescription>
                                     </div>
                                     <div className="flex items-center gap-3">
@@ -319,12 +334,29 @@ function StudentReportClassicContent() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="min-h-[75vh] border rounded-md">
+                                <div className="min-h-[75vh] border rounded-md relative">
                                     <BlockNoteView
                                         editor={editor}
                                         theme={isDarkMode ? 'dark' : 'light'}
                                         className="full-height-blocknote"
                                     />
+
+                                    {/* Comments Components */}
+                                    {editor && (
+                                        <>
+                                            {/* Use FloatingThreads for closeable comment display */}
+                                            <FloatingThreads
+                                                editor={editor}
+                                                threads={threads}
+                                                className="floating-threads"
+                                            />
+                                            {/* FloatingComposer for creating new comments */}
+                                            <FloatingComposer
+                                                editor={editor}
+                                                className="floating-composer"
+                                            />
+                                        </>
+                                    )}
                                 </div>
                                 <div className="mt-4 text-xs text-muted-foreground">
                                     <p>
@@ -332,6 +364,10 @@ function StudentReportClassicContent() {
                                         automatically saved as you type. Use the
                                         toolbar to format your text, add
                                         headings, lists, and more.{' '}
+                                        <strong>
+                                            Select text to add comments
+                                        </strong>{' '}
+                                        for self-notes or collaboration.{' '}
                                         <strong>
                                             Real-time collaboration enabled!
                                         </strong>
