@@ -36,6 +36,7 @@ import {
     useThreads,
 } from '@liveblocks/react/suspense'
 import { Badge } from '@/components/ui/badge'
+import { defaultUploadFile } from '@/utils/fileUpload'
 
 // Mock data for demonstration
 const mockProject = {
@@ -71,8 +72,13 @@ function StudentReportClassicContent() {
     // Get threads for comment count
     const { threads } = useThreads({ query: { resolved: false } })
 
-    // Create collaborative BlockNote editor with theme support
-    const editor: BlockNoteEditor = useCreateBlockNoteWithLiveblocks()
+    // Use the default upload function (you can customize this for your backend)
+    const uploadFile = defaultUploadFile
+
+    // Create collaborative BlockNote editor with theme support and file upload
+    const editor: BlockNoteEditor = useCreateBlockNoteWithLiveblocks({
+        uploadFile,
+    })
 
     // Update sync time when connection status changes to connected
     useEffect(() => {
