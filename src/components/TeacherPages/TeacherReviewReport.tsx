@@ -20,7 +20,6 @@ import SplitCollapsibleRightLayout from '@/components/layout/SplitCollapsibleRig
 import { useTheme } from '@/components/ui/theme-provider'
 import { BlockNoteEditor } from '@blocknote/core'
 import {
-    AnchoredThreads,
     FloatingComposer,
     FloatingThreads,
     useCreateBlockNoteWithLiveblocks,
@@ -82,7 +81,7 @@ Your report should be well-structured, professional, and demonstrate critical th
 function CustomCommentToolbar({ editor }: { editor: BlockNoteEditor | null }) {
     const [isVisible, setIsVisible] = useState(false)
     const [position, setPosition] = useState({ top: 0, left: 0 })
-    
+
     useEffect(() => {
         if (!editor) return
 
@@ -91,18 +90,18 @@ function CustomCommentToolbar({ editor }: { editor: BlockNoteEditor | null }) {
                 const tiptapEditor = editor._tiptapEditor as any
                 const selection = tiptapEditor.state.selection
                 const hasTextSelection = !selection.empty
-                
+
                 if (hasTextSelection) {
                     // Get selection coordinates
                     const view = tiptapEditor.view
                     const { from, to } = selection
                     const start = view.coordsAtPos(from)
                     const end = view.coordsAtPos(to)
-                    
+
                     // Position toolbar above selection
                     setPosition({
                         top: start.top - 50,
-                        left: (start.left + end.left) / 2 - 60 // Center the toolbar
+                        left: (start.left + end.left) / 2 - 60, // Center the toolbar
                     })
                     setIsVisible(true)
                 } else {
@@ -120,15 +119,30 @@ function CustomCommentToolbar({ editor }: { editor: BlockNoteEditor | null }) {
             const handleSelectionUpdate = () => {
                 setTimeout(checkSelection, 10) // Small delay to ensure selection is updated
             }
-            
-            tiptapEditor.view.dom.addEventListener('mouseup', handleSelectionUpdate)
-            tiptapEditor.view.dom.addEventListener('keyup', handleSelectionUpdate)
+
+            tiptapEditor.view.dom.addEventListener(
+                'mouseup',
+                handleSelectionUpdate
+            )
+            tiptapEditor.view.dom.addEventListener(
+                'keyup',
+                handleSelectionUpdate
+            )
             document.addEventListener('selectionchange', handleSelectionUpdate)
-            
+
             return () => {
-                tiptapEditor.view.dom.removeEventListener('mouseup', handleSelectionUpdate)
-                tiptapEditor.view.dom.removeEventListener('keyup', handleSelectionUpdate)
-                document.removeEventListener('selectionchange', handleSelectionUpdate)
+                tiptapEditor.view.dom.removeEventListener(
+                    'mouseup',
+                    handleSelectionUpdate
+                )
+                tiptapEditor.view.dom.removeEventListener(
+                    'keyup',
+                    handleSelectionUpdate
+                )
+                document.removeEventListener(
+                    'selectionchange',
+                    handleSelectionUpdate
+                )
             }
         }
     }, [editor])
@@ -149,16 +163,14 @@ function CustomCommentToolbar({ editor }: { editor: BlockNoteEditor | null }) {
 
     return (
         <div
-            className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2"
+            className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg"
             style={{
                 top: position.top,
                 left: position.left,
-                transform: 'translateX(-50%)'
             }}
         >
             <Button
                 size="sm"
-                variant="ghost"
                 onClick={handleAddComment}
                 className="flex items-center gap-2 text-sm"
             >
@@ -185,8 +197,6 @@ function TeacherReviewReportContent() {
     )
 
     const { threads } = useThreads({ query: { resolved: false } })
-
-
 
     // Update sync time when connection status changes to connected
     useEffect(() => {
@@ -292,8 +302,6 @@ function TeacherReviewReportContent() {
 
     // Get active collaborators count
     const activeCollaborators = others.length + 1 // +1 for current user
-
-
 
     return (
         <div className="min-h-screen bg-background">
@@ -423,8 +431,9 @@ function TeacherReviewReportContent() {
                                             </Badge>
                                         </div>
                                         <CardDescription>
-                                            Read-only view with commenting
-                                            enabled
+                                            You can review this report and
+                                            create comment threads by selecting
+                                            a part of the text
                                         </CardDescription>
                                     </div>
                                     <div className="flex items-center gap-3">
