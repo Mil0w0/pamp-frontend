@@ -1,19 +1,10 @@
 import { Project } from '@/components/ManageProjects/types.ts'
 
-export type StudentBatches = {
-    id: string
-    state: string
-    name: string
-    students: number
-    createdAt: Date
-    tags: string
-}[]
-
 export type StudentBatch = {
     id: string
     state: string
     name: string
-    students: Student[]
+    students: Student[] | string
     createdAt: string
     projects: Project[]
     tags: string

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button.tsx'
 import AddStudentModal from '@/components/AddStudentToStudentBatch/AddStudentModal.tsx'
 import { authService } from '@/services/UserService/auth-api-client.ts'
 import { toast } from 'sonner'
+import { Undo } from 'lucide-react'
 
 export type StudentBatchDroppableContainersProps = {
     selectedStudents: Student[]
@@ -130,13 +131,12 @@ export default function StudentBatchDroppableContainers({
                                     selectedStudents.map((student) => (
                                         <div
                                             key={student.user_id}
-                                            className="p-2 m-2 bg-white dark:bg-sidebar-accent border rounded shadow cursor-move flex items-center gap-2"
+                                            className="cursor-move flex "
                                         >
-                                            <span>
-                                                {student.first_name +
-                                                    ' ' +
-                                                    student.last_name}
-                                            </span>
+                                            <DraggableStudent
+                                                key={student.user_id}
+                                                student={student}
+                                            />
                                             <button
                                                 onClick={() =>
                                                     handleRemove(
@@ -144,9 +144,9 @@ export default function StudentBatchDroppableContainers({
                                                     )
                                                 }
                                                 style={{ cursor: 'pointer' }}
-                                                className="text-red-500 hover:text-red-700"
+                                                className="text-primary hover:text-primary-foreground"
                                             >
-                                                ✕
+                                                <Undo />
                                             </button>
                                         </div>
                                     ))

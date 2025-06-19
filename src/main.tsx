@@ -19,7 +19,7 @@ import ProjectByIdPageGeneral from '@/components/ProjectPages/ProjectByIdPageGen
 import ProjectByIdPageGroupConfig from '@/components/ProjectPages/ProjectByIdPageGroupConfig.tsx'
 import { Provider } from 'react-redux'
 import { store } from '@/store'
-import ProjectByIdPageGroups from '@/components/ProjectPages/ProjectByIdPageGroups.tsx'
+import ProjectGroupsById from '@/components/ProjectPages/ProjectGroups/ProjectGroupsById.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -62,7 +62,7 @@ createRoot(document.getElementById('root')!).render(
                         />
                         <Route
                             path="groups/:groupId"
-                            element={<ProjectByIdPageGroups />}
+                            element={<ProjectGroupsById />}
                         />
                         <Route
                             path="steps"

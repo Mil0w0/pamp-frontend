@@ -31,7 +31,7 @@ export default function AddProjectModal() {
 
     async function createProject() {
         try {
-            const response = await projectService.createBatch(projectData)
+            const response = await projectService.createProject(projectData)
             if (response.success) {
                 if (response.data && !(response.data instanceof Array)) {
                     const id = response.data.id

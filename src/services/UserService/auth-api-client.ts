@@ -17,6 +17,7 @@ declare global {
     interface Window {
         RUNTIME_CONFIG?: {
             AUTH_API_URL?: string
+            VITE_PROJECT_API_URL?: string
         }
     }
 }
@@ -27,7 +28,9 @@ export const AUTH_API_URL: string =
     'http://localhost:3000'
 
 export const PROJECT_API_URL: string =
-    import.meta.env.VITE_PROJECT_API_URL || 'http://localhost:3000'
+    window.RUNTIME_CONFIG?.VITE_PROJECT_API_URL ||
+    import.meta.env.VITE_PROJECT_API_URL ||
+    'http://localhost:3001'
 
 const handleApiError = (error: string): TeacherRegisterResponse => {
     console.error('API Erreur:', error)

@@ -18,6 +18,7 @@ import {
 import { Project } from '@/components/ManageProjects/types.ts'
 import { useEffect } from 'react'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
+import {useNavigate} from "react-router";
 
 export function ProjectSwitcher({
     projects,
@@ -28,6 +29,7 @@ export function ProjectSwitcher({
 }) {
     const { isMobile } = useSidebar()
     const [project, setActiveProject] = React.useState(currentProject)
+    const navigate = useNavigate()
 
     useEffect(() => {
         setActiveProject(currentProject)
@@ -72,7 +74,10 @@ export function ProjectSwitcher({
                         {projects.map((project) => (
                             <DropdownMenuItem
                                 key={project.name}
-                                onClick={() => setActiveProject(project)}
+                                onClick={() => {
+                                    setActiveProject(project)
+                                    navigate('/projects/' + project.id)
+                                }}
                                 className="gap-2 p-2"
                             >
                                 <div className="flex size-6 items-center justify-center rounded-md border">
