@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button.tsx'
 import AddStudentModal from '@/components/AddStudentToStudentBatch/AddStudentModal.tsx'
 import { authService } from '@/services/UserService/auth-api-client.ts'
 import { toast } from 'sonner'
-import { Undo } from 'lucide-react'
+import { LogOutIcon } from 'lucide-react'
 
 export type StudentBatchDroppableContainersProps = {
     selectedStudents: Student[]
@@ -102,7 +102,7 @@ export default function StudentBatchDroppableContainers({
                                 )}
                             </div>
                         </DroppableZone>
-                        <div className="flex-row flex mt-4 justify-between">
+                        <div className="flex-row flex mt-4 gap-4">
                             <Button variant="outline" onClick={handleAddAll}>
                                 Add all
                             </Button>
@@ -131,7 +131,7 @@ export default function StudentBatchDroppableContainers({
                                     selectedStudents.map((student) => (
                                         <div
                                             key={student.user_id}
-                                            className="cursor-move flex "
+                                            className="cursor-move flex"
                                         >
                                             <DraggableStudent
                                                 key={student.user_id}
@@ -146,7 +146,7 @@ export default function StudentBatchDroppableContainers({
                                                 style={{ cursor: 'pointer' }}
                                                 className="text-primary hover:text-primary-foreground"
                                             >
-                                                <Undo />
+                                                <LogOutIcon />
                                             </button>
                                         </div>
                                     ))

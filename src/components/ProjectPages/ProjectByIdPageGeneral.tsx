@@ -76,7 +76,9 @@ export default function ProjectByIdPageGeneral() {
                             From student batch
                         </h2>
                         <p className="text-sm">
-                            {currentProject.studentBatch.name}
+                            {currentProject.studentBatch
+                                ? currentProject.studentBatch.name
+                                : 'UNASSIGNED'}
                         </p>
                     </div>
 

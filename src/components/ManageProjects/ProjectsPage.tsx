@@ -23,6 +23,7 @@ import { formatToShortDate } from '@/utils/dateFormatter.ts'
 import { Project } from '@/components/ManageProjects/types.ts'
 import { projectService } from '@/services/ProjectService/project-api-client.ts'
 import AddProjectModal from '@/components/ManageProjects/AddProjectsModal.tsx'
+import StudentBatchAssignementSelector from '@/components/ManageProjects/StudentBatchAssignementSelector.tsx'
 
 export default function ProjectsPage() {
     const navigate = useNavigate()
@@ -142,11 +143,10 @@ export default function ProjectsPage() {
                                     </Badge>
                                 </TableCell>
                                 <TableCell>{project.name}</TableCell>
-                                <TableCell className="underline">
-                                    {project.studentBatch &&
-                                    project.studentBatch.name.length > 0
-                                        ? project.studentBatch.name
-                                        : 'UNASSIGNED'}
+                                <TableCell className="cursor-pointer">
+                                    <StudentBatchAssignementSelector
+                                        project={project}
+                                    />
                                 </TableCell>
                                 <TableCell>
                                     {formatToShortDate(project.createdAt)}

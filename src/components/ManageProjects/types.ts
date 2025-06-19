@@ -36,4 +36,5 @@ export type EditProjectDto = {
     minPerGroup?: number | null
     groupsCreator?: 'TEACHER' | 'STUDENT' | 'RANDOM'
     creationGroupDeadLineDate?: string
+    studentBatchId?: string
 }
