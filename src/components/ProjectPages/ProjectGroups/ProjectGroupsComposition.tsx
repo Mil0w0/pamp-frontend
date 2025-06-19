@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import { groupService } from '@/services/ProjectService/project-api-client.ts'
 import { Button } from '@/components/ui/button.tsx'
 import { ProjectGroup } from '@/components/ProjectPages/types.ts'
-import { Undo } from 'lucide-react'
+import { LogOutIcon } from 'lucide-react'
 
 type ProjectGroupsCompositionProps = {
     currentProject: Project
@@ -62,6 +62,10 @@ export default function ProjectGroupsComposition({
     // Load batch students
     const loadBatchStudents = async () => {
         try {
+            if (!currentProject.studentBatch) {
+                toast.warning('No student batch assigned to this project')
+                return
+            }
             const response = await authService.getStudents()
             if (response.success) {
                 const all = response.data as Student[]
@@ -203,7 +207,7 @@ export default function ProjectGroupsComposition({
                                                         )
                                                     }}
                                                 >
-                                                    <Undo />
+                                                    <LogOutIcon />
                                                 </button>
                                             </div>
                                         ))}

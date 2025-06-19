@@ -1,12 +1,11 @@
 import * as React from 'react'
-import { ChevronsUpDown, Plus } from 'lucide-react'
+import { ChevronsUpDown } from 'lucide-react'
 
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.tsx'
 import {
@@ -18,7 +17,7 @@ import {
 import { Project } from '@/components/ManageProjects/types.ts'
 import { useEffect } from 'react'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
-import {useNavigate} from "react-router";
+import { useNavigate } from 'react-router'
 
 export function ProjectSwitcher({
     projects,
@@ -76,7 +75,9 @@ export function ProjectSwitcher({
                                 key={project.name}
                                 onClick={() => {
                                     setActiveProject(project)
-                                    navigate('/projects/' + project.id)
+                                    navigate(
+                                        '/projects/' + project.id + '/settings'
+                                    )
                                 }}
                                 className="gap-2 p-2"
                             >
@@ -86,15 +87,6 @@ export function ProjectSwitcher({
                                 {project.name}
                             </DropdownMenuItem>
                         ))}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="gap-2 p-2">
-                            <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                                <Plus className="size-4" />
-                            </div>
-                            <div className="text-muted-foreground font-medium">
-                                Add project
-                            </div>
-                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </SidebarMenuItem>
