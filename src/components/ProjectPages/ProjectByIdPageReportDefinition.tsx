@@ -23,6 +23,11 @@ import { fetchAllProjects, fetchProjectById } from '@/store/project.slice'
 import { useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChevronDownIcon, PlusIcon, TrashIcon } from 'lucide-react'
+import {
+    projectService,
+    UpsertReportDefinitionDto,
+} from '@/services/ProjectService/project-api-client'
+import { toast } from 'sonner'
 
 type ReportFormat = 'classic' | 'questionnaire'
 
@@ -49,10 +54,36 @@ export default function ProjectByIdPageReportDefinition() {
         instructions: '',
         questions: [],
     })
+    const [isLoading, setIsLoading] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+
+    // Load report definition from API
+    const loadReportDefinition = async (projectId: string) => {
+        setIsLoading(true)
+        try {
+            const response = await projectService.getReportDefinition(projectId)
+            if (response.success && response.data) {
+                const reportDef = response.data
+                setReportConfig({
+                    isReportMandatory: reportDef.isActive,
+                    reportFormat:
+                        reportDef.format.toLowerCase() as ReportFormat,
+                    instructions: reportDef.instruction || '',
+                    questions: reportDef.questions || [],
+                })
+            }
+        } catch (error) {
+            console.error('Failed to load report definition:', error)
+            toast.error('Failed to load report configuration')
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     useEffect(() => {
         if (projectId) {
             dispatch(fetchProjectById(projectId))
+            loadReportDefinition(projectId)
         }
         dispatch(fetchAllProjects())
     }, [dispatch, projectId])
@@ -68,11 +99,11 @@ export default function ProjectByIdPageReportDefinition() {
         setReportConfig((prev) => ({
             ...prev,
             reportFormat: format,
-            // Reset format-specific fields when changing format
-            instructions: format === 'classic' ? prev.instructions : '',
+            // Keep instructions when switching formats
+            instructions: prev.instructions,
             questions:
                 format === 'questionnaire'
-                    ? prev.questions.length > 0
+                    ? prev.questions && prev.questions.length > 0
                         ? prev.questions
                         : [
                               {
@@ -141,6 +172,7 @@ export default function ProjectByIdPageReportDefinition() {
         } else {
             return (
                 instructionsValid &&
+                reportConfig.questions &&
                 reportConfig.questions.length > 0 &&
                 reportConfig.questions.every(
                     (q) => q.text.trim().length > 0 && q.text.length <= 250
@@ -149,8 +181,22 @@ export default function ProjectByIdPageReportDefinition() {
         }
     }
 
-    if (!currentProject) {
-        return <Skeleton />
+    if (!currentProject || isLoading) {
+        return (
+            <div className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+                <div className="flex items-center gap-2 px-4">
+                    <Separator
+                        orientation="vertical"
+                        className="mr-2 data-[orientation=vertical]:h-4"
+                    />
+                    <div className="space-y-4 p-4">
+                        <Skeleton className="h-8 w-64" />
+                        <Skeleton className="h-4 w-48" />
+                        <Skeleton className="h-4 w-32" />
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -407,7 +453,7 @@ export default function ProjectByIdPageReportDefinition() {
                                         </Button>
                                     </div>
 
-                                    {reportConfig.questions.length === 0 && (
+                                    {(!reportConfig.questions || reportConfig.questions.length === 0) && (
                                         <p className="text-sm text-red-500">
                                             At least one question is required
                                             for questionnaire reports.
@@ -415,7 +461,7 @@ export default function ProjectByIdPageReportDefinition() {
                                     )}
 
                                     <div className="space-y-3">
-                                        {reportConfig.questions.map(
+                                        {reportConfig.questions?.map(
                                             (question, index) => (
                                                 <div
                                                     key={question.id}
@@ -502,16 +548,62 @@ export default function ProjectByIdPageReportDefinition() {
                     <div className="pt-4">
                         <Button
                             className="w-fit"
-                            disabled={!isValidConfiguration()}
-                            onClick={() => {
-                                // TODO: Implement save functionality
-                                console.log(
-                                    'Report configuration:',
-                                    reportConfig
-                                )
+                            disabled={!isValidConfiguration() || isSaving}
+                            onClick={async () => {
+                                if (!projectId) return
+
+                                setIsSaving(true)
+                                try {
+                                    const apiPayload: UpsertReportDefinitionDto =
+                                        {
+                                            isActive:
+                                                reportConfig.isReportMandatory,
+                                            format: reportConfig.reportFormat.toUpperCase() as
+                                                | 'CLASSIC'
+                                                | 'QUESTIONNAIRE',
+                                            instruction:
+                                                reportConfig.instructions ||
+                                                undefined,
+                                            questions:
+                                                reportConfig.questions && reportConfig.questions.length >
+                                                0
+                                                    ? JSON.stringify(
+                                                          reportConfig.questions
+                                                      )
+                                                    : undefined,
+                                        }
+
+                                    const response =
+                                        await projectService.upsertReportDefinition(
+                                            projectId,
+                                            apiPayload
+                                        )
+
+                                    if (response.success) {
+                                        toast.success(
+                                            'Report configuration saved successfully!'
+                                        )
+                                    } else {
+                                        toast.error(
+                                            `Failed to save: ${response.error}`
+                                        )
+                                    }
+                                } catch (error) {
+                                    console.error(
+                                        'Failed to save report configuration:',
+                                        error
+                                    )
+                                    toast.error(
+                                        'Failed to save report configuration'
+                                    )
+                                } finally {
+                                    setIsSaving(false)
+                                }
                             }}
                         >
-                            Save Report Configuration
+                            {isSaving
+                                ? 'Saving...'
+                                : 'Save Report Configuration'}
                         </Button>
                         {!isValidConfiguration() &&
                             reportConfig.isReportMandatory && (
