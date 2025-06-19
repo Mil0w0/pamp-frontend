@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label.tsx'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
-import { useEffect, useState } from 'react'
+import { ChangeEvent, useEffect, useState } from 'react'
 import { fetchAllProjects, fetchProjectById } from '@/store/project.slice.ts'
 import { useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
@@ -26,14 +26,23 @@ import {
 } from '@/components/ui/popover'
 import { DateTime } from 'luxon'
 import { toast } from 'sonner'
+import ProjectGroupsComposition from '@/components/ProjectPages/ProjectGroups/ProjectGroupsComposition.tsx'
+import { EditProjectDto } from '@/components/ManageProjects/types.ts'
+import { projectService } from '@/services/ProjectService/project-api-client.ts'
 
+const initialData: EditProjectDto = {}
 export default function ProjectByIdPageGroupConfig() {
     const { projectId } = useParams()
     const dispatch = useDispatch<AppDispatch>()
     const { currentProject } = useSelector((state: RootState) => state.project)
     const [open, setOpen] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
     const [deadLine, setDate] = useState<Date | undefined>(undefined)
-
+    const [deadLineTime, setDeadLineTime] = useState(
+        DateTime.now().toLocaleString(DateTime.TIME_24_WITH_SECONDS)
+    )
+    const [groupProjectData, setGroupProjectData] =
+        useState<EditProjectDto>(initialData)
     useEffect(() => {
         if (projectId) {
             dispatch(fetchProjectById(projectId))
@@ -44,6 +53,34 @@ export default function ProjectByIdPageGroupConfig() {
     if (!currentProject) {
         return <Skeleton />
     }
+
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.currentTarget
+        setGroupProjectData((prev) => ({ ...prev, [id]: value }))
+    }
+
+    const handleProjectEditSave = async () => {
+        setIsLoading(true)
+        try {
+            const response = await projectService.editProject(
+                currentProject.id,
+                groupProjectData
+            )
+            if (response.success) {
+                if (response.data && !(response.data instanceof Array)) {
+                    toast.success('Successfully updated')
+                }
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error('Something went wrong when updating')
+            console.error(error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     return (
         <div>
             <div className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -55,7 +92,7 @@ export default function ProjectByIdPageGroupConfig() {
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem className="hidden md:block">
-                                <BreadcrumbLink href="#">
+                                <BreadcrumbLink href="/projects">
                                     {currentProject.name}
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
@@ -72,14 +109,27 @@ export default function ProjectByIdPageGroupConfig() {
                 <h1 className="text-2xl">Update groups composition</h1>
                 <div className="grid auto-rows-min gap-4 md:grid-cols-2">
                     <div className="grid w-full max-w-sm">
-                        <RadioGroup defaultValue="RANDOM">
-                            <h2>Who is allowed to make groups ? </h2>
+                        <RadioGroup
+                            defaultValue={currentProject.groupsCreator}
+                            onValueChange={(value: string) =>
+                                setGroupProjectData((prev) => ({
+                                    ...prev,
+                                    groupsCreator: value as
+                                        | 'TEACHER'
+                                        | 'RANDOM'
+                                        | 'STUDENT',
+                                }))
+                            }
+                        >
+                            <h2 className="text-xl">
+                                Who is allowed to make groups ?{' '}
+                            </h2>
                             <div className="flex items-center gap-3">
                                 <RadioGroupItem value="TEACHER" id="r1" />
                                 <Label htmlFor="r1">Teacher</Label>
                             </div>
                             <div className="flex items-center gap-3">
-                                <RadioGroupItem value="STUDENTS" id="r2" />
+                                <RadioGroupItem value="STUDENT" id="r2" />
                                 <Label htmlFor="r2">Students</Label>
                             </div>
                             <div className="flex items-center gap-3">
@@ -90,25 +140,27 @@ export default function ProjectByIdPageGroupConfig() {
                     </div>
 
                     <div className="grid w-full max-w-sm justify-end">
-                        <Label className="mb-1" htmlFor="maxStudentPerGroup">
+                        <Label className="mb-1" htmlFor="maxPerGroup">
                             Max students per group
                         </Label>
                         <Input
                             className="mb-2"
-                            id="maxStudentPerGroup"
+                            id="maxPerGroup"
                             type="number"
                             min={1}
+                            onChange={handleChange}
                             defaultValue={currentProject.maxPerGroup}
                         />
 
-                        <Label className="mb-1" htmlFor="minStudentPerGroup">
+                        <Label className="mb-1" htmlFor="minPerGroup">
                             Min students per group
                         </Label>
                         <Input
                             className="mb-2"
-                            id="minStudentPerGroup"
+                            id="minPerGroup"
                             type="number"
                             min={1}
+                            onChange={handleChange}
                             defaultValue={currentProject.minPerGroup}
                         />
 
@@ -120,24 +172,39 @@ export default function ProjectByIdPageGroupConfig() {
                             id="maxGroups"
                             type="number"
                             min={1}
+                            onChange={handleChange}
                             defaultValue={currentProject.maxGroups}
                         />
 
                         <div className="flex gap-4">
                             <div className="flex flex-col gap-3">
-                                <Label htmlFor="deadlineDate" className="px-1">
+                                <Label
+                                    htmlFor="creationGroupDeadLineDate"
+                                    className="px-1"
+                                >
                                     Deadline to create group
                                 </Label>
                                 <Popover open={open} onOpenChange={setOpen}>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
-                                            id="deadLine"
+                                            id="creationGroupDeadLineDate"
                                             className="w-32 justify-between font-normal"
+                                            disabled={
+                                                isLoading ||
+                                                groupProjectData.groupsCreator !==
+                                                    'STUDENT'
+                                            }
                                         >
-                                            {deadLine
-                                                ? deadLine.toLocaleDateString()
-                                                : 'Select date'}
+                                            {groupProjectData.creationGroupDeadLineDate
+                                                ? DateTime.fromISO(
+                                                      groupProjectData.creationGroupDeadLineDate
+                                                  ).toFormat('dd/MM/yyyy')
+                                                : currentProject.creationGroupDeadLineDate
+                                                  ? DateTime.fromISO(
+                                                        currentProject.creationGroupDeadLineDate
+                                                    ).toFormat('dd/MM/yyyy')
+                                                  : 'Select date'}
                                             <ChevronDownIcon />
                                         </Button>
                                     </PopoverTrigger>
@@ -147,16 +214,51 @@ export default function ProjectByIdPageGroupConfig() {
                                     >
                                         <Calendar
                                             mode="single"
-                                            selected={deadLine}
                                             captionLayout="dropdown"
-                                            onSelect={(deadLine) => {
-                                                setDate(deadLine)
+                                            onSelect={(selected) => {
+                                                if (selected) {
+                                                    const [
+                                                        hourStr,
+                                                        minuteStr,
+                                                        secondStr = '0',
+                                                    ] = deadLineTime.split(':')
+                                                    const formattedDate =
+                                                        DateTime.fromJSDate(
+                                                            selected
+                                                        ).set({
+                                                            hour: parseInt(
+                                                                hourStr
+                                                            ),
+                                                            minute: parseInt(
+                                                                minuteStr
+                                                            ),
+                                                            second: parseInt(
+                                                                secondStr
+                                                            ),
+                                                        })
+
+                                                    const isoString =
+                                                        formattedDate.toISO()
+
+                                                    console.log(isoString)
+
+                                                    setGroupProjectData(
+                                                        //@ts-expect-error later
+                                                        (prev) => ({
+                                                            ...prev,
+                                                            creationGroupDeadLineDate:
+                                                                isoString,
+                                                        })
+                                                    )
+                                                }
                                                 setOpen(false)
+                                                setDate(selected)
                                             }}
                                         />
                                     </PopoverContent>
                                 </Popover>
                             </div>
+                            {/*TO DO : HANDLE TIME*/}
                             <div className="flex flex-col gap-3">
                                 <Label htmlFor="time" className="px-1">
                                     Time
@@ -165,22 +267,44 @@ export default function ProjectByIdPageGroupConfig() {
                                     type="time"
                                     id="time"
                                     step="1"
-                                    defaultValue={DateTime.now().toLocaleString(
-                                        DateTime.TIME_24_WITH_SECONDS
-                                    )}
+                                    defaultValue={deadLineTime}
+                                    onChange={(e) => {
+                                        const newTime = e.target.value
+                                        setDeadLineTime(newTime)
+
+                                        if (deadLine) {
+                                            const formattedDate =
+                                                DateTime.fromJSDate(
+                                                    deadLine
+                                                ).toFormat('yyyy-MM-dd')
+                                            const combined = `${formattedDate}T${newTime}`
+
+                                            setGroupProjectData((prev) => ({
+                                                ...prev,
+                                                creationGroupDeadLineDate:
+                                                    combined,
+                                            }))
+                                        }
+                                    }}
+                                    disabled={
+                                        isLoading ||
+                                        groupProjectData.groupsCreator !==
+                                            'STUDENT'
+                                    }
                                     className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                                 />
                             </div>
                         </div>
                     </div>
                 </div>
-
                 <Button
-                    onClick={() => toast.warning('Not implemented yet')}
+                    onClick={() => handleProjectEditSave()}
                     className="self-start"
                 >
-                    Save changes
+                    Save config changes
                 </Button>
+
+                <ProjectGroupsComposition currentProject={currentProject} />
             </div>
         </div>
     )

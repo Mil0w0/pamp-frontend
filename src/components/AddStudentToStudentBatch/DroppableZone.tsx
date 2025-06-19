@@ -11,10 +11,10 @@ export const DroppableZone = ({
     return (
         <div
             ref={setNodeRef}
-            className={`min-h-[24vh] p-4 border-1 rounded ${
+            className={`min-h-[24vh] p-4 rounded ${
                 isOver
-                    ? 'border-primary bg-muted-foregroung'
-                    : 'border-foreground'
+                    ? 'border border-primary'
+                    : ''
             }`}
         >
             {children}

@@ -54,7 +54,7 @@ export default function ProjectsPage() {
     async function deleteItem(itemId: string): Promise<void> {
         setIsLoading(true)
         try {
-            const response = await projectService.deleteBatch(itemId)
+            const response = await projectService.deleteProject(itemId)
             if (response.success) {
                 toast.success('Deleted succesfully')
                 //remove item from list visually
@@ -123,7 +123,11 @@ export default function ProjectsPage() {
                         </TableRow>
                     ) : (
                         projects?.map((project) => (
-                            <TableRow key={project.id} className="h-4">
+                            <TableRow
+                                key={project.id}
+                                className="h-4 cursor-pointer"
+                                onClick={() => goToProjectById(project.id)}
+                            >
                                 <TableCell className="font-medium">
                                     <Badge
                                         variant={

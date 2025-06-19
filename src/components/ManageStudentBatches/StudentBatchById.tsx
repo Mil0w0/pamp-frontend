@@ -62,6 +62,7 @@ export default function StudentBatchById() {
         try {
             const response = await batchService.editBatch(
                 studentBatchId,
+                //@ts-expect-error fixme
                 batchEditData
             )
             if (response.success) {
@@ -154,7 +155,11 @@ export default function StudentBatchById() {
                 </Table>
             </div>
             <StudentBatchDroppableContainers
-                selectedStudents={batchEditData.students || []}
+                selectedStudents={
+                    typeof batchEditData.students === 'string'
+                        ? []
+                        : batchEditData.students || []
+                }
                 setSelectedStudents={updateSelectedStudents}
             />
 

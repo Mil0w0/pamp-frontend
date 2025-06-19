@@ -50,7 +50,7 @@ function CustomHeader() {
                     </button>
                 </div>
                 <div className="hidden lg:flex justify-items-start lg:gap-x-12">
-                    <a href="projects" className="text-sm/6 font-semibold">
+                    <a href="/projects" className="text-sm/6 font-semibold">
                         My projects
                     </a>
                     <a
@@ -82,6 +82,7 @@ function CustomHeader() {
                             name="light-switch"
                             className="light-switch sr-only"
                             checked={theme === 'light'}
+                            onChange={() => null}
                         />
                         <label
                             className="relative cursor-pointer p-2"

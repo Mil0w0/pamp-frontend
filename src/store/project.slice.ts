@@ -1,15 +1,21 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { Project } from '@/components/ManageProjects/types.ts'
-import { projectService } from '@/services/ProjectService/project-api-client.ts'
+import {
+    groupService,
+    projectService,
+} from '@/services/ProjectService/project-api-client.ts'
+import { ProjectGroup } from '@/components/ProjectPages/types.ts'
 
 interface ProjectState {
     currentProject: Project | null
     allProjects: Project[]
+    currentGroup: ProjectGroup | null
     error: Error | null
 }
 
 const initialState: ProjectState = {
     currentProject: null,
+    currentGroup: null,
     allProjects: [],
     error: null,
 }
@@ -33,6 +39,24 @@ export const fetchProjectById = createAsyncThunk(
     }
 )
 
+// Async thunk to load group by ID
+export const fetchGroupById = createAsyncThunk(
+    'group/fetchById',
+    async (id: string) => {
+        const res = await groupService.getOneById(id)
+        if (!res.success) {
+            initialState.error = {
+                name: 'error',
+                message: res.error || 'Error',
+            }
+        }
+        const group = res?.data as ProjectGroup
+        return {
+            ...group,
+        }
+    }
+)
+
 // Async thunk to load all projects
 export const fetchAllProjects = createAsyncThunk(
     'project/fetchAll',
@@ -49,6 +73,9 @@ const projectSlice = createSlice({
         setCurrentProject(state, action: PayloadAction<Project>) {
             state.currentProject = action.payload
         },
+        setCurrentGroup(state, action: PayloadAction<ProjectGroup>) {
+            state.currentGroup = action.payload
+        },
         updateProjectInList(state, action: PayloadAction<Project>) {
             const updated = action.payload
             state.allProjects = state.allProjects.map((p) =>
@@ -63,8 +90,12 @@ const projectSlice = createSlice({
         builder.addCase(fetchAllProjects.fulfilled, (state, action) => {
             state.allProjects = action.payload
         })
+        builder.addCase(fetchGroupById.fulfilled, (state, action) => {
+            state.currentGroup = action.payload
+        })
     },
 })
 
-export const { setCurrentProject, updateProjectInList } = projectSlice.actions
+export const { setCurrentProject, updateProjectInList, setCurrentGroup } =
+    projectSlice.actions
 export default projectSlice.reducer
