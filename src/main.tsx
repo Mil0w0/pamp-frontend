@@ -20,6 +20,7 @@ import ProjectByIdPageGroupConfig from '@/components/ProjectPages/ProjectByIdPag
 import { Provider } from 'react-redux'
 import { store } from '@/store'
 import ProjectGroupsById from '@/components/ProjectPages/ProjectGroups/ProjectGroupsById.tsx'
+import ProjectByIdPageStepConfig from "@/components/ProjectPages/ProjectByIdPageStepsConfig.tsx";
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -66,7 +67,7 @@ createRoot(document.getElementById('root')!).render(
                         />
                         <Route
                             path="steps"
-                            element={<ProjectByIdPageGroupConfig />}
+                            element={<ProjectByIdPageStepConfig />}
                         />
                     </Route>
 
