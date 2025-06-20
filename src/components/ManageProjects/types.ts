@@ -1,5 +1,5 @@
 import { StudentBatch } from '@/components/ManageStudentBatches/types.ts'
-import { ProjectGroup } from '@/components/ProjectPages/types.ts'
+import { ProjectGroup, Step } from '@/components/ProjectPages/types.ts'
 
 export type Project = {
     id: string
@@ -15,11 +15,6 @@ export type Project = {
     creationGroupDeadLineDate: string
     groups: ProjectGroup[]
     steps: Step[]
-}
-
-export type Step = {
-    id: string
-    name: string
 }
 
 export type CreateProjectDto = {

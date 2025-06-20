@@ -7,42 +7,25 @@ import {
     BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
-import { Label } from '@/components/ui/label.tsx'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
-import { ChangeEvent, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { fetchAllProjects, fetchProjectById } from '@/store/project.slice.ts'
 import { useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
 import { Button } from '@/components/ui/button.tsx'
-import { Input } from '@/components/ui/input.tsx'
-import { ChevronDownIcon } from 'lucide-react'
-import { Calendar } from '@/components/ui/calendar'
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from '@/components/ui/popover'
-import { DateTime } from 'luxon'
 import { toast } from 'sonner'
-import ProjectGroupsComposition from '@/components/ProjectPages/ProjectGroups/ProjectGroupsComposition.tsx'
-import { EditProjectDto } from '@/components/ManageProjects/types.ts'
 import { projectService } from '@/services/ProjectService/project-api-client.ts'
+import { Step } from '@/components/ProjectPages/types.ts'
+import PampButton from '@/components/ui/pamp-button.tsx'
+import { StepBox } from '@/components/ProjectPages/Steps/StepBox.tsx'
 
-const initialData: EditProjectDto = {}
 export default function ProjectByIdPageStepConfig() {
     const { projectId } = useParams()
     const dispatch = useDispatch<AppDispatch>()
     const { currentProject } = useSelector((state: RootState) => state.project)
-    const [open, setOpen] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
-    const [deadLine, setDate] = useState<Date | undefined>(undefined)
-    const [deadLineTime, setDeadLineTime] = useState(
-        DateTime.now().toLocaleString(DateTime.TIME_24_WITH_SECONDS)
-    )
-    const [groupProjectData, setGroupProjectData] =
-        useState<EditProjectDto>(initialData)
+    const [steps, setSteps] = useState<Partial<Step>[]>([])
+
     useEffect(() => {
         if (projectId) {
             dispatch(fetchProjectById(projectId))
@@ -50,35 +33,74 @@ export default function ProjectByIdPageStepConfig() {
         dispatch(fetchAllProjects())
     }, [dispatch, projectId])
 
+    useEffect(() => {
+        if (currentProject && currentProject.steps) {
+            setSteps(currentProject.steps)
+        }
+    }, [currentProject])
+
     if (!currentProject) {
         return <Skeleton />
     }
 
-    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const { id, value } = e.currentTarget
-        setGroupProjectData((prev) => ({ ...prev, [id]: value }))
+    const handleStepChange = (
+        index: number,
+        field: keyof Step,
+        value: string | boolean
+    ) => {
+        setSteps((prevSteps) =>
+            prevSteps.map((step, i) =>
+                i === index ? { ...step, [field]: value } : step
+            )
+        )
     }
 
     const handleProjectEditSave = async () => {
-        setIsLoading(true)
         try {
-            const response = await projectService.editProject(
+            const response = await projectService.updateSteps(
                 currentProject.id,
-                groupProjectData
+                steps
             )
             if (response.success) {
-                if (response.data && !(response.data instanceof Array)) {
-                    toast.success('Successfully updated')
+                if (response.data) {
+                    toast.success('Successfully updated steps')
                 }
             } else {
                 toast.error(response.error)
             }
         } catch (error) {
-            toast.error('Something went wrong when updating')
+            toast.error('Something went wrong when updating steps')
             console.error(error)
-        } finally {
-            setIsLoading(false)
         }
+    }
+    const addStepSkeleton = () => {
+        console.log('adding skeleton step ')
+        const initialNewStep: Partial<Step> = {
+            name: '',
+            description: '',
+            hasMandatorySubmission: false,
+            allowSubmittingAfterDeadLine: true,
+        }
+        setSteps((prev) => [...prev, initialNewStep])
+    }
+    const removeStepSkeleton = (indexToDelete: number) => {
+        console.log('remove skeleton step ')
+        const stepDeleted = steps[indexToDelete]
+        setSteps((prevSteps) =>
+            prevSteps.filter((_, index) => index !== indexToDelete)
+        )
+        toast.warning('To delete step save changes or ', {
+            action: {
+                label: 'Undo',
+                onClick: () => {
+                    setSteps((prevSteps) => {
+                        const newSteps = [...prevSteps]
+                        newSteps.splice(indexToDelete, 0, stepDeleted)
+                        return newSteps
+                    })
+                },
+            },
+        })
     }
 
     return (
@@ -92,13 +114,15 @@ export default function ProjectByIdPageStepConfig() {
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem className="hidden md:block">
-                                <BreadcrumbLink href="/projects">
+                                <BreadcrumbLink
+                                    href={`/projects/${currentProject.id}/settings`}
+                                >
                                     {currentProject.name}
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
                             <BreadcrumbSeparator className="hidden md:block" />
                             <BreadcrumbItem>
-                                <BreadcrumbPage>Groups settings</BreadcrumbPage>
+                                <BreadcrumbPage>Steps settings</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
@@ -106,205 +130,32 @@ export default function ProjectByIdPageStepConfig() {
             </div>
 
             <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                <h1 className="text-2xl">Update groups composition</h1>
-                <div className="grid auto-rows-min gap-4 md:grid-cols-2">
-                    <div className="grid w-full max-w-sm">
-                        <RadioGroup
-                            defaultValue={currentProject.groupsCreator}
-                            onValueChange={(value: string) =>
-                                setGroupProjectData((prev) => ({
-                                    ...prev,
-                                    groupsCreator: value as
-                                        | 'TEACHER'
-                                        | 'RANDOM'
-                                        | 'STUDENT',
-                                }))
-                            }
-                        >
-                            <h2 className="text-xl">
-                                Who is allowed to make groups ?{' '}
-                            </h2>
-                            <div className="flex items-center gap-3">
-                                <RadioGroupItem value="TEACHER" id="r1" />
-                                <Label htmlFor="r1">Teacher</Label>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <RadioGroupItem value="STUDENT" id="r2" />
-                                <Label htmlFor="r2">Students</Label>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <RadioGroupItem value="RANDOM" id="r3" />
-                                <Label htmlFor="r3">System (automatic)</Label>
-                            </div>
-                        </RadioGroup>
-                    </div>
+                <h1 className="text-2xl">Manage steps for this project</h1>
+                <PampButton message={'Add a step'} onClick={addStepSkeleton} />
 
-                    <div className="grid w-full max-w-sm justify-end">
-                        <Label className="mb-1" htmlFor="maxPerGroup">
-                            Max students per group
-                        </Label>
-                        <Input
-                            className="mb-2"
-                            id="maxPerGroup"
-                            type="number"
-                            min={1}
-                            onChange={handleChange}
-                            defaultValue={currentProject.maxPerGroup}
-                        />
-
-                        <Label className="mb-1" htmlFor="minPerGroup">
-                            Min students per group
-                        </Label>
-                        <Input
-                            className="mb-2"
-                            id="minPerGroup"
-                            type="number"
-                            min={1}
-                            onChange={handleChange}
-                            defaultValue={currentProject.minPerGroup}
-                        />
-
-                        <Label className="mb-1" htmlFor="maxGroups">
-                            Max groups allowed
-                        </Label>
-                        <Input
-                            className="mb-2"
-                            id="maxGroups"
-                            type="number"
-                            min={1}
-                            onChange={handleChange}
-                            defaultValue={currentProject.maxGroups}
-                        />
-
-                        <div className="flex gap-4">
-                            <div className="flex flex-col gap-3">
-                                <Label
-                                    htmlFor="creationGroupDeadLineDate"
-                                    className="px-1"
-                                >
-                                    Deadline to create group
-                                </Label>
-                                <Popover open={open} onOpenChange={setOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            id="creationGroupDeadLineDate"
-                                            className="w-32 justify-between font-normal"
-                                            disabled={
-                                                isLoading ||
-                                                groupProjectData.groupsCreator !==
-                                                    'STUDENT'
-                                            }
-                                        >
-                                            {groupProjectData.creationGroupDeadLineDate
-                                                ? DateTime.fromISO(
-                                                      groupProjectData.creationGroupDeadLineDate
-                                                  ).toFormat('dd/MM/yyyy')
-                                                : currentProject.creationGroupDeadLineDate
-                                                  ? DateTime.fromISO(
-                                                        currentProject.creationGroupDeadLineDate
-                                                    ).toFormat('dd/MM/yyyy')
-                                                  : 'Select date'}
-                                            <ChevronDownIcon />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                        className="w-auto overflow-hidden p-0"
-                                        align="start"
-                                    >
-                                        <Calendar
-                                            mode="single"
-                                            captionLayout="dropdown"
-                                            onSelect={(selected) => {
-                                                if (selected) {
-                                                    const [
-                                                        hourStr,
-                                                        minuteStr,
-                                                        secondStr = '0',
-                                                    ] = deadLineTime.split(':')
-                                                    const formattedDate =
-                                                        DateTime.fromJSDate(
-                                                            selected
-                                                        ).set({
-                                                            hour: parseInt(
-                                                                hourStr
-                                                            ),
-                                                            minute: parseInt(
-                                                                minuteStr
-                                                            ),
-                                                            second: parseInt(
-                                                                secondStr
-                                                            ),
-                                                        })
-
-                                                    const isoString =
-                                                        formattedDate.toISO()
-
-                                                    console.log(isoString)
-
-                                                    setGroupProjectData(
-                                                        //@ts-expect-error later
-                                                        (prev) => ({
-                                                            ...prev,
-                                                            creationGroupDeadLineDate:
-                                                                isoString,
-                                                        })
-                                                    )
-                                                }
-                                                setOpen(false)
-                                                setDate(selected)
-                                            }}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            {/*TO DO : HANDLE TIME*/}
-                            <div className="flex flex-col gap-3">
-                                <Label htmlFor="time" className="px-1">
-                                    Time
-                                </Label>
-                                <Input
-                                    type="time"
-                                    id="time"
-                                    step="1"
-                                    defaultValue={deadLineTime}
-                                    onChange={(e) => {
-                                        const newTime = e.target.value
-                                        setDeadLineTime(newTime)
-
-                                        if (deadLine) {
-                                            const formattedDate =
-                                                DateTime.fromJSDate(
-                                                    deadLine
-                                                ).toFormat('yyyy-MM-dd')
-                                            const combined = `${formattedDate}T${newTime}`
-
-                                            setGroupProjectData((prev) => ({
-                                                ...prev,
-                                                creationGroupDeadLineDate:
-                                                    combined,
-                                            }))
-                                        }
-                                    }}
-                                    disabled={
-                                        isLoading ||
-                                        groupProjectData.groupsCreator !==
-                                            'STUDENT'
-                                    }
-                                    className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                {steps.length > 0 ? (
+                    <div>
+                        <div className="flex flex-col items-center gap-2">
+                            {steps.map((step, index) => (
+                                <StepBox
+                                    step={step}
+                                    index={index}
+                                    key={index}
+                                    handleStepChange={handleStepChange}
+                                    removeItem={removeStepSkeleton}
                                 />
-                            </div>
+                            ))}
                         </div>
+                        <Button
+                            onClick={() => handleProjectEditSave()}
+                            className="self-start mt-4"
+                        >
+                            Save changes
+                        </Button>
                     </div>
-                </div>
-                <Button
-                    onClick={() => handleProjectEditSave()}
-                    className="self-start"
-                >
-                    Save config changes
-                </Button>
-
-                <ProjectGroupsComposition currentProject={currentProject} />
+                ) : (
+                    <div className="flex">No steps for this project</div>
+                )}
             </div>
         </div>
     )

@@ -3,7 +3,7 @@ import {
     EditProjectDto,
     Project,
 } from '@/components/ManageProjects/types'
-import { ProjectGroup } from '@/components/ProjectPages/types.ts'
+import { ProjectGroup, Step } from '@/components/ProjectPages/types.ts'
 
 export const PROJECT_API_URL: string =
     window.RUNTIME_CONFIG?.VITE_PROJECT_API_URL ||
@@ -48,7 +48,6 @@ export const projectService = {
                 return handleApiError(error.message)
             } else {
                 const project: Project = await response.json()
-                console.log(project)
                 return {
                     success: true,
                     data: project,
@@ -71,7 +70,6 @@ export const projectService = {
                 return handleApiError(error.message)
             } else {
                 const projects: Project[] = await response.json()
-                console.log(projects)
                 return {
                     success: true,
                     data: projects,
@@ -167,6 +165,37 @@ export const projectService = {
                 },
                 body: JSON.stringify(projectData),
             })
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiError(error.message)
+            } else {
+                const project: Project = await response.json()
+                return {
+                    success: true,
+                    data: project,
+                }
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleApiError(err.message)
+        }
+    },
+    updateSteps: async (
+        projectId: string,
+        stepsData: Partial<Step>[]
+    ): Promise<ProjectApiResponse> => {
+        try {
+            const response = await fetch(
+                `${PROJECT_API_URL}/projects/${projectId}/steps`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                    body: JSON.stringify(stepsData),
+                }
+            )
             if (!response.ok) {
                 const error: ApiErrorMessage = await response.json()
                 return handleApiError(error.message)
