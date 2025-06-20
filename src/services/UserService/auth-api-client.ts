@@ -12,6 +12,8 @@ import {
     StudentBatch,
 } from '@/components/ManageStudentBatches/types.ts'
 import { User } from '@/services/UserService/types.ts'
+import { fetchCurrentUser } from '@/store/user.slice.ts'
+import { AppDispatch } from '@/store'
 
 declare global {
     interface Window {
@@ -249,7 +251,10 @@ export const authService = {
             return handleApiError(err.message)
         }
     },
-    login: async (loginData: UserLoginDto): Promise<UserLoginResponse> => {
+    login: async (
+        loginData: UserLoginDto,
+        dispatch: AppDispatch
+    ): Promise<UserLoginResponse> => {
         try {
             const response = await fetch(`${AUTH_API_URL}/login/teacher`, {
                 method: 'POST',
@@ -261,7 +266,10 @@ export const authService = {
                 return handleApiError(error.message)
             }
             const data: { token: string } = await response.json()
-            //TODO: get a secure cookie instead of local storage late
+            //Store user info globally
+            dispatch(fetchCurrentUser(data.token))
+
+            //Store auth token
             localStorage.setItem('auth_token', data.token)
             return { success: response.ok, token: data.token }
         } catch (error) {
@@ -269,4 +277,36 @@ export const authService = {
             return handleApiError(err.message)
         }
     },
+    getCurrentUser: async (token: string): Promise<GetUserResponse> => {
+        try {
+            const response = await fetch(`${AUTH_API_URL}/me`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleUserApiError(error.message)
+            } else {
+                const user: User = await response.json()
+                return {
+                    success: true,
+                    data: user,
+                }
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleUserApiError(err.message)
+        }
+    },
+}
+
+export type GetUserResponse = {
+    success: boolean
+    message?: string
+    data?: User
+}
+
+const handleUserApiError = (error: string) => {
+    return { success: false, error: error }
 }

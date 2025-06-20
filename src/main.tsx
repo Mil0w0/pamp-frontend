@@ -20,7 +20,8 @@ import ProjectByIdPageGroupConfig from '@/components/ProjectPages/ProjectByIdPag
 import { Provider } from 'react-redux'
 import { store } from '@/store'
 import ProjectGroupsById from '@/components/ProjectPages/ProjectGroups/ProjectGroupsById.tsx'
-import ProjectByIdPageStepConfig from "@/components/ProjectPages/ProjectByIdPageStepsConfig.tsx";
+import ProjectByIdPageStepConfig from '@/components/ProjectPages/ProjectByIdPageStepsConfig.tsx'
+import ProtectedRoute from '@/components/Routes/ProtectedRoutes.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -38,9 +39,13 @@ createRoot(document.getElementById('root')!).render(
                     </Route>
                     <Route
                         path="/student-batches/"
-                        element={<StudentBatchesPage />}
+                        element={
+                            <ProtectedRoute allowedRoles={['TEACHER']}>
+                                <StudentBatchesPage />
+                            </ProtectedRoute>
+                        }
                     />
-                    <Route path="/projects/" element={<ProjectsPage />} />
+                    <Route path="/projects/" element={  <ProtectedRoute allowedRoles={['TEACHER', 'STUDENT']}><ProjectsPage /></ProtectedRoute>} />
                     <Route
                         path="/student-batches/:id"
                         element={<StudentBatchById />}
@@ -70,9 +75,10 @@ createRoot(document.getElementById('root')!).render(
                             element={<ProjectByIdPageStepConfig />}
                         />
                         <Route
-                            path="*"
-                            element={<Error404 />}
+                            path="steps/:stepId/"
+                            element={<ProjectByIdPageStepConfig />}
                         />
+                        <Route path="*" element={<Error404 />} />
                     </Route>
 
                     <Route path="*" element={<Error404 />} />

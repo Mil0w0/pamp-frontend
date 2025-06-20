@@ -11,6 +11,7 @@ import {
 } from '@/services/UserService/auth-api-client.ts'
 import { toast } from 'sonner'
 import { UserLoginDto, UserLoginResponse } from '@/components/LogIn/types.ts'
+import { useDispatch } from 'react-redux'
 
 export default function LogIn({
     className,
@@ -26,13 +27,16 @@ export default function LogIn({
         const { id, value } = e.currentTarget
         setFormData((prev) => ({ ...prev, [id]: value }))
     }
+    const dispatch = useDispatch()
 
     const handleLoginSubmit = async (e: FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
         try {
-            const response: UserLoginResponse =
-                await authService.login(formData)
+            const response: UserLoginResponse = await authService.login(
+                formData,
+                dispatch
+            )
             if (response.success) {
                 toast.success(`Logged in successfully`)
                 console.log(response.token)

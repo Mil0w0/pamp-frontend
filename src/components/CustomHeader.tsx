@@ -1,5 +1,8 @@
 import { useTheme } from '@/components/ui/theme-provider.tsx'
 import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { AppDispatch, RootState } from '@/store'
+import { fetchCurrentUser } from '@/store/user.slice.ts'
 
 function CustomHeader() {
     const { theme, setTheme } = useTheme()
@@ -7,6 +10,15 @@ function CustomHeader() {
     const [loginLogoutLink, setLoginLogoutLink] = useState(
         !localStorage.getItem('auth_token')
     )
+    const { currentUser } = useSelector((state: RootState) => state.user)
+    const dispatch = useDispatch<AppDispatch>()
+
+    useEffect(() => {
+        const token = localStorage.getItem('auth_token')
+        if (token) {
+            dispatch(fetchCurrentUser(token))
+        }
+    }, [dispatch])
 
     useEffect(() => {
         setLoginLogoutLink(!loginLogoutLink)
@@ -53,12 +65,14 @@ function CustomHeader() {
                     <a href="/projects" className="text-sm/6 font-semibold">
                         My projects
                     </a>
-                    <a
-                        href="/student-batches"
-                        className="text-sm/6 font-semibold"
-                    >
-                        My students batches
-                    </a>
+                    {currentUser && currentUser.role !== 'STUDENT' && (
+                        <a
+                            href="/student-batches"
+                            className="text-sm/6 font-semibold"
+                        >
+                            My students batches
+                        </a>
+                    )}
                 </div>
                 <div className="hidden lg:flex lg:flex-1  lg:items-center lg:justify-end">
                     <a
@@ -162,18 +176,23 @@ function CustomHeader() {
                             <div className="-my-6 divide-y divide-gray-500/10">
                                 <div className="space-y-2 py-6">
                                     <a
-                                        href="/student-batches"
-                                        className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold hover:bg-gray-50"
-                                    >
-                                        My student batches
-                                    </a>
-                                    <a
                                         href="/projects"
                                         className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold hover:bg-gray-50"
                                     >
                                         My projects
                                     </a>
+
+                                    {currentUser &&
+                                        currentUser.role !== 'STUDENT' && (
+                                            <a
+                                                href="/student-batches"
+                                                className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold hover:bg-gray-50"
+                                            >
+                                                My student batches
+                                            </a>
+                                        )}
                                 </div>
+
                                 <div className="py-6">
                                     <a
                                         href={
