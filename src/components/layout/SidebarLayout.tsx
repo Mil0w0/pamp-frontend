@@ -19,11 +19,8 @@ export default function SidebarLayout() {
             dispatch(fetchProjectById(projectId))
         }
         dispatch(fetchAllProjects())
-
-        console.log(error)
     }, [dispatch, projectId])
 
-    console.log(error)
     if (error !== null) {
         navigate('/error')
     }

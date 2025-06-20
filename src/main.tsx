@@ -66,8 +66,12 @@ createRoot(document.getElementById('root')!).render(
                             element={<ProjectGroupsById />}
                         />
                         <Route
-                            path="steps"
+                            path="steps/config"
                             element={<ProjectByIdPageStepConfig />}
+                        />
+                        <Route
+                            path="*"
+                            element={<Error404 />}
                         />
                     </Route>
 

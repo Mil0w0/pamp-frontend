@@ -66,7 +66,6 @@ export function AppSidebar({
     ...props
 }: AppSidebarProps) {
     console.log('### DEBUG STORE (global state)')
-    console.log(currentProject)
     console.log(allProjects)
 
     const [navLinks, setNavLinks] = React.useState<NavItem[]>(navMain)
@@ -80,8 +79,8 @@ export function AppSidebar({
                 url: `/projects/${currentProject.id}/groups/${group.id}`,
             })) || []
         const stepItems: NavSubItem[] =
-            currentProject.steps?.map((step) => ({
-                title: step.name,
+            currentProject.steps?.map((step, index) => ({
+                title: `S-${index}: ` + step.name,
                 url: `/projects/${currentProject.id}/steps/${step.id}`,
             })) || []
 

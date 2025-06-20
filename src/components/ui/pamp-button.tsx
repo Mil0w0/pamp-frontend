@@ -10,7 +10,7 @@ export default function PampButton({ message, onClick }: PampButtonProps) {
         <Card
             className="p-4 flex flex-row items-center w-fit"
             style={{ cursor: 'pointer' }}
-            onClick={onClick}
+            onClick={() => (onClick ? onClick() : null)}
         >
             <Button size="icon" className="border-1 border-ring">
                 +
