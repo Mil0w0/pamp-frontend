@@ -33,7 +33,7 @@ export const AUTH_API_URL: string =
     'http://localhost:3000'
 
 export const PROJECT_API_URL: string =
-    window.RUNTIME_CONFIG?.VITE_PROJECT_API_URL ||
+    window.RUNTIME_CONFIG?.PROJECT_API_URL ||
     import.meta.env.VITE_PROJECT_API_URL ||
     'http://localhost:3001'
 
