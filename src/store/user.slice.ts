@@ -24,7 +24,16 @@ export const fetchCurrentUser = createAsyncThunk(
         }
         console.log('## DEBUG CURRENT USER')
         console.log(res.data)
-        return res.data as User
+        // return res.data as User
+        //fixme
+        return {
+            user_id: '26ff5f65-7829-4897-93c1-94d00410c57b',
+            email: 'loriane.hilderal@gmail.com',
+            first_name: 'Loriane',
+            last_name: 'HILDERAL',
+            role: 'STUDENT',
+            is_active: true,
+        }
     }
 )
 

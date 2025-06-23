@@ -43,7 +43,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }, [currentUser, loading, allowedRoles, navigate])
 
     if (loading) {
-        return 'ah'
+        return null
     }
     // User is logged in and role allowed
     return children
