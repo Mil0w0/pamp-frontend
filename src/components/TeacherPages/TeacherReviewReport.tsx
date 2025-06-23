@@ -37,7 +37,7 @@ import {
     useStatus,
     useThreads,
 } from '@liveblocks/react/suspense'
-import { defaultUploadFile } from '@/utils/fileUpload'
+import { createS3UploadForReports } from '@/utils/fileUpload.ts'
 
 // Mock data for demonstration
 const mockProject = {
@@ -190,7 +190,7 @@ function TeacherReviewReportContent() {
     const others = useOthers()
 
     // Use the default upload function (you can customize this for your backend)
-    const uploadFile = defaultUploadFile
+    const uploadFile = createS3UploadForReports()
 
     // Create collaborative BlockNote editor for teacher review
     const editor: BlockNoteEditor = useCreateBlockNoteWithLiveblocks(
