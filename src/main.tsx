@@ -27,7 +27,6 @@ import { store } from '@/store'
 import ProjectByIdPageReportDefinition from '@/components/ProjectPages/ProjectByIdPageReportDefinition.tsx'
 import StudentReportClassic from '@/components/StudentPages/StudentReportClassic.tsx'
 import StudentReportQuestionnaire from '@/components/StudentPages/StudentReportQuestionnaire.tsx'
-import TestCollaboration from '@/components/StudentPages/TestCollaboration.tsx'
 import TeacherReviewReport from '@/components/TeacherPages/TeacherReviewReport.tsx'
 
 createRoot(document.getElementById('root')!).render(
@@ -85,10 +84,6 @@ createRoot(document.getElementById('root')!).render(
                         <Route
                             path="test/questionnaire-report"
                             element={<StudentReportQuestionnaire />}
-                        />
-                        <Route
-                            path="test/collaboration"
-                            element={<TestCollaboration />}
                         />
                         <Route
                             path="test/classic-review"
