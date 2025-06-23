@@ -45,7 +45,16 @@ createRoot(document.getElementById('root')!).render(
                             </ProtectedRoute>
                         }
                     />
-                    <Route path="/projects/" element={  <ProtectedRoute allowedRoles={['TEACHER', 'STUDENT']}><ProjectsPage /></ProtectedRoute>} />
+                    <Route
+                        path="/projects/"
+                        element={
+                            <ProtectedRoute
+                                allowedRoles={['TEACHER', 'STUDENT']}
+                            >
+                                <ProjectsPage />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route
                         path="/student-batches/:id"
                         element={<StudentBatchById />}
