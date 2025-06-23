@@ -11,6 +11,8 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.832.0",
+    "@aws-sdk/lib-storage": "^3.832.0",
     "@blocknote/core": "^0.31.2",
     "@blocknote/mantine": "^0.31.2",
     "@blocknote/react": "^0.31.2",
@@ -37,6 +39,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@reduxjs/toolkit": "^2.8.2",
     "@tailwindcss/vite": "^4.1.4",
+    "@types/uuid": "^10.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -53,6 +56,7 @@
     "tailwind-merge": "^3.2.0",
     "tailwindcss": "^4.1.4",
     "tw-animate-css": "^1.2.8",
+    "uuid": "^11.1.0",
     "vite-tsconfig-paths": "^5.1.4",
     "xlsx": "^0.18.5",
     "yjs": "^13.6.27",
@@ -78,6 +82,7 @@
     "prettier": "^3.5.3",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.29.0",
+    "util": "^0.12.5",
     "vite": "^6.2.0",
     "vitest": "^3.1.1"
   }

@@ -30,7 +30,6 @@ import ProtectedRoute from '@/components/Routes/ProtectedRoutes.tsx'
 import ProjectByIdPageReportDefinition from '@/components/ProjectPages/ProjectByIdPageReportDefinition.tsx'
 import StudentReportClassic from '@/components/StudentPages/StudentReportClassic.tsx'
 import StudentReportQuestionnaire from '@/components/StudentPages/StudentReportQuestionnaire.tsx'
-import TestCollaboration from '@/components/StudentPages/TestCollaboration.tsx'
 import TeacherReviewReport from '@/components/TeacherPages/TeacherReviewReport.tsx'
 
 createRoot(document.getElementById('root')!).render(

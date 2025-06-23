@@ -36,7 +36,7 @@ import {
     useThreads,
 } from '@liveblocks/react/suspense'
 import { Badge } from '@/components/ui/badge'
-import { defaultUploadFile } from '@/utils/fileUpload'
+import { createS3UploadForReports } from '@/utils/fileUpload.ts'
 
 // Mock data for demonstration
 const mockProject = {
@@ -73,7 +73,7 @@ function StudentReportClassicContent() {
     const { threads } = useThreads({ query: { resolved: false } })
 
     // Use the default upload function (you can customize this for your backend)
-    const uploadFile = defaultUploadFile
+    const uploadFile = createS3UploadForReports()
 
     // Create collaborative BlockNote editor with theme support and file upload
     const editor: BlockNoteEditor = useCreateBlockNoteWithLiveblocks({
@@ -390,7 +390,7 @@ function StudentReportClassicContent() {
 
 export default function StudentReportClassic() {
     const apiKey =
-        window.RUNTIME_CONFIG?.AUTH_API_URL ||
+        window.RUNTIME_CONFIG?.LIVEBLOCKS_KEY ||
         import.meta.env.VITE_LIVEBLOCKS_KEY
 
     if (!apiKey) {
