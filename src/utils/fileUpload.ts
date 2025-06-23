@@ -1,6 +1,3 @@
-// File upload utility for BlockNote editor
-// This handles image, video, and audio file uploads to AWS S3
-
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import { v4 as uuidv4 } from 'uuid'
@@ -72,7 +69,7 @@ export const createS3UploadFunction = (options: S3UploadOptions) => {
                 // ACL: 'public-read',
                 Bucket: config.bucketName,
                 Key: s3Key,
-                Body: await file.arrayBuffer(),
+                Body: new Uint8Array(await file.arrayBuffer()),
                 ContentType: file.type,
             })
 

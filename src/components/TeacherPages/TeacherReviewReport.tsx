@@ -29,54 +29,26 @@ import '@blocknote/core/fonts/inter.css'
 import '@blocknote/mantine/style.css'
 import { useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, MessageCircle, MessageSquare, User } from 'lucide-react'
+import { Label } from '@/components/ui/label'
 import {
     ClientSideSuspense,
-    LiveblocksProvider,
-    RoomProvider,
     useOthers,
     useStatus,
     useThreads,
 } from '@liveblocks/react/suspense'
+import { useParams } from 'react-router'
+import { RoomProvider as CustomRoomProvider } from '@/lib/liveblocks'
 import { createS3UploadForReports } from '@/utils/fileUpload.ts'
-
-// Mock data for demonstration
-const mockProject = {
-    name: 'E-commerce Web Application',
-    student: {
-        name: 'John Doe',
-        email: 'john.doe@university.edu',
-        id: 'student-123',
-    },
-    submittedAt: '2024-03-10T14:30:00Z',
-    dueDate: '2024-03-15T23:59:00Z',
-}
-
-const mockInstructions = `Project Report Guidelines:
-
-1. **Executive Summary** (10% of grade)
-   - Brief overview of the project
-   - Key achievements and outcomes
-
-2. **Technical Implementation** (40% of grade)
-   - Architecture decisions
-   - Technologies used
-   - Code quality and best practices
-
-3. **Challenges and Solutions** (25% of grade)
-   - Problems encountered
-   - How they were resolved
-   - Lessons learned
-
-4. **Testing and Quality Assurance** (15% of grade)
-   - Testing strategies
-   - Bug fixes and improvements
-
-5. **Reflection and Future Work** (10% of grade)
-   - Personal learning outcomes
-   - Potential improvements
-   - Next steps
-
-Your report should be well-structured, professional, and demonstrate critical thinking about your development process. Include specific examples and evidence to support your points.`
+import {
+    groupService,
+    projectService,
+    ReportDefinition,
+    reportDefinitionService,
+} from '@/services/ProjectService/project-api-client'
+import { Project } from '@/components/ManageProjects/types'
+import { ProjectGroup } from '@/components/ProjectPages/types'
+import { Thread } from '@liveblocks/react-ui'
+import '@liveblocks/react-ui/styles.css'
 
 // Custom Comment Toolbar Component
 function CustomCommentToolbar({ editor }: { editor: BlockNoteEditor | null }) {
@@ -182,12 +154,229 @@ function CustomCommentToolbar({ editor }: { editor: BlockNoteEditor | null }) {
     )
 }
 
-function TeacherReviewReportContent() {
+interface TeacherReviewReportContentProps {
+    projectId: string
+    groupId: string
+}
+
+interface TeacherQuestionReviewProps {
+    question: { id: string; text: string }
+    index: number
+    isDarkMode: boolean
+    uploadFile: any
+}
+
+function TeacherQuestionReview({
+    question,
+    index,
+    isDarkMode,
+    uploadFile,
+}: TeacherQuestionReviewProps) {
+    // Create a read-only collaborative editor for this specific question
+    const editor = useCreateBlockNoteWithLiveblocks(
+        {
+            uploadFile,
+        },
+        {
+            // Use question ID as the field to access the same document as students
+            field: `question-${question.id}`,
+        }
+    )
+
+    // Get threads for this specific question field
+    const { threads: questionThreads } = useThreads({
+        query: {
+            resolved: false,
+            metadata: {
+                field: `question-${question.id}`,
+            },
+        },
+    })
+
+    if (!editor) {
+        return (
+            <div className="min-h-[20vh] border rounded-md flex items-center justify-center">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    Loading question...
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-3">
+            <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-medium">
+                    {index + 1}
+                </div>
+                <div className="flex-1 space-y-3">
+                    <div className="flex items-center justify-between pt-[3px]">
+                        <Label className="text-base font-medium leading-relaxed">
+                            {question.text}
+                        </Label>
+                        {questionThreads.length > 0 && (
+                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                                <MessageSquare className="w-3 h-3 mr-1" />
+                                {questionThreads.length} comment
+                                {questionThreads.length !== 1 ? 's' : ''}
+                            </Badge>
+                        )}
+                    </div>
+                    <div className="min-h-[20vh] border rounded-md relative">
+                        <BlockNoteView
+                            editor={editor}
+                            theme={isDarkMode ? 'dark' : 'light'}
+                            className="question-blocknote"
+                            editable={false}
+                            formattingToolbar={false}
+                            linkToolbar={false}
+                            sideMenu={false}
+                            slashMenu={false}
+                            emojiPicker={false}
+                            filePanel={false}
+                            tableHandles={false}
+                        >
+                            {/* Custom Formatting Toolbar for Comments Only */}
+                            <CustomCommentToolbar editor={editor as any} />
+                        </BlockNoteView>
+
+                        {/* Comments Components for this question */}
+                        {editor && (
+                            <>
+                                <FloatingThreads
+                                    editor={editor as any}
+                                    threads={questionThreads}
+                                    className="floating-threads"
+                                />
+                                <FloatingComposer
+                                    editor={editor as any}
+                                    className="floating-composer"
+                                    metadata={{
+                                        field: `question-${question.id}`,
+                                    }}
+                                />
+                            </>
+                        )}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div></div>
+                        <span className="text-muted-foreground">
+                            Select text to add comments
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// Comment Threads Panel Component using official Liveblocks Thread component
+function ThreadsPanel() {
+    const { threads } = useThreads({ query: { resolved: false } })
+
+    if (threads.length === 0) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5" />
+                        Comment Threads
+                    </CardTitle>
+                    <CardDescription>
+                        All active comment threads
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-center py-4">
+                        <MessageSquare className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                            No active comment threads yet
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Select text to add comments
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5" />
+                    Comment Threads
+                </CardTitle>
+                <CardDescription>
+                    {threads.length} active thread
+                    {threads.length !== 1 ? 's' : ''}
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {threads.map((thread) => (
+                        <div key={thread.id} className="border rounded-lg p-2">
+                            <Thread thread={thread} />
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
+function TeacherReviewReportContent({
+    projectId,
+    groupId,
+}: TeacherReviewReportContentProps) {
     const { theme } = useTheme()
     const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date())
     const [isGrading, setIsGrading] = useState(false)
+    const [project, setProject] = useState<Project | null>(null)
+    const [group, setGroup] = useState<ProjectGroup | null>(null)
+    const [reportDefinition, setReportDefinition] =
+        useState<ReportDefinition | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
     const status = useStatus()
     const others = useOthers()
+
+    // Fetch project and group data
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!projectId || !groupId) return
+
+            setIsLoading(true)
+
+            try {
+                const [projectResponse, groupResponse, reportDefResponse] =
+                    await Promise.all([
+                        projectService.getOneById(projectId),
+                        groupService.getOneById(groupId),
+                        reportDefinitionService.getReportDefinition(projectId),
+                    ])
+
+                if (projectResponse.success && projectResponse.data) {
+                    setProject(projectResponse.data as Project)
+                }
+
+                if (groupResponse.success && groupResponse.data) {
+                    setGroup(groupResponse.data as ProjectGroup)
+                }
+
+                if (reportDefResponse.success && reportDefResponse.data) {
+                    setReportDefinition(reportDefResponse.data)
+                }
+            } catch (error) {
+                console.error('Error fetching project/group data:', error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchData()
+    }, [projectId, groupId])
 
     // Use the default upload function (you can customize this for your backend)
     const uploadFile = createS3UploadForReports()
@@ -351,17 +540,22 @@ function TeacherReviewReportContent() {
                         <div className="flex items-center gap-4 mt-2 text-muted-foreground">
                             <div className="flex items-center gap-2">
                                 <User className="w-4 h-4" />
-                                <span>{mockProject.student.name}</span>
+                                <span>{group?.name || 'Loading...'}</span>
                             </div>
                             <span>•</span>
-                            <span>{mockProject.name}</span>
-                            <span>•</span>
-                            <span>
-                                Submitted:{' '}
-                                {new Date(
-                                    mockProject.submittedAt
-                                ).toLocaleDateString()}
-                            </span>
+                            <span>{project?.name || 'Loading...'}</span>
+                            {reportDefinition && (
+                                <>
+                                    <span>•</span>
+                                    <span>
+                                        Format:{' '}
+                                        {reportDefinition.format ===
+                                        'QUESTIONNAIRE'
+                                            ? 'Questionnaire'
+                                            : 'Classic Report'}
+                                    </span>
+                                </>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -383,42 +577,102 @@ function TeacherReviewReportContent() {
                 <SplitCollapsibleRightLayout
                     sidebarTitle="Grading Rubric"
                     sidebarContent={
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">
-                                    Grading Rubric
-                                </CardTitle>
-                                <CardDescription>
-                                    Assessment criteria for this report
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="prose prose-sm dark:prose-invert max-w-none">
-                                    <div className="whitespace-pre-wrap text-sm">
-                                        {mockInstructions}
+                        <div className="space-y-4">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg">
+                                        Grading Rubric
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Assessment criteria for this report
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {isLoading ? (
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                            Loading report instructions...
+                                        </div>
+                                    ) : reportDefinition ? (
+                                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                                            {reportDefinition.instruction && (
+                                                <div className="whitespace-pre-wrap text-sm mb-4">
+                                                    {
+                                                        reportDefinition.instruction
+                                                    }
+                                                </div>
+                                            )}
+
+                                            {reportDefinition.format ===
+                                                'QUESTIONNAIRE' &&
+                                                reportDefinition.questions && (
+                                                    <div>
+                                                        <h4 className="font-semibold mb-3">
+                                                            Questions:
+                                                        </h4>
+                                                        <ol className="list-decimal list-inside space-y-2">
+                                                            {reportDefinition.questions.map(
+                                                                (
+                                                                    question,
+                                                                    index
+                                                                ) => (
+                                                                    <li
+                                                                        key={
+                                                                            question.id ||
+                                                                            index
+                                                                        }
+                                                                        className="text-sm"
+                                                                    >
+                                                                        {
+                                                                            question.text
+                                                                        }
+                                                                    </li>
+                                                                )
+                                                            )}
+                                                        </ol>
+                                                    </div>
+                                                )}
+
+                                            {!reportDefinition.instruction &&
+                                                reportDefinition.format ===
+                                                    'CLASSIC' && (
+                                                    <div className="text-sm text-muted-foreground italic">
+                                                        No specific instructions
+                                                        provided.
+                                                    </div>
+                                                )}
+                                        </div>
+                                    ) : (
+                                        <div className="text-sm text-muted-foreground">
+                                            No report definition found for this
+                                            project.
+                                        </div>
+                                    )}
+                                    <div className="mt-6 pt-6 border-t">
+                                        <Button
+                                            onClick={handleGradeSubmit}
+                                            disabled={isGrading}
+                                            className="w-full flex items-center gap-2"
+                                        >
+                                            {isGrading ? (
+                                                <>
+                                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                                    Submitting Grade...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                    Submit Grade & Feedback
+                                                </>
+                                            )}
+                                        </Button>
                                     </div>
-                                </div>
-                                <div className="mt-6 pt-6 border-t">
-                                    <Button
-                                        onClick={handleGradeSubmit}
-                                        disabled={isGrading}
-                                        className="w-full flex items-center gap-2"
-                                    >
-                                        {isGrading ? (
-                                            <>
-                                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                                Submitting Grade...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckCircle2 className="w-4 h-4" />
-                                                Submit Grade & Feedback
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+
+                            {/* Comment Threads Panel */}
+                            <ThreadsPanel />
+                        </div>
                     }
                 >
                     {/* Report Viewer Card */}
@@ -457,41 +711,96 @@ function TeacherReviewReportContent() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="min-h-[75vh] border rounded-md relative">
-                                    <BlockNoteView
-                                        editor={editor}
-                                        theme={isDarkMode ? 'dark' : 'light'}
-                                        className="full-height-blocknote"
-                                        editable={false}
-                                        formattingToolbar={false}
-                                        linkToolbar={false}
-                                        sideMenu={false}
-                                        slashMenu={false}
-                                        emojiPicker={false}
-                                        filePanel={false}
-                                        tableHandles={false}
-                                    >
-                                        {/* Custom Formatting Toolbar for Comments Only */}
-                                        <CustomCommentToolbar editor={editor} />
-                                    </BlockNoteView>
+                                {isLoading ? (
+                                    <div className="min-h-[75vh] border rounded-md flex items-center justify-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                            <span>
+                                                Loading student report...
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : reportDefinition?.format === 'CLASSIC' ? (
+                                    // Classic format: Single BlockNote editor
+                                    <div className="min-h-[75vh] border rounded-md relative">
+                                        <BlockNoteView
+                                            editor={editor}
+                                            theme={
+                                                isDarkMode ? 'dark' : 'light'
+                                            }
+                                            className="full-height-blocknote"
+                                            editable={false}
+                                            formattingToolbar={false}
+                                            linkToolbar={false}
+                                            sideMenu={false}
+                                            slashMenu={false}
+                                            emojiPicker={false}
+                                            filePanel={false}
+                                            tableHandles={false}
+                                        >
+                                            {/* Custom Formatting Toolbar for Comments Only */}
+                                            <CustomCommentToolbar
+                                                editor={editor}
+                                            />
+                                        </BlockNoteView>
 
-                                    {/* Comments Components */}
-                                    {editor && (
-                                        <>
-                                            {/* Use FloatingThreads for closeable comment display */}
-                                            <FloatingThreads
-                                                editor={editor}
-                                                threads={threads}
-                                                className="floating-threads"
-                                            />
-                                            {/* FloatingComposer for creating new comments */}
-                                            <FloatingComposer
-                                                editor={editor}
-                                                className="floating-composer"
-                                            />
-                                        </>
-                                    )}
-                                </div>
+                                        {/* Comments Components */}
+                                        {editor && (
+                                            <>
+                                                {/* Use FloatingThreads for closeable comment display */}
+                                                <FloatingThreads
+                                                    editor={editor}
+                                                    threads={threads}
+                                                    className="floating-threads"
+                                                />
+                                                {/* FloatingComposer for creating new comments */}
+                                                <FloatingComposer
+                                                    editor={editor}
+                                                    className="floating-composer"
+                                                />
+                                            </>
+                                        )}
+                                    </div>
+                                ) : reportDefinition?.format ===
+                                  'QUESTIONNAIRE' ? (
+                                    // Questionnaire format: Show all questions with read-only editors
+                                    <div className="space-y-8">
+                                        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                                            <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                                                📝 Questionnaire Report Review
+                                            </h3>
+                                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                                                This is a questionnaire-format
+                                                report. Each question has its
+                                                own collaborative editor. You
+                                                can add comments to any question
+                                                by selecting text.
+                                            </p>
+                                        </div>
+
+                                        {reportDefinition.questions?.map(
+                                            (question, index) => (
+                                                <TeacherQuestionReview
+                                                    key={question.id}
+                                                    question={question}
+                                                    index={index}
+                                                    isDarkMode={isDarkMode}
+                                                    uploadFile={uploadFile}
+                                                />
+                                            )
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="min-h-[75vh] border rounded-md flex items-center justify-center">
+                                        <div className="text-center space-y-4">
+                                            <div className="text-6xl">📄</div>
+                                            <p className="text-muted-foreground">
+                                                No report format defined for
+                                                this project.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="mt-4 text-xs text-muted-foreground">
                                     <p>
                                         💡 <strong>Teacher Mode:</strong> This
@@ -515,17 +824,35 @@ function TeacherReviewReportContent() {
 }
 
 export default function TeacherReviewReport() {
+    const { projectId, groupId } = useParams<{
+        projectId: string
+        groupId: string
+    }>()
+
+    if (!projectId || !groupId) {
+        return <div>Error: Missing project or group information</div>
+    }
+
+    const roomId = `project-${projectId}-group-${groupId}-report`
+
+    console.log('TeacherReviewReport room setup:', {
+        projectId,
+        groupId,
+        roomId,
+    })
+
     return (
-        <LiveblocksProvider
-            publicApiKey={
-                'pk_dev_ECOQqvJfrls4sg1uTAOZrnEdvZDVZqFSCaI4NDRIi8KtVze5aNvoarM1tSHjrjJl'
-            }
+        <CustomRoomProvider
+            id={roomId}
+            initialPresence={{}}
+            initialStorage={{}}
         >
-            <RoomProvider id="student-report-classic">
-                <ClientSideSuspense fallback={<div>Loading report...</div>}>
-                    <TeacherReviewReportContent />
-                </ClientSideSuspense>
-            </RoomProvider>
-        </LiveblocksProvider>
+            <ClientSideSuspense fallback={<div>Loading report...</div>}>
+                <TeacherReviewReportContent
+                    projectId={projectId}
+                    groupId={groupId}
+                />
+            </ClientSideSuspense>
+        </CustomRoomProvider>
     )
 }

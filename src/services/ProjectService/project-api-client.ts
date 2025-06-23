@@ -6,7 +6,7 @@ import {
 import { ProjectGroup, Step } from '@/components/ProjectPages/types.ts'
 
 export const PROJECT_API_URL: string =
-    window.RUNTIME_CONFIG?.VITE_PROJECT_API_URL ||
+    window.RUNTIME_CONFIG?.PROJECT_API_URL ||
     import.meta.env.VITE_PROJECT_API_URL ||
     'http://localhost:3001'
 
@@ -19,7 +19,9 @@ const handleApiGroupError = (error: string): GroupApiResponse => {
     return { success: false, error: error }
 }
 
-const handleReportDefinitionApiError = (error: string): ReportDefinitionApiResponse => {
+const handleReportDefinitionApiError = (
+    error: string
+): ReportDefinitionApiResponse => {
     console.error('API Erreur:', error)
     return { success: false, error: error }
 }
@@ -361,20 +363,53 @@ export const groupService = {
         }
     },
 
-    // Report Definition Methods
-    getReportDefinition: async (projectId: string): Promise<ReportDefinitionApiResponse> => {
+    getMyGroups: async (): Promise<GroupApiResponse> => {
         try {
-            const response = await fetch(`${PROJECT_API_URL}/projects/${projectId}/report-definition`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-                },
-            })
+            const response = await fetch(
+                `${PROJECT_API_URL}/projectGroups/myGroups`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
+            )
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiGroupError(error.message)
+            } else {
+                const groups: ProjectGroup[] = await response.json()
+                return {
+                    success: true,
+                    data: groups,
+                }
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleApiGroupError(err.message)
+        }
+    },
+}
+
+export const reportDefinitionService = {
+    // Report Definition Methods
+    getReportDefinition: async (
+        projectId: string
+    ): Promise<ReportDefinitionApiResponse> => {
+        try {
+            const response = await fetch(
+                `${PROJECT_API_URL}/projects/${projectId}/report-definition`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
+            )
             if (!response.ok) {
                 if (response.status === 404) {
                     // No report definition exists yet
                     return {
                         success: true,
-                        data: undefined
+                        data: undefined,
                     }
                 }
                 const error: ApiErrorMessage = await response.json()
@@ -382,9 +417,14 @@ export const groupService = {
             } else {
                 const reportDefinition: ReportDefinition = await response.json()
                 // Parse questions if they exist and are a string
-                if (reportDefinition.questions && typeof reportDefinition.questions === 'string') {
+                if (
+                    reportDefinition.questions &&
+                    typeof reportDefinition.questions === 'string'
+                ) {
                     try {
-                        reportDefinition.questions = JSON.parse(reportDefinition.questions as unknown as string)
+                        reportDefinition.questions = JSON.parse(
+                            reportDefinition.questions as unknown as string
+                        )
                     } catch (e) {
                         console.warn('Failed to parse questions JSON:', e)
                         reportDefinition.questions = []
@@ -401,25 +441,37 @@ export const groupService = {
         }
     },
 
-    upsertReportDefinition: async (projectId: string, reportDefinition: UpsertReportDefinitionDto): Promise<ReportDefinitionApiResponse> => {
+    upsertReportDefinition: async (
+        projectId: string,
+        reportDefinition: UpsertReportDefinitionDto
+    ): Promise<ReportDefinitionApiResponse> => {
         try {
-            const response = await fetch(`${PROJECT_API_URL}/projects/${projectId}/report-definition`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-                },
-                body: JSON.stringify(reportDefinition),
-            })
+            const response = await fetch(
+                `${PROJECT_API_URL}/projects/${projectId}/report-definition`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                    body: JSON.stringify(reportDefinition),
+                }
+            )
             if (!response.ok) {
                 const error: ApiErrorMessage = await response.json()
                 return handleReportDefinitionApiError(error.message)
             }
-            const updatedReportDefinition: ReportDefinition = await response.json()
+            const updatedReportDefinition: ReportDefinition =
+                await response.json()
             // Parse questions if they exist and are a string
-            if (updatedReportDefinition.questions && typeof updatedReportDefinition.questions === 'string') {
+            if (
+                updatedReportDefinition.questions &&
+                typeof updatedReportDefinition.questions === 'string'
+            ) {
                 try {
-                    updatedReportDefinition.questions = JSON.parse(updatedReportDefinition.questions as unknown as string)
+                    updatedReportDefinition.questions = JSON.parse(
+                        updatedReportDefinition.questions as unknown as string
+                    )
                 } catch (e) {
                     console.warn('Failed to parse questions JSON:', e)
                     updatedReportDefinition.questions = []
@@ -427,7 +479,7 @@ export const groupService = {
             }
             return {
                 success: response.ok,
-                data: updatedReportDefinition
+                data: updatedReportDefinition,
             }
         } catch (error) {
             const err = error as Error

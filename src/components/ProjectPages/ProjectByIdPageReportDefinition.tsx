@@ -24,7 +24,7 @@ import { useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChevronDownIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import {
-    projectService,
+    reportDefinitionService,
     UpsertReportDefinitionDto,
 } from '@/services/ProjectService/project-api-client'
 import { toast } from 'sonner'
@@ -61,7 +61,8 @@ export default function ProjectByIdPageReportDefinition() {
     const loadReportDefinition = async (projectId: string) => {
         setIsLoading(true)
         try {
-            const response = await projectService.getReportDefinition(projectId)
+            const response =
+                await reportDefinitionService.getReportDefinition(projectId)
             if (response.success && response.data) {
                 const reportDef = response.data
                 setReportConfig({
@@ -453,7 +454,9 @@ export default function ProjectByIdPageReportDefinition() {
                                         </Button>
                                     </div>
 
-                                    {(!reportConfig.questions || reportConfig.questions.length === 0) && (
+                                    {(!reportConfig.questions ||
+                                        reportConfig.questions.length ===
+                                            0) && (
                                         <p className="text-sm text-red-500">
                                             At least one question is required
                                             for questionnaire reports.
@@ -565,8 +568,9 @@ export default function ProjectByIdPageReportDefinition() {
                                                 reportConfig.instructions ||
                                                 undefined,
                                             questions:
-                                                reportConfig.questions && reportConfig.questions.length >
-                                                0
+                                                reportConfig.questions &&
+                                                reportConfig.questions.length >
+                                                    0
                                                     ? JSON.stringify(
                                                           reportConfig.questions
                                                       )
@@ -574,7 +578,7 @@ export default function ProjectByIdPageReportDefinition() {
                                         }
 
                                     const response =
-                                        await projectService.upsertReportDefinition(
+                                        await reportDefinitionService.upsertReportDefinition(
                                             projectId,
                                             apiPayload
                                         )

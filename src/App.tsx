@@ -24,7 +24,8 @@ function App() {
         return <div>PAMP HOMEPAGE FOR TEACHERS</div>
     }
     if (role === 'STUDENT') {
-        return <div>PAMP HOMEPAGE FOR STUDENT</div>
+        window.location.href = '/student/dashboard'
+        return <div>Redirecting to dashboard...</div>
     }
 
     return <div>NOT supported role: {role}, contact the admin</div>

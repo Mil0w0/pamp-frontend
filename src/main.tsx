@@ -29,8 +29,8 @@ import ProjectByIdPageStepConfig from '@/components/ProjectPages/ProjectByIdPage
 import ProtectedRoute from '@/components/Routes/ProtectedRoutes.tsx'
 import ProjectByIdPageReportDefinition from '@/components/ProjectPages/ProjectByIdPageReportDefinition.tsx'
 import StudentReportClassic from '@/components/StudentPages/StudentReportClassic.tsx'
-import StudentReportQuestionnaire from '@/components/StudentPages/StudentReportQuestionnaire.tsx'
 import TeacherReviewReport from '@/components/TeacherPages/TeacherReviewReport.tsx'
+import StudentDashboard from '@/components/StudentPages/StudentDashboard.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -107,14 +107,37 @@ createRoot(document.getElementById('root')!).render(
                         />
                     </Route>
                     <Route
-                        path="test/classic-report"
-                        element={<StudentReportClassic />}
+                        path="/test/student-dashboard"
+                        element={
+                            <ProtectedRoute allowedRoles={['STUDENT']}>
+                                <StudentDashboard />
+                            </ProtectedRoute>
+                        }
                     />
                     <Route
-                        path="test/questionnaire-report"
-                        element={<StudentReportQuestionnaire />}
+                        path="/student/dashboard"
+                        element={
+                            <ProtectedRoute allowedRoles={['STUDENT']}>
+                                <StudentDashboard />
+                            </ProtectedRoute>
+                        }
                     />
-
+                    <Route
+                        path="/student/report/:projectId/:groupId"
+                        element={
+                            <ProtectedRoute allowedRoles={['STUDENT']}>
+                                <StudentReportClassic />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/teacher/review/:projectId/:groupId"
+                        element={
+                            <ProtectedRoute allowedRoles={['TEACHER']}>
+                                <TeacherReviewReport />
+                            </ProtectedRoute>
+                        }
+                    />
                     <Route path="*" element={<Error404 />} />
                 </Routes>
                 <Toaster richColors position={'top-right'} />
