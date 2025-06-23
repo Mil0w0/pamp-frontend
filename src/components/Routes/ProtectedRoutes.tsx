@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
 import { useNavigate } from 'react-router'
@@ -18,31 +18,34 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     )
     const navigate = useNavigate()
     const dispatch = useDispatch<AppDispatch>()
+    const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
 
     useEffect(() => {
-
         const token = localStorage.getItem('auth_token')
-        if (token && !currentUser && !loading) {
+        if (token && !currentUser && !loading && !hasAttemptedFetch) {
+            setHasAttemptedFetch(true)
             dispatch(fetchCurrentUser(token))
+        } else if (!token && !hasAttemptedFetch) {
+            // No token, no need to fetch
+            setHasAttemptedFetch(true)
         }
-    }, [dispatch, currentUser, loading])
+    }, [dispatch, currentUser, loading, hasAttemptedFetch])
 
     useEffect(() => {
         console.log('Current User:', currentUser) // <- add this
         console.log('Allowed Roles:', allowedRoles)
-        const redirectTimeout = setTimeout(() => {
-            if (!loading) {
-                if (!currentUser) {
-                    navigate('/login', { replace: true })
-                } else if (!allowedRoles.includes(currentUser.role)) {
-                    navigate('/unauthorized', { replace: true })
-                }
+        // Only evaluate navigation after we've attempted to fetch user data and not currently loading
+        if (hasAttemptedFetch && !loading) {
+            if (!currentUser) {
+                navigate('/login', { replace: true })
+            } else if (!allowedRoles.includes(currentUser.role)) {
+                navigate('/unauthorized', { replace: true })
             }
-        }, 200) // wait 200ms before evaluating redirect conditions because else current user isn't set
-        return () => clearTimeout(redirectTimeout)
-    }, [currentUser, loading, allowedRoles, navigate])
+        }
+    }, [currentUser, loading, allowedRoles, navigate, hasAttemptedFetch])
 
-    if (loading) {
+    // Show loading while we're fetching user data or haven't attempted fetch yet
+    if (loading || !hasAttemptedFetch) {
         return null
     }
     // User is logged in and role allowed

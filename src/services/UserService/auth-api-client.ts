@@ -307,6 +307,6 @@ export type GetUserResponse = {
     data?: User
 }
 
-const handleUserApiError = (error: string) => {
-    return { success: false, error: error }
+const handleUserApiError = (message: string) => {
+    return { success: false, error: message }
 }
