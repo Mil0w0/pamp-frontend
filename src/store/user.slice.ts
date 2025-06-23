@@ -15,27 +15,18 @@ const initialState: UserState = {
 }
 
 // Async thunk to fetch current user
-export const fetchCurrentUser = createAsyncThunk(
-    'user/fetchCurrent',
-    async (token: string, { rejectWithValue }) => {
-        const res = await authService.getCurrentUser(token)
-        if (!res.success) {
-            return rejectWithValue(res.message || 'Failed to fetch user')
-        }
-        console.log('## DEBUG CURRENT USER')
-        console.log(res.data)
-        // return res.data as User
-        //fixme
-        return {
-            user_id: '26ff5f65-7829-4897-93c1-94d00410c57b',
-            email: 'loriane.hilderal@gmail.com',
-            first_name: 'Loriane',
-            last_name: 'HILDERAL',
-            role: 'STUDENT',
-            is_active: true,
-        }
+export const fetchCurrentUser = createAsyncThunk<
+    User,
+    string,
+    { rejectValue: string }
+>('user/fetchCurrent', async (token, { rejectWithValue }) => {
+    const res = await authService.getCurrentUser(token)
+    if (!res.success || !res.data) {
+        return rejectWithValue(res.message || 'Failed to fetch user')
     }
-)
+
+    return res.data
+})
 
 const userSlice = createSlice({
     name: 'user',
@@ -56,6 +47,7 @@ const userSlice = createSlice({
             })
             .addCase(fetchCurrentUser.fulfilled, (state, action) => {
                 state.loading = false
+                // action.payload is now guaranteed to be User
                 state.currentUser = action.payload
             })
             .addCase(fetchCurrentUser.rejected, (state, action) => {

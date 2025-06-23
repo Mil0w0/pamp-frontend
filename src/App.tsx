@@ -16,13 +16,18 @@ function App() {
     }, [dispatch])
 
     const role = currentUser?.role
+
     if (!role) {
         return <div>PAMP HOMEPAGE FOR UNAUTHENTIED USERS</div>
-    } else if (role === 'TEACHER') {
+    }
+    if (role === 'TEACHER') {
         return <div>PAMP HOMEPAGE FOR TEACHERS</div>
-    } else if (role === 'STUDENT') {
+    }
+    if (role === 'STUDENT') {
         return <div>PAMP HOMEPAGE FOR STUDENT</div>
     }
+
+    return <div>NOT supported role: {role}, contact the admin</div>
 }
 
 export default App
