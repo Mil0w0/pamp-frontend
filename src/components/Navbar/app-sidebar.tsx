@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/sidebar.tsx'
 import { Project } from '@/components/ManageProjects/types.ts'
 import { useEffect } from 'react'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/store'
 
 export type NavSubItem = {
     title: string
@@ -68,22 +70,35 @@ export function AppSidebar({
     console.log('### DEBUG STORE (global state)')
     console.log(allProjects)
 
+    const { currentUser } = useSelector((state: RootState) => state.user)
+
     const [navLinks, setNavLinks] = React.useState<NavItem[]>(navMain)
 
     useEffect(() => {
         if (!currentProject) return
+        if (!currentUser) return
 
+        const isStudent = currentUser?.role === 'STUDENT'
+
+        //Show groups that the student is in.
         const groupItems: NavSubItem[] =
-            currentProject.groups?.map((group) => ({
-                title: group.name,
-                url: `/projects/${currentProject.id}/groups/${group.id}`,
-            })) || []
+            currentProject.groups
+                ?.filter((group) =>
+                    isStudent
+                        ? group.studentsIds?.includes(currentUser.user_id)
+                        : true
+                )
+                .map((group) => ({
+                    title: group.name,
+                    url: `/projects/${currentProject.id}/groups/${group.id}`,
+                })) || []
         const stepItems: NavSubItem[] =
             currentProject.steps?.map((step, index) => ({
                 title: `S-${index}: ` + step.name,
                 url: `/projects/${currentProject.id}/steps/${step.id}`,
             })) || []
 
+        //Show the config page only if user is a teacher
         setNavLinks([
             {
                 title: 'Groups settings',
@@ -103,10 +118,14 @@ export function AppSidebar({
                 url: `/projects/${currentProject.id}/steps`,
                 icon: Footprints,
                 items: [
-                    {
-                        title: 'Configuration',
-                        url: `/projects/${currentProject?.id}/steps/config`,
-                    },
+                    ...(!isStudent
+                        ? [
+                              {
+                                  title: 'Configuration',
+                                  url: `/projects/${currentProject.id}/steps/config`,
+                              },
+                          ]
+                        : []),
                     ...stepItems,
                 ],
             },
@@ -115,13 +134,17 @@ export function AppSidebar({
                 url: `/projects/${currentProject?.id}/report-definition`,
                 icon: BookOpen,
             },
-            {
-                title: 'Settings',
-                url: `/projects/${currentProject?.id}/settings`,
-                icon: Settings2,
-            },
+            ...(!isStudent
+                ? [
+                      {
+                          title: 'Settings',
+                          url: `/projects/${currentProject.id}/settings`,
+                          icon: Settings2,
+                      },
+                  ]
+                : []),
         ])
-    }, [currentProject])
+    }, [currentProject, currentUser])
 
     return (
         <Sidebar collapsible="icon" {...props} className={'top-24'}>

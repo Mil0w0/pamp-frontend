@@ -31,6 +31,7 @@ import ProjectByIdPageReportDefinition from '@/components/ProjectPages/ProjectBy
 import TeacherReviewReport from '@/components/TeacherPages/TeacherReviewReport.tsx'
 import StudentDashboard from '@/components/StudentPages/StudentDashboard.tsx'
 import { StudentReport } from '@/components/StudentPages'
+import { StepById } from '@/components/ProjectPages/Steps/StepById.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -92,19 +93,16 @@ createRoot(document.getElementById('root')!).render(
                             path="steps/config"
                             element={<ProjectByIdPageStepConfig />}
                         />
-                        <Route
-                            path="steps/:stepId/"
-                            element={<ProjectByIdPageStepConfig />}
-                        />
+                        <Route path="steps/:stepId/" element={<StepById />} />
                         <Route
                             path="test/classic-review"
                             element={<TeacherReviewReport />}
                         />
-                        <Route path="*" element={<Error404 />} />
                         <Route
                             path="report-definition"
                             element={<ProjectByIdPageReportDefinition />}
                         />
+                        <Route path="*" element={<Error404 />} />
                     </Route>
                     <Route
                         path="/test/student-dashboard"
