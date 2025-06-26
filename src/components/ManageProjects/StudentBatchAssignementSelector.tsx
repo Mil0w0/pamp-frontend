@@ -16,10 +16,12 @@ import { useNavigate } from 'react-router'
 
 type StudentBatchAssignementSelectorProps = {
     project: Project
+    userIsStudent: boolean
 }
 
 export default function StudentBatchAssignementSelector({
     project,
+    userIsStudent,
 }: StudentBatchAssignementSelectorProps) {
     const [studentBatches, setStudentBatches] = useState<StudentBatch[]>()
     const navigate = useNavigate()
@@ -41,6 +43,12 @@ export default function StudentBatchAssignementSelector({
     }
 
     const assignStudentBatch = async (e: string) => {
+        if (userIsStudent) {
+            toast.warning(
+                "Students can't change the project student batch assigned."
+            )
+            return
+        }
         if (project.groups.length > 0) {
             toast.warning(
                 "You can't assign another student batch if groups are already filled. Remove students first."
@@ -68,7 +76,7 @@ export default function StudentBatchAssignementSelector({
     }, [])
 
     return (
-        <Select onValueChange={assignStudentBatch}>
+        <Select onValueChange={assignStudentBatch} disabled={userIsStudent}>
             <SelectTrigger className="">
                 <SelectValue
                     placeholder={

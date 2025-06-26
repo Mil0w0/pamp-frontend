@@ -24,9 +24,13 @@ import { Project } from '@/components/ManageProjects/types.ts'
 import { projectService } from '@/services/ProjectService/project-api-client.ts'
 import AddProjectModal from '@/components/ManageProjects/AddProjectsModal.tsx'
 import StudentBatchAssignementSelector from '@/components/ManageProjects/StudentBatchAssignementSelector.tsx'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/store'
 
 export default function ProjectsPage() {
     const navigate = useNavigate()
+    const { currentUser } = useSelector((state: RootState) => state.user)
+    const currentBatchId = 'd5d8ca7c-3399-4f84-afc5-07405385e139' //todo: make a state ?
     const [isLoading, setIsLoading] = useState(false)
     const [projects, setProjects] = useState<Project[] | null>(null)
 
@@ -36,8 +40,15 @@ export default function ProjectsPage() {
 
     async function getProjects(): Promise<Project[]> {
         setIsLoading(true)
+        if (!currentUser) {
+            return []
+        }
         try {
-            const response = await projectService.getAll()
+            const response = await projectService.getAll(
+                currentUser.user_id,
+                currentBatchId,
+                currentUser.role === 'STUDENT'
+            )
             if (response.success) {
                 return response.data as Project[]
             } else {
@@ -79,7 +90,7 @@ export default function ProjectsPage() {
         getProjects().then((data) => {
             setProjects(data)
         })
-    }, [])
+    }, [currentUser])
 
     async function copyProject(itemId: string) {
         setIsLoading(true)
@@ -99,11 +110,15 @@ export default function ProjectsPage() {
         }
     }
 
+    if (!currentUser || !projects) {
+        return 'loading'
+    }
+
     return (
         <div className="p-24 flex flex-col gap-8">
             <div className="flex justify-between">
                 <h1 className="text-2xl font-semibold">My projects</h1>
-                <AddProjectModal />
+                {currentUser.role === 'STUDENT' ? '' : <AddProjectModal />}
             </div>
             <Table>
                 <TableHeader>
@@ -112,14 +127,20 @@ export default function ProjectsPage() {
                         <TableHead>Name</TableHead>
                         <TableHead>Attached to</TableHead>
                         <TableHead>Created at</TableHead>
-                        <TableHead>Actions</TableHead>
+                        {currentUser.role === 'STUDENT' ? (
+                            ''
+                        ) : (
+                            <TableHead>Actions</TableHead>
+                        )}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {projects?.length === 0 ? (
                         <TableRow>
                             <TableCell>
-                                Nothing yet, add your first project.
+                                {currentUser.role === 'STUDENT'
+                                    ? 'There are no projects available yet. You will receive a mail when there are some.'
+                                    : 'Nothing yet, add your first project.'}
                             </TableCell>
                         </TableRow>
                     ) : (
@@ -146,56 +167,73 @@ export default function ProjectsPage() {
                                 <TableCell className="cursor-pointer">
                                     <StudentBatchAssignementSelector
                                         project={project}
+                                        userIsStudent={
+                                            currentUser?.role === 'STUDENT'
+                                        }
                                     />
                                 </TableCell>
                                 <TableCell>
                                     {formatToShortDate(project.createdAt)}
                                 </TableCell>
-                                <TableCell>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                                style={{ cursor: 'pointer' }}
-                                                variant="outline"
-                                            >
-                                                ...
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                            <DropdownMenuLabel>
-                                                I want to ...{' '}
-                                            </DropdownMenuLabel>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem
-                                                style={{ cursor: 'pointer' }}
-                                                disabled={isLoading}
-                                                onClick={() =>
-                                                    deleteItem(project.id)
-                                                }
-                                            >
-                                                Delete this
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                style={{ cursor: 'pointer' }}
-                                                disabled={isLoading}
-                                                onClick={() =>
-                                                    goToProjectById(project.id)
-                                                }
-                                            >
-                                                Modify this
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                style={{ cursor: 'pointer' }}
-                                                disabled={isLoading}
-                                                onClick={() =>
-                                                    copyProject(project.id)
-                                                }
-                                            >
-                                                Copy this
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </TableCell>
+                                {currentUser.role === 'STUDENT' ? (
+                                    ''
+                                ) : (
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    style={{
+                                                        cursor: 'pointer',
+                                                    }}
+                                                    variant="outline"
+                                                >
+                                                    ...
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuLabel>
+                                                    I want to ...{' '}
+                                                </DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    style={{
+                                                        cursor: 'pointer',
+                                                    }}
+                                                    disabled={isLoading}
+                                                    onClick={() =>
+                                                        deleteItem(project.id)
+                                                    }
+                                                >
+                                                    Delete this
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    style={{
+                                                        cursor: 'pointer',
+                                                    }}
+                                                    disabled={isLoading}
+                                                    onClick={() =>
+                                                        goToProjectById(
+                                                            project.id
+                                                        )
+                                                    }
+                                                >
+                                                    Modify this
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                    style={{
+                                                        cursor: 'pointer',
+                                                    }}
+                                                    disabled={isLoading}
+                                                    onClick={() =>
+                                                        copyProject(project.id)
+                                                    }
+                                                >
+                                                    Copy this
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                )}
                             </TableRow>
                         ))
                     )}

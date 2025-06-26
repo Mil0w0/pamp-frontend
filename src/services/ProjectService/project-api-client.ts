@@ -18,6 +18,10 @@ const handleApiGroupError = (error: string): GroupApiResponse => {
     console.error('API Erreur:', error)
     return { success: false, error: error }
 }
+const handleApiStepError = (error: string): StepApiResponse => {
+    console.error('API Erreur:', error)
+    return { success: false, error: error }
+}
 
 const handleReportDefinitionApiError = (
     error: string
@@ -40,6 +44,11 @@ export type GroupApiResponse = {
     error?: string
     success: boolean
     data?: ProjectGroup | ProjectGroup[]
+}
+export type StepApiResponse = {
+    error?: string
+    success: boolean
+    data?: Step
 }
 
 // Report Definition Types
@@ -95,18 +104,27 @@ export const projectService = {
             return handleApiError(err.message)
         }
     },
-    getAll: async (): Promise<ProjectApiResponse> => {
+    getAll: async (
+        userId: string,
+        batchId: string,
+        isStudent: boolean
+    ): Promise<ProjectApiResponse> => {
         try {
-            const response = await fetch(`${PROJECT_API_URL}/projects`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-                },
-            })
+            const response = await fetch(
+                `${PROJECT_API_URL}/projects${isStudent ? '?studentId=' + userId + '&batchId=' + batchId : ''}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
+            )
             if (!response.ok) {
                 const error: ApiErrorMessage = await response.json()
                 return handleApiError(error.message)
             } else {
                 const projects: Project[] = await response.json()
+                console.log(projects)
+
                 return {
                     success: true,
                     data: projects,
@@ -513,6 +531,38 @@ export const reportDefinitionService = {
         } catch (error) {
             const err = error as Error
             return handleReportDefinitionApiError(err.message)
+        }
+    },
+}
+
+export const stepsService = {
+    getOneById: async (
+        id: string,
+        projectId: string
+    ): Promise<StepApiResponse> => {
+        try {
+            const response = await fetch(
+                `${PROJECT_API_URL}/projects/${projectId}/steps/${id}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
+            )
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiStepError(error.message)
+            } else {
+                const project: Step = await response.json()
+                console.log(project)
+                return {
+                    success: true,
+                    data: project,
+                }
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleApiStepError(err.message)
         }
     },
 }
