@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { useThreads } from '@liveblocks/react/suspense'
 import { MessageSquare } from 'lucide-react'
 import { Thread } from '@liveblocks/react-ui'

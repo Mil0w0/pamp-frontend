@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { useParams } from 'react-router'
 import { useTheme } from '@/components/ui/theme-provider'
 import { BlockNoteEditor } from '@blocknote/core'
