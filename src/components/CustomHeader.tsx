@@ -25,7 +25,7 @@ function CustomHeader() {
     }, [localStorage.getItem('auth_token')])
 
     return (
-        <header className="bg-sidebar-primary text-sidebar-primary-foreground fixed top-0 left-0 right-0 z-50">
+        <header className="bg-sidebar-primary text-sidebar-primary-foreground sticky top-0 left-0 right-0 z-50">
             <nav
                 className="mx-auto flex max-w-7xl items-center justify-right p-6 lg:px-8 border-b-1 border-secondary"
                 aria-label="Global"
