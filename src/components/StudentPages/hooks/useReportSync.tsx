@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useStatus } from '@liveblocks/react/suspense'
 import { CheckCircle2 } from 'lucide-react'
 import { SyncStatus } from '../types'
