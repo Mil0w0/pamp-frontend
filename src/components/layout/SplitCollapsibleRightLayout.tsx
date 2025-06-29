@@ -30,7 +30,7 @@ export default function SplitCollapsibleRightLayout({
 
             {/* Collapsible Right Sidebar */}
             <div
-                className={`fixed top-[95px] right-0 h-[calc(100vh-6rem)] bg-background border-l transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} w-120 z-30`}
+                className={`fixed top-[96px] right-0 h-[calc(100vh-6rem)] bg-background border-l transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} w-120 z-30`}
             >
                 <div className="flex flex-col h-full">
                     {/* Sidebar Header */}
