@@ -45,9 +45,15 @@ const client = createClient({
 
         // Get auth token from localStorage
         const token = localStorage.getItem('auth_token')
-        console.log('Auth token found:', token ? 'Yes (length: ' + token.length + ')' : 'No')
-        console.log('Token preview:', token ? token.substring(0, 50) + '...' : 'N/A')
-        
+        console.log(
+            'Auth token found:',
+            token ? 'Yes (length: ' + token.length + ')' : 'No'
+        )
+        console.log(
+            'Token preview:',
+            token ? token.substring(0, 50) + '...' : 'N/A'
+        )
+
         if (!token) {
             throw new Error('No authentication token found')
         }

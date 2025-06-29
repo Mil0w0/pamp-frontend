@@ -28,9 +28,9 @@ import ProjectGroupsById from '@/components/ProjectPages/ProjectGroups/ProjectGr
 import ProjectByIdPageStepConfig from '@/components/ProjectPages/ProjectByIdPageStepsConfig.tsx'
 import ProtectedRoute from '@/components/Routes/ProtectedRoutes.tsx'
 import ProjectByIdPageReportDefinition from '@/components/ProjectPages/ProjectByIdPageReportDefinition.tsx'
-import StudentReportClassic from '@/components/StudentPages/StudentReportClassic.tsx'
 import TeacherReviewReport from '@/components/TeacherPages/TeacherReviewReport.tsx'
 import StudentDashboard from '@/components/StudentPages/StudentDashboard.tsx'
+import { StudentReport } from '@/components/StudentPages'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -126,7 +126,7 @@ createRoot(document.getElementById('root')!).render(
                         path="/student/report/:projectId/:groupId"
                         element={
                             <ProtectedRoute allowedRoles={['STUDENT']}>
-                                <StudentReportClassic />
+                                <StudentReport />
                             </ProtectedRoute>
                         }
                     />
