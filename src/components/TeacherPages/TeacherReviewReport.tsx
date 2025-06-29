@@ -1,3 +1,21 @@
+import React, { useMemo } from 'react'
+import { useParams } from 'react-router'
+import { useTheme } from '@/components/ui/theme-provider'
+import { BlockNoteEditor } from '@blocknote/core'
+import {
+    useCreateBlockNoteWithLiveblocks,
+    FloatingComposer,
+    FloatingThreads,
+} from '@liveblocks/react-blocknote'
+import { BlockNoteView } from '@blocknote/mantine'
+import '@blocknote/core/fonts/inter.css'
+import '@blocknote/mantine/style.css'
+import { MessageSquare, User } from 'lucide-react'
+import { ClientSideSuspense, useThreads } from '@liveblocks/react/suspense'
+import { RoomProvider as CustomRoomProvider } from '@/lib/liveblocks'
+import '@liveblocks/react-ui/styles.css'
+
+// UI Components
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -7,7 +25,6 @@ import {
     BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
-import { Button } from '@/components/ui/button'
 import {
     Card,
     CardContent,
@@ -17,313 +34,41 @@ import {
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import SplitCollapsibleRightLayout from '@/components/layout/SplitCollapsibleRightLayout.tsx'
-import { useTheme } from '@/components/ui/theme-provider'
-import { BlockNoteEditor } from '@blocknote/core'
-import {
-    FloatingComposer,
-    FloatingThreads,
-    useCreateBlockNoteWithLiveblocks,
-} from '@liveblocks/react-blocknote'
-import { BlockNoteView } from '@blocknote/mantine'
-import '@blocknote/core/fonts/inter.css'
-import '@blocknote/mantine/style.css'
-import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, MessageCircle, MessageSquare, User } from 'lucide-react'
-import { Label } from '@/components/ui/label'
-import {
-    ClientSideSuspense,
-    useOthers,
-    useStatus,
-    useThreads,
-} from '@liveblocks/react/suspense'
-import { useParams } from 'react-router'
-import { RoomProvider as CustomRoomProvider } from '@/lib/liveblocks'
+
+// Utils and Services
 import { createS3UploadForReports } from '@/utils/fileUpload.ts'
+
+// Custom Hooks and Components
+import { useTeacherReportData, useTeacherReportSync } from './hooks'
 import {
-    groupService,
-    projectService,
-    ReportDefinition,
-    reportDefinitionService,
-} from '@/services/ProjectService/project-api-client'
-import { Project } from '@/components/ManageProjects/types'
-import { ProjectGroup } from '@/components/ProjectPages/types'
-import { Thread } from '@liveblocks/react-ui'
-import '@liveblocks/react-ui/styles.css'
+    CustomCommentToolbar,
+    TeacherQuestionReview,
+    TeacherThreadsPanel,
+    GradingRubricCard,
+} from './components'
+import { TeacherReviewReportContentProps } from './types'
 
-// Custom Comment Toolbar Component
-function CustomCommentToolbar({ editor }: { editor: BlockNoteEditor | null }) {
-    const [isVisible, setIsVisible] = useState(false)
-    const [position, setPosition] = useState({ top: 0, left: 0 })
-
-    useEffect(() => {
-        if (!editor) return
-
-        const checkSelection = () => {
-            try {
-                const tiptapEditor = editor._tiptapEditor as any
-                const selection = tiptapEditor.state.selection
-                const hasTextSelection = !selection.empty
-
-                if (hasTextSelection) {
-                    // Get selection coordinates
-                    const view = tiptapEditor.view
-                    const { from, to } = selection
-                    const start = view.coordsAtPos(from)
-                    const end = view.coordsAtPos(to)
-
-                    // Position toolbar above selection
-                    setPosition({
-                        top: start.top - 50,
-                        left: (start.left + end.left) / 2 - 60, // Center the toolbar
-                    })
-                    setIsVisible(true)
-                } else {
-                    setIsVisible(false)
-                }
-            } catch (error) {
-                console.error('Error checking selection:', error)
-                setIsVisible(false)
-            }
-        }
-
-        // Add event listeners for selection changes
-        const tiptapEditor = editor._tiptapEditor as any
-        if (tiptapEditor?.view) {
-            const handleSelectionUpdate = () => {
-                setTimeout(checkSelection, 10) // Small delay to ensure selection is updated
-            }
-
-            tiptapEditor.view.dom.addEventListener(
-                'mouseup',
-                handleSelectionUpdate
-            )
-            tiptapEditor.view.dom.addEventListener(
-                'keyup',
-                handleSelectionUpdate
-            )
-            document.addEventListener('selectionchange', handleSelectionUpdate)
-
-            return () => {
-                tiptapEditor.view.dom.removeEventListener(
-                    'mouseup',
-                    handleSelectionUpdate
-                )
-                tiptapEditor.view.dom.removeEventListener(
-                    'keyup',
-                    handleSelectionUpdate
-                )
-                document.removeEventListener(
-                    'selectionchange',
-                    handleSelectionUpdate
-                )
-            }
-        }
-    }, [editor])
-
-    const handleAddComment = () => {
-        if (editor && editor._tiptapEditor) {
-            try {
-                const tiptapEditor = editor._tiptapEditor as any
-                tiptapEditor.chain().focus().addPendingComment().run()
-                setIsVisible(false) // Hide toolbar after adding comment
-            } catch (error) {
-                console.error('Failed to add comment:', error)
-            }
-        }
-    }
-
-    if (!isVisible || !editor) return null
-
+function ReportLoadingState() {
     return (
-        <div
-            className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg"
-            style={{
-                top: position.top,
-                left: position.left,
-            }}
-        >
-            <Button
-                size="sm"
-                onClick={handleAddComment}
-                className="flex items-center gap-2 text-sm"
-            >
-                <MessageCircle className="w-4 h-4" />
-                Add Comment
-            </Button>
-        </div>
-    )
-}
-
-interface TeacherReviewReportContentProps {
-    projectId: string
-    groupId: string
-}
-
-interface TeacherQuestionReviewProps {
-    question: { id: string; text: string }
-    index: number
-    isDarkMode: boolean
-    uploadFile: any
-}
-
-function TeacherQuestionReview({
-    question,
-    index,
-    isDarkMode,
-    uploadFile,
-}: TeacherQuestionReviewProps) {
-    // Create a read-only collaborative editor for this specific question
-    const editor = useCreateBlockNoteWithLiveblocks(
-        {
-            uploadFile,
-        },
-        {
-            // Use question ID as the field to access the same document as students
-            field: `question-${question.id}`,
-        }
-    )
-
-    // Get threads for this specific question field
-    const { threads: questionThreads } = useThreads({
-        query: {
-            resolved: false,
-            metadata: {
-                field: `question-${question.id}`,
-            },
-        },
-    })
-
-    if (!editor) {
-        return (
-            <div className="min-h-[20vh] border rounded-md flex items-center justify-center">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    Loading question...
-                </div>
-            </div>
-        )
-    }
-
-    return (
-        <div className="space-y-3">
-            <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-medium">
-                    {index + 1}
-                </div>
-                <div className="flex-1 space-y-3">
-                    <div className="flex items-center justify-between pt-[3px]">
-                        <Label className="text-base font-medium leading-relaxed">
-                            {question.text}
-                        </Label>
-                        {questionThreads.length > 0 && (
-                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-                                <MessageSquare className="w-3 h-3 mr-1" />
-                                {questionThreads.length} comment
-                                {questionThreads.length !== 1 ? 's' : ''}
-                            </Badge>
-                        )}
-                    </div>
-                    <div className="min-h-[20vh] border rounded-md relative">
-                        <BlockNoteView
-                            editor={editor}
-                            theme={isDarkMode ? 'dark' : 'light'}
-                            className="question-blocknote"
-                            editable={false}
-                            formattingToolbar={false}
-                            linkToolbar={false}
-                            sideMenu={false}
-                            slashMenu={false}
-                            emojiPicker={false}
-                            filePanel={false}
-                            tableHandles={false}
-                        >
-                            {/* Custom Formatting Toolbar for Comments Only */}
-                            <CustomCommentToolbar editor={editor as any} />
-                        </BlockNoteView>
-
-                        {/* Comments Components for this question */}
-                        {editor && (
-                            <>
-                                <FloatingThreads
-                                    editor={editor as any}
-                                    threads={questionThreads}
-                                    className="floating-threads"
-                                />
-                                <FloatingComposer
-                                    editor={editor as any}
-                                    className="floating-composer"
-                                    metadata={{
-                                        field: `question-${question.id}`,
-                                    }}
-                                />
-                            </>
-                        )}
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <div></div>
-                        <span className="text-muted-foreground">
-                            Select text to add comments
-                        </span>
-                    </div>
-                </div>
+        <div className="min-h-[75vh] border rounded-md flex items-center justify-center">
+            <div className="flex items-center gap-2">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span>Loading student report...</span>
             </div>
         </div>
     )
 }
 
-// Comment Threads Panel Component using official Liveblocks Thread component
-function ThreadsPanel() {
-    const { threads } = useThreads({ query: { resolved: false } })
-
-    if (threads.length === 0) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <MessageSquare className="w-5 h-5" />
-                        Comment Threads
-                    </CardTitle>
-                    <CardDescription>
-                        All active comment threads
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-center py-4">
-                        <MessageSquare className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground">
-                            No active comment threads yet
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Select text to add comments
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
-        )
-    }
-
+function NoReportState() {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5" />
-                    Comment Threads
-                </CardTitle>
-                <CardDescription>
-                    {threads.length} active thread
-                    {threads.length !== 1 ? 's' : ''}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                    {threads.map((thread) => (
-                        <div key={thread.id} className="border rounded-lg p-2">
-                            <Thread thread={thread} />
-                        </div>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
+        <div className="min-h-[75vh] border rounded-md flex items-center justify-center">
+            <div className="text-center space-y-4">
+                <div className="text-6xl">📄</div>
+                <p className="text-muted-foreground">
+                    No report format defined for this project.
+                </p>
+            </div>
+        </div>
     )
 }
 
@@ -332,53 +77,17 @@ function TeacherReviewReportContent({
     groupId,
 }: TeacherReviewReportContentProps) {
     const { theme } = useTheme()
-    const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date())
-    const [isGrading, setIsGrading] = useState(false)
-    const [project, setProject] = useState<Project | null>(null)
-    const [group, setGroup] = useState<ProjectGroup | null>(null)
-    const [reportDefinition, setReportDefinition] =
-        useState<ReportDefinition | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-    const status = useStatus()
-    const others = useOthers()
 
-    // Fetch project and group data
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!projectId || !groupId) return
+    // Custom hooks
+    const { project, group, reportDefinition, isLoading } =
+        useTeacherReportData(projectId, groupId)
+    const { syncStatus, isGrading, activeCollaborators, handleGradeSubmit } =
+        useTeacherReportSync()
 
-            setIsLoading(true)
+    // Get threads for comment count
+    const { threads } = useThreads({ query: { resolved: false } })
 
-            try {
-                const [projectResponse, groupResponse, reportDefResponse] =
-                    await Promise.all([
-                        projectService.getOneById(projectId),
-                        groupService.getOneById(groupId),
-                        reportDefinitionService.getReportDefinition(projectId),
-                    ])
-
-                if (projectResponse.success && projectResponse.data) {
-                    setProject(projectResponse.data as Project)
-                }
-
-                if (groupResponse.success && groupResponse.data) {
-                    setGroup(groupResponse.data as ProjectGroup)
-                }
-
-                if (reportDefResponse.success && reportDefResponse.data) {
-                    setReportDefinition(reportDefResponse.data)
-                }
-            } catch (error) {
-                console.error('Error fetching project/group data:', error)
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        fetchData()
-    }, [projectId, groupId])
-
-    // Use the default upload function (you can customize this for your backend)
+    // File upload handler
     const uploadFile = createS3UploadForReports()
 
     // Create collaborative BlockNote editor for teacher review
@@ -391,78 +100,6 @@ function TeacherReviewReportContent({
         }
     )
 
-    const { threads } = useThreads({ query: { resolved: false } })
-
-    // Update sync time when connection status changes to connected
-    useEffect(() => {
-        if (status === 'connected') {
-            setLastSyncTime(new Date())
-        }
-    }, [status])
-
-    // Real-time sync time display
-    const syncTimeDisplay = useMemo(() => {
-        const now = new Date()
-        const diffInSeconds = Math.floor(
-            (now.getTime() - lastSyncTime.getTime()) / 1000
-        )
-
-        if (diffInSeconds < 30) {
-            return 'Synced just now'
-        } else if (diffInSeconds < 60) {
-            return `Synced ${diffInSeconds}s ago`
-        } else if (diffInSeconds < 3600) {
-            const minutes = Math.floor(diffInSeconds / 60)
-            return `Synced ${minutes}m ago`
-        } else {
-            return lastSyncTime.toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-            })
-        }
-    }, [lastSyncTime])
-
-    // Update sync time display every 30 seconds
-    useEffect(() => {
-        const interval = setInterval(() => {
-            // Force re-render to update the sync time display
-            setLastSyncTime((prev) => prev)
-        }, 30000)
-
-        return () => clearInterval(interval)
-    }, [])
-
-    // Get sync status indicator
-    const getSyncStatus = () => {
-        switch (status) {
-            case 'connected':
-                return {
-                    icon: <CheckCircle2 className="w-4 h-4 text-green-500" />,
-                    text: syncTimeDisplay,
-                }
-            case 'connecting':
-            case 'reconnecting':
-                return {
-                    icon: (
-                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    ),
-                    text: 'Syncing...',
-                }
-            case 'disconnected':
-                return {
-                    icon: <div className="w-4 h-4 bg-red-500 rounded-full" />,
-                    text: 'Disconnected',
-                }
-            default:
-                return {
-                    icon: <div className="w-4 h-4 bg-gray-400 rounded-full" />,
-                    text: 'Initializing...',
-                }
-        }
-    }
-
-    const syncStatus = getSyncStatus()
-
     // Determine if we should use dark theme for BlockNote
     const isDarkMode = useMemo(() => {
         if (theme === 'system') {
@@ -470,33 +107,6 @@ function TeacherReviewReportContent({
         }
         return theme === 'dark'
     }, [theme])
-
-    const handleGradeSubmit = async () => {
-        setIsGrading(true)
-        try {
-            // TODO: Replace with actual API call for grading
-            // const response = await submitGrade({
-            //     studentId: mockProject.student.id,
-            //     reportId: 'current-report-id',
-            //     grade: selectedGrade,
-            //     feedback: comments
-            // })
-
-            // Simulate API call for now
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-
-            console.log('Grade submitted successfully')
-            // TODO: Handle success response
-        } catch (error) {
-            console.error('Failed to submit grade:', error)
-            // TODO: Handle error (show toast, etc.)
-        } finally {
-            setIsGrading(false)
-        }
-    }
-
-    // Get active collaborators count
-    const activeCollaborators = others.length + 1 // +1 for current user
 
     return (
         <div className="min-h-screen bg-background">
@@ -578,100 +188,13 @@ function TeacherReviewReportContent({
                     sidebarTitle="Grading Rubric"
                     sidebarContent={
                         <div className="space-y-4">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-lg">
-                                        Grading Rubric
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Assessment criteria for this report
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {isLoading ? (
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                                            Loading report instructions...
-                                        </div>
-                                    ) : reportDefinition ? (
-                                        <div className="prose prose-sm dark:prose-invert max-w-none">
-                                            {reportDefinition.instruction && (
-                                                <div className="whitespace-pre-wrap text-sm mb-4">
-                                                    {
-                                                        reportDefinition.instruction
-                                                    }
-                                                </div>
-                                            )}
-
-                                            {reportDefinition.format ===
-                                                'QUESTIONNAIRE' &&
-                                                reportDefinition.questions && (
-                                                    <div>
-                                                        <h4 className="font-semibold mb-3">
-                                                            Questions:
-                                                        </h4>
-                                                        <ol className="list-decimal list-inside space-y-2">
-                                                            {reportDefinition.questions.map(
-                                                                (
-                                                                    question,
-                                                                    index
-                                                                ) => (
-                                                                    <li
-                                                                        key={
-                                                                            question.id ||
-                                                                            index
-                                                                        }
-                                                                        className="text-sm"
-                                                                    >
-                                                                        {
-                                                                            question.text
-                                                                        }
-                                                                    </li>
-                                                                )
-                                                            )}
-                                                        </ol>
-                                                    </div>
-                                                )}
-
-                                            {!reportDefinition.instruction &&
-                                                reportDefinition.format ===
-                                                    'CLASSIC' && (
-                                                    <div className="text-sm text-muted-foreground italic">
-                                                        No specific instructions
-                                                        provided.
-                                                    </div>
-                                                )}
-                                        </div>
-                                    ) : (
-                                        <div className="text-sm text-muted-foreground">
-                                            No report definition found for this
-                                            project.
-                                        </div>
-                                    )}
-                                    <div className="mt-6 pt-6 border-t">
-                                        <Button
-                                            onClick={handleGradeSubmit}
-                                            disabled={isGrading}
-                                            className="w-full flex items-center gap-2"
-                                        >
-                                            {isGrading ? (
-                                                <>
-                                                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                                    Submitting Grade...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <CheckCircle2 className="w-4 h-4" />
-                                                    Submit Grade & Feedback
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Comment Threads Panel */}
-                            <ThreadsPanel />
+                            <GradingRubricCard
+                                reportDefinition={reportDefinition}
+                                isLoading={isLoading}
+                                isGrading={isGrading}
+                                onGradeSubmit={handleGradeSubmit}
+                            />
+                            <TeacherThreadsPanel />
                         </div>
                     }
                 >
@@ -712,14 +235,7 @@ function TeacherReviewReportContent({
                             </CardHeader>
                             <CardContent>
                                 {isLoading ? (
-                                    <div className="min-h-[75vh] border rounded-md flex items-center justify-center">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                                            <span>
-                                                Loading student report...
-                                            </span>
-                                        </div>
-                                    </div>
+                                    <ReportLoadingState />
                                 ) : reportDefinition?.format === 'CLASSIC' ? (
                                     // Classic format: Single BlockNote editor
                                     <div className="min-h-[75vh] border rounded-md relative">
@@ -747,13 +263,11 @@ function TeacherReviewReportContent({
                                         {/* Comments Components */}
                                         {editor && (
                                             <>
-                                                {/* Use FloatingThreads for closeable comment display */}
                                                 <FloatingThreads
                                                     editor={editor}
                                                     threads={threads}
                                                     className="floating-threads"
                                                 />
-                                                {/* FloatingComposer for creating new comments */}
                                                 <FloatingComposer
                                                     editor={editor}
                                                     className="floating-composer"
@@ -779,7 +293,13 @@ function TeacherReviewReportContent({
                                         </div>
 
                                         {reportDefinition.questions?.map(
-                                            (question, index) => (
+                                            (
+                                                question: {
+                                                    id: string
+                                                    text: string
+                                                },
+                                                index: number
+                                            ) => (
                                                 <TeacherQuestionReview
                                                     key={question.id}
                                                     question={question}
@@ -791,15 +311,7 @@ function TeacherReviewReportContent({
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="min-h-[75vh] border rounded-md flex items-center justify-center">
-                                        <div className="text-center space-y-4">
-                                            <div className="text-6xl">📄</div>
-                                            <p className="text-muted-foreground">
-                                                No report format defined for
-                                                this project.
-                                            </p>
-                                        </div>
-                                    </div>
+                                    <NoReportState />
                                 )}
                                 <div className="mt-4 text-xs text-muted-foreground">
                                     <p>
