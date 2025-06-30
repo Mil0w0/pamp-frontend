@@ -304,6 +304,35 @@ export const groupService = {
         }
     },
 
+    submitReport: async (groupId: string): Promise<GroupApiResponse> => {
+        try {
+            const response = await fetch(
+                `${PROJECT_API_URL}/projectGroups/${groupId}/submit-report`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
+            )
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiGroupError(error.message)
+            } else {
+                const updatedGroup: ProjectGroup = await response.json()
+                console.log('Report submitted successfully:', updatedGroup)
+                return {
+                    success: true,
+                    data: updatedGroup,
+                }
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleApiGroupError(err.message)
+        }
+    },
+
     delete: async (id: string): Promise<GroupApiResponse> => {
         try {
             const response = await fetch(

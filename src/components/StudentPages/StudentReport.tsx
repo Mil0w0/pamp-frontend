@@ -49,9 +49,9 @@ import {
 } from './components'
 import {
     QuestionProgress,
-    ReportStatus,
     StudentReportContentProps,
 } from './types'
+import { groupService } from '@/services/ProjectService/project-api-client'
 
 function ReportLoadingState() {
     return (
@@ -97,15 +97,18 @@ function StudentReportContent({
 }: StudentReportContentProps) {
     const { theme } = useTheme()
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [reportStatus, setReportStatus] = useState<ReportStatus>('draft')
     const [questionProgress, setQuestionProgress] = useState<
         QuestionProgress[]
     >([])
 
     // Custom hooks
-    const { project, group, reportDefinition, isLoading, accessDenied } =
+    const { project, group, reportDefinition, isLoading, accessDenied, refreshData } =
         useReportData(projectId, groupId)
     const { syncStatus } = useReportSync()
+
+    // Get submission status from group data
+    const isReportSubmitted = group?.reportSubmitted || false
+    const reportSubmittedDate = group?.reportSubmittedDate
 
     // Get threads for comment count
     const { threads } = useThreads({ query: { resolved: false } })
@@ -182,14 +185,27 @@ function StudentReportContent({
             : 0
 
     const handleSubmit = async () => {
+        if (!groupId) {
+            console.error('Group ID is required for submission')
+            return
+        }
+
         setIsSubmitting(true)
         try {
-            // TODO: Replace with actual API call
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-            setReportStatus('submitted')
-            console.log('Report submitted successfully')
+            console.log('Submitting report for group:', groupId)
+            const response = await groupService.submitReport(groupId)
+            
+            if (response.success) {
+                console.log('Report submitted successfully')
+                // Refresh data to get updated submission status
+                await refreshData()
+            } else {
+                console.error('Failed to submit report:', response.error)
+                // You could add toast notification here
+            }
         } catch (error) {
             console.error('Failed to submit report:', error)
+            // You could add toast notification here
         } finally {
             setIsSubmitting(false)
         }
@@ -315,19 +331,19 @@ function StudentReportContent({
                                             </CardTitle>
                                             <Badge
                                                 variant={
-                                                    reportStatus === 'submitted'
+                                                    isReportSubmitted
                                                         ? 'default'
                                                         : 'secondary'
                                                 }
                                                 className={
-                                                    reportStatus === 'submitted'
+                                                    isReportSubmitted
                                                         ? 'bg-green-600 text-white '
                                                         : 'bg-orange-500 text-white'
                                                 }
                                             >
-                                                {reportStatus === 'draft'
-                                                    ? 'Draft'
-                                                    : 'Submitted'}
+                                                {isReportSubmitted
+                                                    ? 'Submitted'
+                                                    : 'Draft'}
                                             </Badge>
                                             {threads.length > 0 && (
                                                 <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
@@ -356,8 +372,7 @@ function StudentReportContent({
                                                 onClick={handleSubmit}
                                                 disabled={
                                                     isSubmitting ||
-                                                    reportStatus ===
-                                                        'submitted' ||
+                                                    isReportSubmitted ||
                                                     (reportDefinition?.format ===
                                                         'QUESTIONNAIRE' &&
                                                         completedAnswers === 0)
@@ -369,11 +384,15 @@ function StudentReportContent({
                                                         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                                                         Submitting...
                                                     </>
-                                                ) : reportStatus ===
-                                                  'submitted' ? (
+                                                ) : isReportSubmitted ? (
                                                     <>
                                                         <CheckCircle2 className="w-4 h-4" />
                                                         Submitted
+                                                        {reportSubmittedDate && (
+                                                            <span className="text-xs ml-1">
+                                                                {new Date(reportSubmittedDate).toLocaleDateString()}
+                                                            </span>
+                                                        )}
                                                     </>
                                                 ) : (
                                                     <>
