@@ -142,12 +142,12 @@ function TeacherReviewReportContent({
             {/* Main Content */}
             <div className="flex flex-1 flex-col gap-6 p-6">
                 {/* Student Info */}
-                <div className="flex items-center justify-between">
-                    <div>
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
                         <h1 className="text-3xl font-bold tracking-tight">
                             Review Student Report
                         </h1>
-                        <div className="flex items-center gap-4 mt-2 text-muted-foreground">
+                        <div className="flex items-center gap-4 mt-2 text-muted-foreground flex-wrap ">
                             <div className="flex items-center gap-2">
                                 <User className="w-4 h-4" />
                                 <span>{group?.name || 'Loading...'}</span>
@@ -167,20 +167,6 @@ function TeacherReviewReportContent({
                                 </>
                             )}
                         </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Badge className="bg-green-600 text-white">
-                            Submitted
-                        </Badge>
-                        {activeCollaborators > 1 && (
-                            <Badge
-                                variant="outline"
-                                className="flex items-center gap-1"
-                            >
-                                <User className="w-3 h-3" />
-                                {activeCollaborators} viewing
-                            </Badge>
-                        )}
                     </div>
                 </div>
 
@@ -204,7 +190,7 @@ function TeacherReviewReportContent({
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 flex-wrap">
                                             <CardTitle className="text-lg">
                                                 Student Report
                                             </CardTitle>
@@ -212,6 +198,32 @@ function TeacherReviewReportContent({
                                                 <MessageSquare className="w-3 h-3 mr-1" />
                                                 {threads.length} Comments
                                             </Badge>
+                                            {/* Submission Status */}
+                                            {group?.reportSubmitted ? (
+                                                <div className="flex items-center gap-2">
+                                                    <Badge className="bg-green-600 text-white">
+                                                        Submitted
+                                                    </Badge>
+                                                    {group.reportSubmittedDate && (
+                                                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                                                            on {new Date(group.reportSubmittedDate).toLocaleDateString()}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <Badge variant="outline" className="bg-orange-500 text-white">
+                                                    Draft
+                                                </Badge>
+                                            )}
+                                            {activeCollaborators > 1 && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="flex items-center gap-1"
+                                                >
+                                                    <User className="w-3 h-3" />
+                                                    {activeCollaborators} viewing
+                                                </Badge>
+                                            )}
                                         </div>
                                         <CardDescription>
                                             You can review this report and
@@ -279,19 +291,6 @@ function TeacherReviewReportContent({
                                   'QUESTIONNAIRE' ? (
                                     // Questionnaire format: Show all questions with read-only editors
                                     <div className="space-y-8">
-                                        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                                            <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                                                📝 Questionnaire Report Review
-                                            </h3>
-                                            <p className="text-sm text-blue-700 dark:text-blue-300">
-                                                This is a questionnaire-format
-                                                report. Each question has its
-                                                own collaborative editor. You
-                                                can add comments to any question
-                                                by selecting text.
-                                            </p>
-                                        </div>
-
                                         {reportDefinition.questions?.map(
                                             (
                                                 question: {
