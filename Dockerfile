@@ -18,8 +18,8 @@ COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
 RUN echo '#!/bin/sh \n\
 echo "window.RUNTIME_CONFIG = { \
   AUTH_API_URL: \"$VITE_AUTH_API_URL\",  \
-  VITE_PROJECT_API_URL: \"$VITE_PROJECT_API_URL\", \
-  VITE_LIVEBLOCKS_KEY: \"$VITE_LIVEBLOCKS_KEY\", \
+  PROJECT_API_URL: \"$VITE_PROJECT_API_URL\", \
+  LIVEBLOCKS_KEY: \"$VITE_LIVEBLOCKS_KEY\", \
   S3_ACCESS_KEY: \"$VITE_S3_ACCESS_KEY\", \
   S3_SECRET_KEY: \"$VITE_S3_SECRET_KEY\" \
 };" > /usr/share/nginx/html/config.js \n\
