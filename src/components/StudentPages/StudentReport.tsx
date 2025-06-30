@@ -490,7 +490,21 @@ export default function StudentReport() {
             initialStorage={{}}
         >
             <ClientSideSuspense
-                fallback={<div>Loading collaborative editor...</div>}
+                fallback={
+                    <div className="min-h-screen flex items-center justify-center bg-background">
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                            <div className="text-center">
+                                <p className="text-lg font-medium">
+                                    Loading collaborative editor...
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Preparing your workspace
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                }
             >
                 <StudentReportContent projectId={projectId} groupId={groupId} />
             </ClientSideSuspense>
