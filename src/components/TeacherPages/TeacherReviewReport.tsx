@@ -359,7 +359,23 @@ export default function TeacherReviewReport() {
             initialPresence={{}}
             initialStorage={{}}
         >
-            <ClientSideSuspense fallback={<div>Loading report...</div>}>
+            <ClientSideSuspense
+                fallback={
+                    <div className="min-h-screen flex items-center justify-center bg-background">
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                            <div className="text-center">
+                                <p className="text-lg font-medium">
+                                    Loading report...
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Preparing review interface
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            >
                 <TeacherReviewReportContent
                     projectId={projectId}
                     groupId={groupId}
