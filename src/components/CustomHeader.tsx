@@ -65,12 +65,19 @@ function CustomHeader() {
                     <a href="/projects" className="text-sm/6 font-semibold">
                         My projects
                     </a>
-                    {currentUser && currentUser.role !== 'STUDENT' && (
+                    {currentUser && currentUser.role !== 'STUDENT' ? (
                         <a
                             href="/student-batches"
                             className="text-sm/6 font-semibold"
                         >
                             My students batches
+                        </a>
+                    ) : (
+                        <a
+                            href="/student/dashboard"
+                            className="text-sm/6 font-semibold"
+                        >
+                            Dashboard
                         </a>
                     )}
                 </div>

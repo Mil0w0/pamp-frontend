@@ -129,11 +129,6 @@ export function AppSidebar({
                     ...stepItems,
                 ],
             },
-            {
-                title: 'Report settings',
-                url: `/projects/${currentProject?.id}/report-definition`,
-                icon: BookOpen,
-            },
             ...(!isStudent
                 ? [
                       {
@@ -141,8 +136,20 @@ export function AppSidebar({
                           url: `/projects/${currentProject.id}/settings`,
                           icon: Settings2,
                       },
+
+                      {
+                          title: 'Report settings',
+                          url: `/projects/${currentProject?.id}/report-definition`,
+                          icon: BookOpen,
+                      },
                   ]
-                : []),
+                : [
+                      {
+                          title: 'Go to report',
+                          url: `/student/report/${currentProject?.id}/${currentProject.groups.find((group) => group.studentsIds.split(',').includes(currentUser?.user_id))?.id}`,
+                          icon: BookOpen,
+                      },
+                  ]),
         ])
     }, [currentProject, currentUser])
 
