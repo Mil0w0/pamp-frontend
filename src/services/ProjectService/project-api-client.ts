@@ -111,7 +111,7 @@ export const projectService = {
     ): Promise<ProjectApiResponse> => {
         try {
             const response = await fetch(
-                `${PROJECT_API_URL}/projects${isStudent ? '?studentId=' + userId + '&batchId=' + batchId : ''}`,
+                `${PROJECT_API_URL}/projects?userId=${userId}${isStudent ? '&batchId=' + batchId : ''}`,
                 {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('auth_token')}`,

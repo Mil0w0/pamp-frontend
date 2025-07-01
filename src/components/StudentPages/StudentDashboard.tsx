@@ -27,6 +27,7 @@ export default function StudentDashboard() {
         try {
             const response = await groupService.getMyGroups()
             if (response.success && response.data) {
+                console.log(response.data)
                 setGroups(
                     Array.isArray(response.data)
                         ? response.data
@@ -59,7 +60,7 @@ export default function StudentDashboard() {
         <div className="container mx-auto py-6 space-y-6">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">
-                    My Projects
+                    Project you joined
                 </h1>
                 <p className="text-muted-foreground">
                     Access your project groups and collaborative reports
@@ -86,7 +87,14 @@ export default function StudentDashboard() {
                             key={group.id}
                             className="hover:shadow-lg transition-shadow"
                         >
-                            <CardHeader>
+                            <CardHeader
+                                className="cursor-pointer"
+                                onClick={() =>
+                                    navigate(
+                                        `/projects/${group.project.id}/groups/${group.id}`,
+                                    )
+                                }
+                            >
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="text-lg">
                                         {group.project.name}

@@ -39,13 +39,20 @@ export function StepById() {
     const loadSubmissionFromS3 = async () => {
         console.log('NOT YET')
         setSubmission(null)
-        //Try to get file from s3 if step.submissuon link exists
+        //Try to get file from s3 if step submission link doesn't exists
     }
 
     const checkConformity = async () => {
         toast.info('Checking Conformity of the sumbitted file')
         setisLoading(true)
-        setisLoading(false)
+        try {
+            //send on s3
+            //update service
+        } catch (error) {
+            console.log(error)
+        } finally {
+            setisLoading(false)
+        }
     }
 
     //Load step data

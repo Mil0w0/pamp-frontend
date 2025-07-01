@@ -15,6 +15,7 @@ export type Project = {
     creationGroupDeadLineDate: string
     groups: ProjectGroup[]
     steps: Step[]
+    creatorId: string
 }
 
 export type CreateProjectDto = {
