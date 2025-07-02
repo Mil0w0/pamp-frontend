@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import {
     ReactFlow,
     Node,
@@ -11,6 +11,8 @@ import {
     Connection,
     ConnectionMode,
     BackgroundVariant,
+    ReactFlowInstance,
+    useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import ELK from 'elkjs/lib/elk.bundled.js'
@@ -171,6 +173,8 @@ const SimilarityTestPage: React.FC = () => {
     const [selectedLayout, setSelectedLayout] = useState<LayoutAlgorithm>('elk-layered')
     const [isApplyingLayout, setIsApplyingLayout] = useState<boolean>(false)
     const [autoLayoutEnabled, setAutoLayoutEnabled] = useState<boolean>(true)
+    const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
+    const [isApplyingZoom, setIsApplyingZoom] = useState<boolean>(false)
 
     const [nodes, setNodes, onNodesChange] = useNodesState([])
     const [edges, setEdges, onEdgesChange] = useEdgesState([])
@@ -702,6 +706,109 @@ const SimilarityTestPage: React.FC = () => {
         })
     }
 
+    // Calculate optimal zoom level based on content bounds
+    const calculateOptimalZoom = (nodes: Node[]): { zoom: number, center: { x: number, y: number } } => {
+        if (!nodes || nodes.length === 0) {
+            return { zoom: 1, center: { x: 0, y: 0 } }
+        }
+
+        console.log('🔍 Calculating optimal zoom for', nodes.length, 'nodes')
+
+        // Calculate bounding box of all nodes
+        let minX = Infinity, maxX = -Infinity
+        let minY = Infinity, maxY = -Infinity
+
+        nodes.forEach(node => {
+            const x = node.position?.x || 0
+            const y = node.position?.y || 0
+            
+            // More accurate dimension calculation
+            let width: number, height: number
+            if (node.data?.type === 'file_subflow') {
+                // Use actual calculated dimensions for file containers
+                width = parseFloat(node.style?.width?.toString().replace('px', '') || '600')
+                height = parseFloat(node.style?.height?.toString().replace('px', '') || '500')
+            } else {
+                // Use default or calculated dimensions for other nodes
+                width = parseFloat(node.style?.width?.toString().replace('px', '') || '180')
+                height = parseFloat(node.style?.height?.toString().replace('px', '') || '50')
+            }
+
+            minX = Math.min(minX, x)
+            maxX = Math.max(maxX, x + width)
+            minY = Math.min(minY, y)
+            maxY = Math.max(maxY, y + height)
+        })
+
+        // Handle edge case
+        if (minX === Infinity) {
+            return { zoom: 1, center: { x: 0, y: 0 } }
+        }
+
+        // Calculate content dimensions
+        const contentWidth = maxX - minX
+        const contentHeight = maxY - minY
+        const centerX = (minX + maxX) / 2
+        const centerY = (minY + maxY) / 2
+
+        // Get viewport dimensions (approximated)
+        const viewportWidth = sidebarCollapsed ? window.innerWidth - 64 : window.innerWidth - 320
+        const viewportHeight = window.innerHeight - 120 // Account for header
+
+        // Calculate zoom to fit content with padding
+        const padding = 100
+        const zoomX = (viewportWidth - padding * 2) / contentWidth
+        const zoomY = (viewportHeight - padding * 2) / contentHeight
+        
+        // Use the smaller zoom to ensure everything fits
+        const optimalZoom = Math.min(zoomX, zoomY)
+        
+        // Clamp zoom between reasonable bounds
+        const clampedZoom = Math.max(0.1, Math.min(optimalZoom, 1.5))
+
+        console.log('📐 Content bounds:', {
+            contentWidth: Math.round(contentWidth),
+            contentHeight: Math.round(contentHeight),
+            center: { x: Math.round(centerX), y: Math.round(centerY) },
+            viewportWidth,
+            viewportHeight,
+            calculatedZoom: optimalZoom.toFixed(2),
+            finalZoom: clampedZoom.toFixed(2)
+        })
+
+        return { 
+            zoom: clampedZoom, 
+            center: { x: centerX, y: centerY } 
+        }
+    }
+
+    // Apply dynamic zoom and center to the flow
+    const applyDynamicZoom = useCallback((nodes: Node[]) => {
+        if (!reactFlowInstance || !nodes || nodes.length === 0) {
+            console.log('⚠️ Cannot apply dynamic zoom: missing instance or nodes')
+            return
+        }
+
+        setIsApplyingZoom(true)
+        const { zoom, center } = calculateOptimalZoom(nodes)
+        
+        console.log('🎯 Applying dynamic zoom:', { zoom: zoom.toFixed(2), center })
+        
+        // Apply the calculated zoom and center
+        requestAnimationFrame(() => {
+            reactFlowInstance.setViewport({
+                x: -center.x * zoom + (sidebarCollapsed ? window.innerWidth - 64 : window.innerWidth - 320) / 2,
+                y: -center.y * zoom + (window.innerHeight - 120) / 2,
+                zoom: zoom
+            })
+            
+            // Clear zoom applying state after animation
+            setTimeout(() => {
+                setIsApplyingZoom(false)
+            }, 300)
+        })
+    }, [reactFlowInstance, sidebarCollapsed])
+
     // Helper function to find a node in the ELK result
     const findELKNode = (elkGraph: any, nodeId: string): any => {
         if (elkGraph.id === nodeId) {
@@ -881,6 +988,12 @@ const SimilarityTestPage: React.FC = () => {
             }
 
             console.log(`✅ ${layoutAlgorithm} layout applied to ${layoutedNodes.length} nodes with dynamic boundaries`)
+            
+            // Apply dynamic zoom after layout is complete
+            setTimeout(() => {
+                applyDynamicZoom(layoutedNodes)
+            }, 100) // Small delay to ensure nodes are rendered
+            
             return layoutedNodes
         } catch (error) {
             console.error(`❌ ${layoutAlgorithm} layout failed, falling back to styled nodes:`, error)
@@ -889,6 +1002,40 @@ const SimilarityTestPage: React.FC = () => {
             setIsApplyingLayout(false)
         }
     }
+
+    // Handle sidebar toggle zoom adjustment
+    useEffect(() => {
+        if (nodes.length > 0) {
+            // Reapply dynamic zoom when sidebar is toggled
+            setTimeout(() => {
+                applyDynamicZoom(nodes)
+            }, 300) // Delay to allow sidebar animation to complete
+        }
+    }, [sidebarCollapsed, applyDynamicZoom, nodes])
+
+    // Handle window resize to reapply dynamic zoom
+    useEffect(() => {
+        const handleResize = () => {
+            if (nodes.length > 0) {
+                // Debounced zoom reapplication on window resize
+                setTimeout(() => {
+                    applyDynamicZoom(nodes)
+                }, 150)
+            }
+        }
+
+        let resizeTimeout: NodeJS.Timeout
+        const debouncedResize = () => {
+            clearTimeout(resizeTimeout)
+            resizeTimeout = setTimeout(handleResize, 250) // 250ms debounce
+        }
+
+        window.addEventListener('resize', debouncedResize)
+        return () => {
+            window.removeEventListener('resize', debouncedResize)
+            clearTimeout(resizeTimeout)
+        }
+    }, [nodes, applyDynamicZoom])
 
     // Keyboard shortcuts for layout switching
     useEffect(() => {
@@ -980,6 +1127,12 @@ const SimilarityTestPage: React.FC = () => {
                         firstPair.react_flow.edges || []
                     )
                     setEdges(processedEdges)
+                    
+                    // Apply dynamic zoom for initial load
+                    setTimeout(() => {
+                        applyDynamicZoom(processedNodes)
+                    }, 200) // Longer delay for initial load
+                    
                     console.log('✅ Nodes and edges set successfully')
                 } else {
                     console.log('⚠️ No file pairs found in response')
@@ -1034,6 +1187,12 @@ const SimilarityTestPage: React.FC = () => {
                     selectedPair.react_flow.edges || []
                 )
                 setEdges(processedEdges)
+                
+                // Apply dynamic zoom for the new pair
+                setTimeout(() => {
+                    applyDynamicZoom(processedNodes)
+                }, 150) // Slightly longer delay for pair changes
+                
                 console.log('✅ Pair change completed')
             })
         } else {
@@ -1282,7 +1441,7 @@ const SimilarityTestPage: React.FC = () => {
     const layoutInfo = getLayoutInfo(currentPair.react_flow?.layout_config)
 
     return (
-        <div className="h-screen flex bg-gray-100">
+        <div className="h-[100vh - 100px] flex bg-gray-100">
             {/* Sidebar */}
             <div
                 className={`bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ${
@@ -1735,6 +1894,14 @@ const SimilarityTestPage: React.FC = () => {
                                         {isApplyingLayout ? '⚡ Active' : '✓ Ready'}
                                     </span>
                                 </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-600">
+                                        🔍 Current Zoom
+                                    </span>
+                                    <span className="font-medium text-blue-600">
+                                        {reactFlowInstance ? `${(reactFlowInstance.getZoom() * 100).toFixed(0)}%` : '---'}
+                                    </span>
+                                </div>
                             </div>
                             
                             {/* Quick Layout Tips */}
@@ -1748,6 +1915,28 @@ const SimilarityTestPage: React.FC = () => {
                                 </ul>
                             </div>
                             
+                            {/* Zoom Controls */}
+                            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                                <h3 className="text-xs font-semibold text-blue-900 mb-2">🔍 Zoom Controls</h3>
+                                <button
+                                    onClick={() => applyDynamicZoom(nodes)}
+                                    disabled={!reactFlowInstance || nodes.length === 0 || isApplyingZoom}
+                                    className="w-full text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                                >
+                                    {isApplyingZoom ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent"></div>
+                                            Applying Zoom...
+                                        </>
+                                    ) : (
+                                        <>🎯 Reset to Optimal Zoom</>
+                                    )}
+                                </button>
+                                <p className="text-xs text-blue-700 mt-1">
+                                    Automatically fits content to viewport
+                                </p>
+                            </div>
+
                             {/* Keyboard Shortcuts */}
                             <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                                 <h3 className="text-xs font-semibold text-gray-900 mb-2">⌨️ Shortcuts</h3>
@@ -1781,6 +1970,15 @@ const SimilarityTestPage: React.FC = () => {
                                 </span>
                                 <span>•</span>
                                 <span>{currentPair.react_flow.flow_type}</span>
+                                {isApplyingZoom && (
+                                    <>
+                                        <span>•</span>
+                                        <div className="flex items-center gap-1 text-blue-600">
+                                            <div className="animate-spin rounded-full h-3 w-3 border border-blue-600 border-t-transparent"></div>
+                                            <span className="text-xs">Optimizing Zoom...</span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
@@ -1843,14 +2041,9 @@ const SimilarityTestPage: React.FC = () => {
                         onNodesChange={onNodesChangeWithBoundaryUpdate}
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
+                        onInit={setReactFlowInstance}
                         connectionMode={ConnectionMode.Loose}
-                        fitView={true}
-                        fitViewOptions={{
-                            padding: 50,
-                            includeHiddenNodes: false,
-                            minZoom: 0.1,
-                            maxZoom: 1.5,
-                        }}
+                        fitView={false}
                         minZoom={0.1}
                         maxZoom={1.5}
                         nodesDraggable={selectedLayout === 'manual' || !autoLayoutEnabled}
