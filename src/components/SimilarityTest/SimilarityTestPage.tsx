@@ -180,6 +180,49 @@ const SimilarityTestPage: React.FC = () => {
         [setEdges]
     )
 
+    // Handle node changes and recalculate boundaries for file containers
+    const onNodesChangeWithBoundaryUpdate = useCallback(
+        (changes: any[]) => {
+            onNodesChange(changes)
+            
+            // If in manual mode or auto-layout is disabled, recalculate boundaries after node position changes
+            if (selectedLayout === 'manual' || !autoLayoutEnabled) {
+                const hasPositionChanges = changes.some(change => change.type === 'position')
+                if (hasPositionChanges) {
+                    // Debounce boundary recalculation to avoid excessive updates
+                    setTimeout(() => {
+                        setNodes(currentNodes => {
+                            const boundaries = calculateSubflowBoundaries(currentNodes)
+                            let updatedNodes = currentNodes.map(node => {
+                                if (node.data?.type === 'file_subflow') {
+                                    const bounds = boundaries.get(node.id)
+                                    if (bounds) {
+                                        return {
+                                            ...node,
+                                            style: {
+                                                ...node.style,
+                                                width: `${bounds.width}px`,
+                                                height: `${bounds.height}px`,
+                                                minWidth: `${bounds.width}px`,
+                                                minHeight: `${bounds.height}px`,
+                                            }
+                                        }
+                                    }
+                                }
+                                return node
+                            })
+                            
+                            // Adjust child positions to be relative to their containers
+                            updatedNodes = adjustChildPositions(updatedNodes, boundaries)
+                            return updatedNodes
+                        })
+                    }, 100) // 100ms debounce
+                }
+            }
+        },
+        [onNodesChange, selectedLayout, autoLayoutEnabled, setNodes]
+    )
+
     // Enhanced ELK Layout function with multiple algorithms
     const applyELKLayout = async (
         nodes: Node[], 
@@ -250,30 +293,36 @@ const SimilarityTestPage: React.FC = () => {
             }
         }
         
-        // Create ELK graph structure
+        // First pass: calculate initial container sizes based on current child positions
+        const initialBoundaries = calculateSubflowBoundaries(nodes)
+        
+        // Create ELK graph structure with dynamic container sizing
         const elkGraph = {
             id: 'root',
             layoutOptions: getLayoutOptions(algorithm),
             children: [
-                ...fileContainers.map(fileNode => ({
-                    id: fileNode.id,
-                    width: 600,
-                    height: 500,
-                    layoutOptions: {
-                        'elk.algorithm': 'layered',
-                        'elk.direction': 'DOWN',
-                        'elk.spacing.nodeNode': '60',
-                        'elk.layered.spacing.nodeNodeBetweenLayers': '80',
-                        'elk.padding': '[top=60,left=30,bottom=30,right=30]'
-                    },
-                    children: childNodes
-                        .filter(child => child.parentNode === fileNode.id)
-                        .map(child => ({
-                            id: child.id,
-                            width: parseFloat(child.style?.width?.toString() || '180'),
-                            height: parseFloat(child.style?.height?.toString() || '50'),
-                        }))
-                })),
+                ...fileContainers.map(fileNode => {
+                    const bounds = initialBoundaries.get(fileNode.id) || { width: 600, height: 500 }
+                    return {
+                        id: fileNode.id,
+                        width: bounds.width,
+                        height: bounds.height,
+                        layoutOptions: {
+                            'elk.algorithm': 'layered',
+                            'elk.direction': 'DOWN',
+                            'elk.spacing.nodeNode': '60',
+                            'elk.layered.spacing.nodeNodeBetweenLayers': '80',
+                            'elk.padding': '[top=60,left=30,bottom=30,right=30]'
+                        },
+                        children: childNodes
+                            .filter(child => child.parentNode === fileNode.id)
+                            .map(child => ({
+                                id: child.id,
+                                width: parseFloat(child.style?.width?.toString() || '180'),
+                                height: parseFloat(child.style?.height?.toString() || '50'),
+                            }))
+                    }
+                }),
                 ...standaloneNodes.map(node => ({
                     id: node.id,
                     width: parseFloat(node.style?.width?.toString() || '200'),
@@ -294,7 +343,7 @@ const SimilarityTestPage: React.FC = () => {
             console.log(`✅ ${algorithm} layout completed:`, layoutedGraph)
             
             // Apply the layout results back to nodes
-            const layoutedNodes = nodes.map(node => {
+            let layoutedNodes = nodes.map(node => {
                 const elkNode = findELKNode(layoutedGraph, node.id)
                 if (elkNode) {
                     return {
@@ -308,7 +357,31 @@ const SimilarityTestPage: React.FC = () => {
                 return node
             })
             
-            console.log(`🎯 Applied ${algorithm} layout to ${layoutedNodes.length} nodes`)
+            // Recalculate subflow boundaries after layout and adjust container sizes
+            const finalBoundaries = calculateSubflowBoundaries(layoutedNodes)
+            layoutedNodes = layoutedNodes.map(node => {
+                if (node.data?.type === 'file_subflow') {
+                    const bounds = finalBoundaries.get(node.id)
+                    if (bounds) {
+                        return {
+                            ...node,
+                            style: {
+                                ...node.style,
+                                width: `${bounds.width}px`,
+                                height: `${bounds.height}px`,
+                                minWidth: `${bounds.width}px`,
+                                minHeight: `${bounds.height}px`,
+                            }
+                        }
+                    }
+                }
+                return node
+            })
+            
+            // Adjust child positions to be relative to their containers
+            layoutedNodes = adjustChildPositions(layoutedNodes, finalBoundaries)
+            
+            console.log(`🎯 Applied ${algorithm} layout to ${layoutedNodes.length} nodes with dynamic boundaries`)
             return layoutedNodes
             
         } catch (error) {
@@ -325,7 +398,7 @@ const SimilarityTestPage: React.FC = () => {
         const strength = 0.3
         const distance = 200
         
-        return nodes.map((node, index) => {
+        let layoutedNodes = nodes.map((node, index) => {
             const angle = (index / nodes.length) * 2 * Math.PI
             const radius = distance + Math.random() * 100
             
@@ -337,6 +410,32 @@ const SimilarityTestPage: React.FC = () => {
                 },
             }
         })
+        
+        // Recalculate and apply subflow boundaries
+        const boundaries = calculateSubflowBoundaries(layoutedNodes)
+        layoutedNodes = layoutedNodes.map(node => {
+            if (node.data?.type === 'file_subflow') {
+                const bounds = boundaries.get(node.id)
+                if (bounds) {
+                    return {
+                        ...node,
+                        style: {
+                            ...node.style,
+                            width: `${bounds.width}px`,
+                            height: `${bounds.height}px`,
+                            minWidth: `${bounds.width}px`,
+                            minHeight: `${bounds.height}px`,
+                        }
+                    }
+                }
+            }
+            return node
+        })
+        
+        // Adjust child positions to be relative to their containers
+        layoutedNodes = adjustChildPositions(layoutedNodes, boundaries)
+        
+        return layoutedNodes
     }
 
     const applyCircularLayout = (nodes: Node[], edges: Edge[]): Node[] => {
@@ -350,7 +449,7 @@ const SimilarityTestPage: React.FC = () => {
         const childNodes = nodes.filter(n => n.parentNode)
         const standaloneNodes = nodes.filter(n => !n.parentNode && n.data?.type !== 'file_subflow')
         
-        return nodes.map((node, index) => {
+        let layoutedNodes = nodes.map((node, index) => {
             if (node.data?.type === 'file_subflow') {
                 // File containers in outer circle
                 const angle = (fileContainers.indexOf(node) / fileContainers.length) * 2 * Math.PI
@@ -392,6 +491,32 @@ const SimilarityTestPage: React.FC = () => {
             
             return node
         })
+        
+        // Recalculate and apply subflow boundaries
+        const boundaries = calculateSubflowBoundaries(layoutedNodes)
+        layoutedNodes = layoutedNodes.map(node => {
+            if (node.data?.type === 'file_subflow') {
+                const bounds = boundaries.get(node.id)
+                if (bounds) {
+                    return {
+                        ...node,
+                        style: {
+                            ...node.style,
+                            width: `${bounds.width}px`,
+                            height: `${bounds.height}px`,
+                            minWidth: `${bounds.width}px`,
+                            minHeight: `${bounds.height}px`,
+                        }
+                    }
+                }
+            }
+            return node
+        })
+        
+        // Adjust child positions to be relative to their containers
+        layoutedNodes = adjustChildPositions(layoutedNodes, boundaries)
+        
+        return layoutedNodes
     }
 
     const applyDagreLayout = (nodes: Node[], edges: Edge[], direction: 'TB' | 'LR' | 'BT' | 'RL' = 'TB'): Node[] => {
@@ -429,7 +554,7 @@ const SimilarityTestPage: React.FC = () => {
         const layerSpacing = direction === 'LR' || direction === 'RL' ? 300 : 200
         const nodeSpacing = direction === 'TB' || direction === 'BT' ? 200 : 150
         
-        return nodes.map(node => {
+        let layoutedNodes = nodes.map(node => {
             const layerIndex = layers.findIndex(layer => layer.includes(node))
             const nodeIndex = layers[layerIndex]?.indexOf(node) || 0
             const layerSize = layers[layerIndex]?.length || 1
@@ -459,6 +584,121 @@ const SimilarityTestPage: React.FC = () => {
                 ...node,
                 position: { x, y },
             }
+        })
+        
+        // Recalculate and apply subflow boundaries
+        const boundaries = calculateSubflowBoundaries(layoutedNodes)
+        layoutedNodes = layoutedNodes.map(node => {
+            if (node.data?.type === 'file_subflow') {
+                const bounds = boundaries.get(node.id)
+                if (bounds) {
+                    return {
+                        ...node,
+                        style: {
+                            ...node.style,
+                            width: `${bounds.width}px`,
+                            height: `${bounds.height}px`,
+                            minWidth: `${bounds.width}px`,
+                            minHeight: `${bounds.height}px`,
+                        }
+                    }
+                }
+            }
+            return node
+        })
+        
+        // Adjust child positions to be relative to their containers
+        layoutedNodes = adjustChildPositions(layoutedNodes, boundaries)
+        
+        return layoutedNodes
+    }
+
+    // Helper function to calculate subflow boundaries based on child positions
+    const calculateSubflowBoundaries = (nodes: Node[]): Map<string, {width: number, height: number, minX: number, minY: number}> => {
+        const boundaries = new Map<string, {width: number, height: number, minX: number, minY: number}>()
+        
+        // Get all file containers
+        const fileContainers = nodes.filter(n => n.data?.type === 'file_subflow')
+        
+        fileContainers.forEach(container => {
+            // Find all children of this container
+            const children = nodes.filter(n => n.parentNode === container.id)
+            
+            if (children.length === 0) {
+                // No children, use minimum size
+                boundaries.set(container.id, {
+                    width: 400,
+                    height: 300,
+                    minX: 0,
+                    minY: 0
+                })
+                return
+            }
+            
+            // Calculate bounding box of all children
+            let minX = Infinity, maxX = -Infinity
+            let minY = Infinity, maxY = -Infinity
+            
+            children.forEach(child => {
+                const x = child.position?.x || 0
+                const y = child.position?.y || 0
+                const width = parseFloat(child.style?.width?.toString() || '180')
+                const height = parseFloat(child.style?.height?.toString() || '50')
+                
+                minX = Math.min(minX, x)
+                maxX = Math.max(maxX, x + width)
+                minY = Math.min(minY, y)
+                maxY = Math.max(maxY, y + height)
+            })
+            
+            // Handle case where all children might be at 0,0 or negative positions
+            if (minX === Infinity) {
+                minX = 0
+                maxX = 180
+                minY = 0
+                maxY = 50
+            }
+            
+            // Add padding around children
+            const padding = 60
+            const calculatedWidth = Math.max(400, (maxX - minX) + (padding * 2))
+            const calculatedHeight = Math.max(300, (maxY - minY) + (padding * 2))
+            
+            boundaries.set(container.id, {
+                width: calculatedWidth,
+                height: calculatedHeight,
+                minX: minX - padding,
+                minY: minY - padding
+            })
+            
+            console.log(`📐 Calculated boundaries for ${container.id}:`, {
+                width: calculatedWidth,
+                height: calculatedHeight,
+                childrenCount: children.length,
+                bounds: { minX, maxX, minY, maxY }
+            })
+        })
+        
+        return boundaries
+    }
+
+    // Helper function to adjust child positions relative to container boundaries
+    const adjustChildPositions = (nodes: Node[], boundaries: Map<string, any>): Node[] => {
+        return nodes.map(node => {
+            if (node.parentNode) {
+                const containerBounds = boundaries.get(node.parentNode)
+                if (containerBounds) {
+                    // Adjust child position to be relative to container's adjusted bounds
+                    return {
+                        ...node,
+                        position: {
+                            x: (node.position?.x || 0) - containerBounds.minX,
+                            y: (node.position?.y || 0) - containerBounds.minY
+                        }
+                    }
+                }
+            }
+            return node
         })
     }
 
@@ -569,12 +809,14 @@ const SimilarityTestPage: React.FC = () => {
             const newNode = { ...node }
 
             if (node.data?.type === 'file_subflow') {
-                // File container styling
+                // File container styling - remove fixed dimensions, they'll be calculated dynamically
                 if (newNode.style) {
                     newNode.style = {
                         ...newNode.style,
-                        minWidth: '600px',
-                        minHeight: '500px',
+                        zIndex: -1, // Behind edges
+                    }
+                } else {
+                    newNode.style = {
                         zIndex: -1, // Behind edges
                     }
                 }
@@ -598,8 +840,32 @@ const SimilarityTestPage: React.FC = () => {
             let layoutedNodes: Node[]
 
             if (layoutAlgorithm === 'manual') {
-                // Keep original positions for manual mode
+                // Keep original positions for manual mode but still recalculate boundaries
                 layoutedNodes = styledNodes
+                
+                // Recalculate and apply subflow boundaries even in manual mode
+                const boundaries = calculateSubflowBoundaries(layoutedNodes)
+                layoutedNodes = layoutedNodes.map(node => {
+                    if (node.data?.type === 'file_subflow') {
+                        const bounds = boundaries.get(node.id)
+                        if (bounds) {
+                            return {
+                                ...node,
+                                style: {
+                                    ...node.style,
+                                    width: `${bounds.width}px`,
+                                    height: `${bounds.height}px`,
+                                    minWidth: `${bounds.width}px`,
+                                    minHeight: `${bounds.height}px`,
+                                }
+                            }
+                        }
+                    }
+                    return node
+                })
+                
+                // Adjust child positions to be relative to their containers
+                layoutedNodes = adjustChildPositions(layoutedNodes, boundaries)
             } else if (layoutAlgorithm.startsWith('elk-')) {
                 layoutedNodes = await applyELKLayout(styledNodes, rawEdges, layoutAlgorithm)
             } else if (layoutAlgorithm.startsWith('dagre-')) {
@@ -614,7 +880,7 @@ const SimilarityTestPage: React.FC = () => {
                 layoutedNodes = await applyELKLayout(styledNodes, rawEdges, 'elk-layered')
             }
 
-            console.log(`✅ ${layoutAlgorithm} layout applied to ${layoutedNodes.length} nodes`)
+            console.log(`✅ ${layoutAlgorithm} layout applied to ${layoutedNodes.length} nodes with dynamic boundaries`)
             return layoutedNodes
         } catch (error) {
             console.error(`❌ ${layoutAlgorithm} layout failed, falling back to styled nodes:`, error)
@@ -1574,7 +1840,7 @@ const SimilarityTestPage: React.FC = () => {
                     <ReactFlow
                         nodes={nodes}
                         edges={edges}
-                        onNodesChange={onNodesChange}
+                        onNodesChange={onNodesChangeWithBoundaryUpdate}
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
                         connectionMode={ConnectionMode.Loose}
