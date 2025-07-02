@@ -1,18 +1,17 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
-    ReactFlow,
-    Node,
-    Edge,
-    Controls,
-    Background,
-    useNodesState,
-    useEdgesState,
     addEdge,
+    Background,
+    BackgroundVariant,
     Connection,
     ConnectionMode,
-    BackgroundVariant,
+    Controls,
+    Edge,
+    Node,
+    ReactFlow,
     ReactFlowInstance,
-    useReactFlow,
+    useEdgesState,
+    useNodesState,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import ELK from 'elkjs/lib/elk.bundled.js'
@@ -76,7 +75,8 @@ const SimilarityTestPage: React.FC = () => {
     const [selectedPairIndex, setSelectedPairIndex] = useState<number>(0)
     const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false)
     const [isApplyingLayout, setIsApplyingLayout] = useState<boolean>(false)
-    const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
+    const [reactFlowInstance, setReactFlowInstance] =
+        useState<ReactFlowInstance | null>(null)
     const [isApplyingZoom, setIsApplyingZoom] = useState<boolean>(false)
 
     const [nodes, setNodes, onNodesChange] = useNodesState([])
@@ -91,15 +91,18 @@ const SimilarityTestPage: React.FC = () => {
     const onNodesChangeWithBoundaryUpdate = useCallback(
         (changes: any[]) => {
             onNodesChange(changes)
-            
-            // Recalculate boundaries after node position changes
-            const hasPositionChanges = changes.some(change => change.type === 'position')
+
+            // Recalculate boundaries after node position changes (without zoom optimization)
+            const hasPositionChanges = changes.some(
+                (change) => change.type === 'position'
+            )
             if (hasPositionChanges) {
                 // Debounce boundary recalculation to avoid excessive updates
                 setTimeout(() => {
-                    setNodes(currentNodes => {
-                        const boundaries = calculateSubflowBoundaries(currentNodes)
-                        let updatedNodes = currentNodes.map(node => {
+                    setNodes((currentNodes) => {
+                        const boundaries =
+                            calculateSubflowBoundaries(currentNodes)
+                        let updatedNodes = currentNodes.map((node) => {
                             if (node.data?.type === 'file_subflow') {
                                 const bounds = boundaries.get(node.id)
                                 if (bounds) {
@@ -111,15 +114,18 @@ const SimilarityTestPage: React.FC = () => {
                                             height: `${bounds.height}px`,
                                             minWidth: `${bounds.width}px`,
                                             minHeight: `${bounds.height}px`,
-                                        }
+                                        },
                                     }
                                 }
                             }
                             return node
                         })
-                        
+
                         // Adjust child positions to be relative to their containers
-                        updatedNodes = adjustChildPositions(updatedNodes, boundaries)
+                        updatedNodes = adjustChildPositions(
+                            updatedNodes,
+                            boundaries
+                        )
                         return updatedNodes
                     })
                 }, 100) // 100ms debounce
@@ -129,16 +135,23 @@ const SimilarityTestPage: React.FC = () => {
     )
 
     // ELK Layered Layout function
-    const applyELKLayout = async (nodes: Node[], edges: Edge[]): Promise<Node[]> => {
-        console.log('🎯 Applying ELK Layered layout...')
-        
+    const applyELKLayout = async (
+        nodes: Node[],
+        edges: Edge[]
+    ): Promise<Node[]> => {
+        console.log('Applying ELK Layered layout...')
+
         const elk = new ELK()
-        
+
         // Separate file containers from child nodes
-        const fileContainers = nodes.filter(n => n.data?.type === 'file_subflow')
-        const childNodes = nodes.filter(n => n.parentNode)
-        const standaloneNodes = nodes.filter(n => !n.parentNode && n.data?.type !== 'file_subflow')
-        
+        const fileContainers = nodes.filter(
+            (n) => n.data?.type === 'file_subflow'
+        )
+        const childNodes = nodes.filter((n) => n.parentNode)
+        const standaloneNodes = nodes.filter(
+            (n) => !n.parentNode && n.data?.type !== 'file_subflow'
+        )
+
         // ELK Layered layout options
         const layoutOptions = {
             'elk.padding': '[top=50,left=50,bottom=50,right=50]',
@@ -150,17 +163,20 @@ const SimilarityTestPage: React.FC = () => {
             'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
             'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
         }
-        
+
         // First pass: calculate initial container sizes based on current child positions
         const initialBoundaries = calculateSubflowBoundaries(nodes)
-        
+
         // Create ELK graph structure with dynamic container sizing
         const elkGraph = {
             id: 'root',
             layoutOptions: layoutOptions,
             children: [
-                ...fileContainers.map(fileNode => {
-                    const bounds = initialBoundaries.get(fileNode.id) || { width: 600, height: 500 }
+                ...fileContainers.map((fileNode) => {
+                    const bounds = initialBoundaries.get(fileNode.id) || {
+                        width: 600,
+                        height: 500,
+                    }
                     return {
                         id: fileNode.id,
                         width: bounds.width,
@@ -170,38 +186,43 @@ const SimilarityTestPage: React.FC = () => {
                             'elk.direction': 'DOWN',
                             'elk.spacing.nodeNode': '60',
                             'elk.layered.spacing.nodeNodeBetweenLayers': '80',
-                            'elk.padding': '[top=60,left=30,bottom=30,right=30]'
+                            'elk.padding':
+                                '[top=60,left=30,bottom=30,right=30]',
                         },
                         children: childNodes
-                            .filter(child => child.parentNode === fileNode.id)
-                            .map(child => ({
+                            .filter((child) => child.parentNode === fileNode.id)
+                            .map((child) => ({
                                 id: child.id,
-                                width: parseFloat(child.style?.width?.toString() || '180'),
-                                height: parseFloat(child.style?.height?.toString() || '50'),
-                            }))
+                                width: parseFloat(
+                                    child.style?.width?.toString() || '180'
+                                ),
+                                height: parseFloat(
+                                    child.style?.height?.toString() || '50'
+                                ),
+                            })),
                     }
                 }),
-                ...standaloneNodes.map(node => ({
+                ...standaloneNodes.map((node) => ({
                     id: node.id,
                     width: parseFloat(node.style?.width?.toString() || '200'),
                     height: parseFloat(node.style?.height?.toString() || '80'),
-                }))
+                })),
             ],
-            edges: edges.map(edge => ({
+            edges: edges.map((edge) => ({
                 id: edge.id,
                 sources: [edge.source],
                 targets: [edge.target],
-            }))
+            })),
         }
-        
-        console.log('📊 ELK Layered graph structure:', elkGraph)
-        
+
+        console.log('ELK Layered graph structure:', elkGraph)
+
         try {
             const layoutedGraph = await elk.layout(elkGraph)
-            console.log('✅ ELK Layered layout completed:', layoutedGraph)
-            
+            console.log('ELK Layered layout completed:', layoutedGraph)
+
             // Apply the layout results back to nodes
-            let layoutedNodes = nodes.map(node => {
+            let layoutedNodes = nodes.map((node) => {
                 const elkNode = findELKNode(layoutedGraph, node.id)
                 if (elkNode) {
                     return {
@@ -214,10 +235,10 @@ const SimilarityTestPage: React.FC = () => {
                 }
                 return node
             })
-            
+
             // Recalculate subflow boundaries after layout and adjust container sizes
             const finalBoundaries = calculateSubflowBoundaries(layoutedNodes)
-            layoutedNodes = layoutedNodes.map(node => {
+            layoutedNodes = layoutedNodes.map((node) => {
                 if (node.data?.type === 'file_subflow') {
                     const bounds = finalBoundaries.get(node.id)
                     if (bounds) {
@@ -229,65 +250,80 @@ const SimilarityTestPage: React.FC = () => {
                                 height: `${bounds.height}px`,
                                 minWidth: `${bounds.width}px`,
                                 minHeight: `${bounds.height}px`,
-                            }
+                            },
                         }
                     }
                 }
                 return node
             })
-            
+
             // Adjust child positions to be relative to their containers
             layoutedNodes = adjustChildPositions(layoutedNodes, finalBoundaries)
-            
-            console.log(`🎯 Applied ELK Layered layout to ${layoutedNodes.length} nodes with dynamic boundaries`)
+
+            console.log(
+                `Applied ELK Layered layout to ${layoutedNodes.length} nodes with dynamic boundaries`
+            )
             return layoutedNodes
-            
         } catch (error) {
-            console.error('❌ ELK Layered layout failed:', error)
+            console.error('ELK Layered layout failed:', error)
             return nodes // Return original nodes if layout fails
         }
     }
 
-
-
     // Helper function to calculate subflow boundaries based on child positions
-    const calculateSubflowBoundaries = (nodes: Node[]): Map<string, {width: number, height: number, minX: number, minY: number}> => {
-        const boundaries = new Map<string, {width: number, height: number, minX: number, minY: number}>()
-        
+    const calculateSubflowBoundaries = (
+        nodes: Node[]
+    ): Map<
+        string,
+        { width: number; height: number; minX: number; minY: number }
+    > => {
+        const boundaries = new Map<
+            string,
+            { width: number; height: number; minX: number; minY: number }
+        >()
+
         // Get all file containers
-        const fileContainers = nodes.filter(n => n.data?.type === 'file_subflow')
-        
-        fileContainers.forEach(container => {
+        const fileContainers = nodes.filter(
+            (n) => n.data?.type === 'file_subflow'
+        )
+
+        fileContainers.forEach((container) => {
             // Find all children of this container
-            const children = nodes.filter(n => n.parentNode === container.id)
-            
+            const children = nodes.filter((n) => n.parentNode === container.id)
+
             if (children.length === 0) {
                 // No children, use minimum size
                 boundaries.set(container.id, {
                     width: 400,
                     height: 300,
                     minX: 0,
-                    minY: 0
+                    minY: 0,
                 })
                 return
             }
-            
+
             // Calculate bounding box of all children
-            let minX = Infinity, maxX = -Infinity
-            let minY = Infinity, maxY = -Infinity
-            
-            children.forEach(child => {
+            let minX = Infinity,
+                maxX = -Infinity
+            let minY = Infinity,
+                maxY = -Infinity
+
+            children.forEach((child) => {
                 const x = child.position?.x || 0
                 const y = child.position?.y || 0
-                const width = parseFloat(child.style?.width?.toString() || '180')
-                const height = parseFloat(child.style?.height?.toString() || '50')
-                
+                const width = parseFloat(
+                    child.style?.width?.toString() || '180'
+                )
+                const height = parseFloat(
+                    child.style?.height?.toString() || '50'
+                )
+
                 minX = Math.min(minX, x)
                 maxX = Math.max(maxX, x + width)
                 minY = Math.min(minY, y)
                 maxY = Math.max(maxY, y + height)
             })
-            
+
             // Handle case where all children might be at 0,0 or negative positions
             if (minX === Infinity) {
                 minX = 0
@@ -295,33 +331,36 @@ const SimilarityTestPage: React.FC = () => {
                 minY = 0
                 maxY = 50
             }
-            
+
             // Add padding around children
             const padding = 60
-            const calculatedWidth = Math.max(400, (maxX - minX) + (padding * 2))
-            const calculatedHeight = Math.max(300, (maxY - minY) + (padding * 2))
-            
+            const calculatedWidth = Math.max(400, maxX - minX + padding * 2)
+            const calculatedHeight = Math.max(300, maxY - minY + padding * 2)
+
             boundaries.set(container.id, {
                 width: calculatedWidth,
                 height: calculatedHeight,
                 minX: minX - padding,
-                minY: minY - padding
+                minY: minY - padding,
             })
-            
-            console.log(`📐 Calculated boundaries for ${container.id}:`, {
+
+            console.log(`Calculated boundaries for ${container.id}:`, {
                 width: calculatedWidth,
                 height: calculatedHeight,
                 childrenCount: children.length,
-                bounds: { minX, maxX, minY, maxY }
+                bounds: { minX, maxX, minY, maxY },
             })
         })
-        
+
         return boundaries
     }
 
     // Helper function to adjust child positions relative to container boundaries
-    const adjustChildPositions = (nodes: Node[], boundaries: Map<string, any>): Node[] => {
-        return nodes.map(node => {
+    const adjustChildPositions = (
+        nodes: Node[],
+        boundaries: Map<string, any>
+    ): Node[] => {
+        return nodes.map((node) => {
             if (node.parentNode) {
                 const containerBounds = boundaries.get(node.parentNode)
                 if (containerBounds) {
@@ -330,8 +369,8 @@ const SimilarityTestPage: React.FC = () => {
                         ...node,
                         position: {
                             x: (node.position?.x || 0) - containerBounds.minX,
-                            y: (node.position?.y || 0) - containerBounds.minY
-                        }
+                            y: (node.position?.y || 0) - containerBounds.minY,
+                        },
                     }
                 }
             }
@@ -340,31 +379,43 @@ const SimilarityTestPage: React.FC = () => {
     }
 
     // Calculate optimal zoom level based on content bounds
-    const calculateOptimalZoom = (nodes: Node[]): { zoom: number, center: { x: number, y: number } } => {
+    const calculateOptimalZoom = (
+        nodes: Node[]
+    ): { zoom: number; center: { x: number; y: number } } => {
         if (!nodes || nodes.length === 0) {
             return { zoom: 1, center: { x: 0, y: 0 } }
         }
 
-        console.log('🔍 Calculating optimal zoom for', nodes.length, 'nodes')
+        console.log('Calculating optimal zoom for', nodes.length, 'nodes')
 
         // Calculate bounding box of all nodes
-        let minX = Infinity, maxX = -Infinity
-        let minY = Infinity, maxY = -Infinity
+        let minX = Infinity,
+            maxX = -Infinity
+        let minY = Infinity,
+            maxY = -Infinity
 
-        nodes.forEach(node => {
+        nodes.forEach((node) => {
             const x = node.position?.x || 0
             const y = node.position?.y || 0
-            
+
             // More accurate dimension calculation
             let width: number, height: number
             if (node.data?.type === 'file_subflow') {
                 // Use actual calculated dimensions for file containers
-                width = parseFloat(node.style?.width?.toString().replace('px', '') || '600')
-                height = parseFloat(node.style?.height?.toString().replace('px', '') || '500')
+                width = parseFloat(
+                    node.style?.width?.toString().replace('px', '') || '600'
+                )
+                height = parseFloat(
+                    node.style?.height?.toString().replace('px', '') || '500'
+                )
             } else {
                 // Use default or calculated dimensions for other nodes
-                width = parseFloat(node.style?.width?.toString().replace('px', '') || '180')
-                height = parseFloat(node.style?.height?.toString().replace('px', '') || '50')
+                width = parseFloat(
+                    node.style?.width?.toString().replace('px', '') || '180'
+                )
+                height = parseFloat(
+                    node.style?.height?.toString().replace('px', '') || '50'
+                )
             }
 
             minX = Math.min(minX, x)
@@ -385,69 +436,84 @@ const SimilarityTestPage: React.FC = () => {
         const centerY = (minY + maxY) / 2
 
         // Get viewport dimensions (approximated)
-        const viewportWidth = sidebarCollapsed ? window.innerWidth - 64 : window.innerWidth - 320
+        const viewportWidth = sidebarCollapsed
+            ? window.innerWidth - 64
+            : window.innerWidth - 320
         const viewportHeight = window.innerHeight - 120 // Account for header
 
         // Calculate zoom to fit content with padding
         const padding = 100
         const zoomX = (viewportWidth - padding * 2) / contentWidth
         const zoomY = (viewportHeight - padding * 2) / contentHeight
-        
+
         // Use the smaller zoom to ensure everything fits
         const optimalZoom = Math.min(zoomX, zoomY)
-        
+
         // Clamp zoom between reasonable bounds
         const clampedZoom = Math.max(0.1, Math.min(optimalZoom, 1.5))
 
-        console.log('📐 Content bounds:', {
+        console.log('Content bounds:', {
             contentWidth: Math.round(contentWidth),
             contentHeight: Math.round(contentHeight),
             center: { x: Math.round(centerX), y: Math.round(centerY) },
             viewportWidth,
             viewportHeight,
             calculatedZoom: optimalZoom.toFixed(2),
-            finalZoom: clampedZoom.toFixed(2)
+            finalZoom: clampedZoom.toFixed(2),
         })
 
-        return { 
-            zoom: clampedZoom, 
-            center: { x: centerX, y: centerY } 
+        return {
+            zoom: clampedZoom,
+            center: { x: centerX, y: centerY },
         }
     }
 
     // Apply dynamic zoom and center to the flow
-    const applyDynamicZoom = useCallback((nodes: Node[]) => {
-        if (!reactFlowInstance || !nodes || nodes.length === 0) {
-            console.log('⚠️ Cannot apply dynamic zoom: missing instance or nodes')
-            return
-        }
+    const applyDynamicZoom = useCallback(
+        (nodes: Node[]) => {
+            if (!reactFlowInstance || !nodes || nodes.length === 0) {
+                console.log(
+                    'Cannot apply dynamic zoom: missing instance or nodes'
+                )
+                return
+            }
 
-        setIsApplyingZoom(true)
-        const { zoom, center } = calculateOptimalZoom(nodes)
-        
-        console.log('🎯 Applying dynamic zoom:', { zoom: zoom.toFixed(2), center })
-        
-        // Apply the calculated zoom and center
-        requestAnimationFrame(() => {
-            reactFlowInstance.setViewport({
-                x: -center.x * zoom + (sidebarCollapsed ? window.innerWidth - 64 : window.innerWidth - 320) / 2,
-                y: -center.y * zoom + (window.innerHeight - 120) / 2,
-                zoom: zoom
+            setIsApplyingZoom(true)
+            const { zoom, center } = calculateOptimalZoom(nodes)
+
+            console.log('Applying dynamic zoom:', {
+                zoom: zoom.toFixed(2),
+                center,
             })
-            
-            // Clear zoom applying state after animation
-            setTimeout(() => {
-                setIsApplyingZoom(false)
-            }, 300)
-        })
-    }, [reactFlowInstance, sidebarCollapsed])
+
+            // Apply the calculated zoom and center
+            requestAnimationFrame(() => {
+                reactFlowInstance.setViewport({
+                    x:
+                        -center.x * zoom +
+                        (sidebarCollapsed
+                            ? window.innerWidth - 64
+                            : window.innerWidth - 320) /
+                            2,
+                    y: -center.y * zoom + (window.innerHeight - 120) / 2,
+                    zoom: zoom,
+                })
+
+                // Clear zoom applying state after animation
+                setTimeout(() => {
+                    setIsApplyingZoom(false)
+                }, 300)
+            })
+        },
+        [reactFlowInstance, sidebarCollapsed]
+    )
 
     // Helper function to find a node in the ELK result
     const findELKNode = (elkGraph: any, nodeId: string): any => {
         if (elkGraph.id === nodeId) {
             return elkGraph
         }
-        
+
         if (elkGraph.children) {
             for (const child of elkGraph.children) {
                 const found = findELKNode(child, nodeId)
@@ -464,13 +530,13 @@ const SimilarityTestPage: React.FC = () => {
                 }
             }
         }
-        
+
         return null
     }
 
     // Process edges to fix duplicate keys and invalid types
     const processEdges = (rawEdges: Edge[]): Edge[] => {
-        console.log('🔧 Processing edges to fix duplicate keys and types...')
+        console.log('Processing edges to fix duplicate keys and types...')
         const processedEdges: Edge[] = []
         const seenKeys = new Set<string>()
 
@@ -481,7 +547,7 @@ const SimilarityTestPage: React.FC = () => {
             if (newEdge.type === 'bezier') {
                 newEdge.type = 'smoothstep' // Use smoothstep for better curved edges
                 console.log(
-                    `🔄 Fixed edge type from 'bezier' to 'smoothstep' for edge: ${edge.id}`
+                    `Fixed edge type from 'bezier' to 'smoothstep' for edge: ${edge.id}`
                 )
             }
 
@@ -495,7 +561,7 @@ const SimilarityTestPage: React.FC = () => {
 
             if (edgeKey !== newEdge.id) {
                 console.log(
-                    `🔄 Fixed duplicate edge key: ${newEdge.id} -> ${edgeKey}`
+                    `Fixed duplicate edge key: ${newEdge.id} -> ${edgeKey}`
                 )
                 newEdge.id = edgeKey
             }
@@ -526,14 +592,17 @@ const SimilarityTestPage: React.FC = () => {
         })
 
         console.log(
-            `✅ Processed ${rawEdges.length} edges, fixed ${rawEdges.length - processedEdges.length} duplicates`
+            `Processed ${rawEdges.length} edges, fixed ${rawEdges.length - processedEdges.length} duplicates`
         )
         return processedEdges
     }
 
     // Process nodes with ELK Layered layout
-    const processNodes = async (rawNodes: Node[], rawEdges: Edge[] = []): Promise<Node[]> => {
-        console.log('🔧 Processing nodes with ELK Layered layout...')
+    const processNodes = async (
+        rawNodes: Node[],
+        rawEdges: Edge[] = []
+    ): Promise<Node[]> => {
+        console.log('Processing nodes with ELK Layered layout...')
         if (!rawNodes || rawNodes.length === 0) {
             return rawNodes
         }
@@ -575,16 +644,21 @@ const SimilarityTestPage: React.FC = () => {
         try {
             const layoutedNodes = await applyELKLayout(styledNodes, rawEdges)
 
-            console.log(`✅ ELK Layered layout applied to ${layoutedNodes.length} nodes with dynamic boundaries`)
-            
+            console.log(
+                `ELK Layered layout applied to ${layoutedNodes.length} nodes with dynamic boundaries`
+            )
+
             // Apply dynamic zoom after layout is complete
             setTimeout(() => {
                 applyDynamicZoom(layoutedNodes)
             }, 100) // Small delay to ensure nodes are rendered
-            
+
             return layoutedNodes
         } catch (error) {
-            console.error('❌ ELK Layered layout failed, falling back to styled nodes:', error)
+            console.error(
+                'ELK Layered layout failed, falling back to styled nodes:',
+                error
+            )
             return styledNodes
         } finally {
             setIsApplyingLayout(false)
@@ -625,23 +699,21 @@ const SimilarityTestPage: React.FC = () => {
         }
     }, [nodes, applyDynamicZoom])
 
-
-
     useEffect(() => {
         const fetchData = async () => {
             try {
-                console.log('🚀 Starting data fetch...')
+                console.log('Starting data fetch...')
                 setLoading(true)
 
                 console.log(
-                    '📡 Making API request to:',
+                    'Making API request to:',
                     'http://localhost:3002/detection/react-flow-ast/projects'
                 )
                 const response = await fetch(
                     'http://localhost:3002/detection/react-flow-ast/projects'
                 )
 
-                console.log('📥 Response received:', {
+                console.log('Response received:', {
                     status: response.status,
                     ok: response.ok,
                     statusText: response.statusText,
@@ -652,10 +724,10 @@ const SimilarityTestPage: React.FC = () => {
                     throw new Error(`HTTP error! status: ${response.status}`)
                 }
 
-                console.log('🔄 Parsing JSON response...')
+                console.log('Parsing JSON response...')
                 const result: SimilarityResponse = await response.json()
 
-                console.log('✅ JSON parsed successfully:', {
+                console.log('JSON parsed successfully:', {
                     timestamp: result.timestamp,
                     layout_used: result.layout_used,
                     total_file_pairs: result.file_pairs?.length,
@@ -663,17 +735,17 @@ const SimilarityTestPage: React.FC = () => {
                         result.total_file_pairs_with_similarity,
                 })
 
-                console.log('📊 Full response data:', result)
+                console.log('Full response data:', result)
 
-                console.log('🔧 Setting data state...')
+                console.log('Setting data state...')
                 setData(result)
 
                 // Initialize with first file pair if available
                 if (result.file_pairs && result.file_pairs.length > 0) {
-                    console.log('🎯 Initializing with first file pair...')
+                    console.log('Initializing with first file pair...')
                     const firstPair = result.file_pairs[0]
 
-                    console.log('📁 First pair info:', {
+                    console.log('First pair info:', {
                         calculator_file: firstPair.file_pair?.calculator_file,
                         game_file: firstPair.file_pair?.game_file,
                         nodes_count: firstPair.react_flow?.nodes?.length,
@@ -681,7 +753,7 @@ const SimilarityTestPage: React.FC = () => {
                         has_similarity: firstPair.react_flow?.has_similarity,
                     })
 
-                    console.log('🔗 Setting nodes and edges...')
+                    console.log('Setting nodes and edges...')
                     const processedNodes = await processNodes(
                         firstPair.react_flow.nodes || [],
                         firstPair.react_flow.edges || []
@@ -693,21 +765,21 @@ const SimilarityTestPage: React.FC = () => {
                         firstPair.react_flow.edges || []
                     )
                     setEdges(processedEdges)
-                    
+
                     // Apply dynamic zoom for initial load
                     setTimeout(() => {
                         applyDynamicZoom(processedNodes)
                     }, 200) // Longer delay for initial load
-                    
-                    console.log('✅ Nodes and edges set successfully')
+
+                    console.log('Nodes and edges set successfully')
                 } else {
-                    console.log('⚠️ No file pairs found in response')
+                    console.log('No file pairs found in response')
                     setNodes([])
                     setEdges([])
                 }
             } catch (err) {
-                console.error('❌ Error in fetchData:', err)
-                console.error('📍 Error details:', {
+                console.error('Error in fetchData:', err)
+                console.error('Error details:', {
                     name: err instanceof Error ? err.name : 'Unknown',
                     message:
                         err instanceof Error ? err.message : 'Unknown error',
@@ -719,23 +791,23 @@ const SimilarityTestPage: React.FC = () => {
                         : 'An unknown error occurred'
                 )
             } finally {
-                console.log('🏁 Setting loading to false')
+                console.log('Setting loading to false')
                 setLoading(false)
             }
         }
 
-        console.log('🎬 useEffect triggered, calling fetchData')
+        console.log('useEffect triggered, calling fetchData')
         fetchData()
     }, [])
 
     const handlePairChange = (index: number) => {
-        console.log('🔄 Changing to pair index:', index)
+        console.log('Changing to pair index:', index)
         if (data && data.file_pairs[index]) {
-            console.log('✅ Valid pair found, updating state...')
+            console.log('Valid pair found, updating state...')
             setSelectedPairIndex(index)
             const selectedPair = data.file_pairs[index]
 
-            console.log('📊 Selected pair info:', {
+            console.log('Selected pair info:', {
                 calculator_file: selectedPair.file_pair?.calculator_file,
                 game_file: selectedPair.file_pair?.game_file,
                 nodes_count: selectedPair.react_flow?.nodes?.length,
@@ -752,16 +824,16 @@ const SimilarityTestPage: React.FC = () => {
                     selectedPair.react_flow.edges || []
                 )
                 setEdges(processedEdges)
-                
+
                 // Apply dynamic zoom for the new pair
                 setTimeout(() => {
                     applyDynamicZoom(processedNodes)
                 }, 150) // Slightly longer delay for pair changes
-                
-                console.log('✅ Pair change completed')
+
+                console.log('Pair change completed')
             })
         } else {
-            console.log('❌ Invalid pair index or no data available')
+            console.log('Invalid pair index or no data available')
         }
     }
 
@@ -775,9 +847,9 @@ const SimilarityTestPage: React.FC = () => {
     }
 
     const getNodeStats = (nodes: Node[]) => {
-        console.log('📊 Calculating node stats for nodes:', nodes?.length || 0)
+        console.log('Calculating node stats for nodes:', nodes?.length || 0)
         if (!nodes || !Array.isArray(nodes)) {
-            console.log('⚠️ Invalid nodes array provided to getNodeStats')
+            console.log('Invalid nodes array provided to getNodeStats')
             return {
                 fileNodes: 0,
                 functionNodes: 0,
@@ -816,14 +888,14 @@ const SimilarityTestPage: React.FC = () => {
             similarityComments,
             similarFunctions,
         }
-        console.log('📈 Node stats calculated:', stats)
+        console.log('Node stats calculated:', stats)
         return stats
     }
 
     const getEdgeStats = (edges: Edge[]) => {
-        console.log('🔗 Calculating edge stats for edges:', edges?.length || 0)
+        console.log('Calculating edge stats for edges:', edges?.length || 0)
         if (!edges || !Array.isArray(edges)) {
-            console.log('⚠️ Invalid edges array provided to getEdgeStats')
+            console.log('Invalid edges array provided to getEdgeStats')
             return {
                 structureEdges: 0,
                 similarityEdges: 0,
@@ -849,14 +921,14 @@ const SimilarityTestPage: React.FC = () => {
             functionCallEdges,
             animatedEdges,
         }
-        console.log('🔗 Edge stats calculated:', stats)
+        console.log('Edge stats calculated:', stats)
         return stats
     }
 
     const getLayoutInfo = (layoutConfig: any) => {
-        console.log('⚙️ Processing layout config:', layoutConfig)
+        console.log('Processing layout config:', layoutConfig)
         if (!layoutConfig) {
-            console.log('⚠️ No layout config provided')
+            console.log('No layout config provided')
             return {
                 direction: 'TB',
                 nodesSeparation: 100,
@@ -873,13 +945,11 @@ const SimilarityTestPage: React.FC = () => {
             autoLayout: layoutConfig.auto_layout || false,
             description: layoutConfig.description || 'No description',
         }
-        console.log('⚙️ Layout info processed:', info)
+        console.log('Layout info processed:', info)
         return info
     }
 
-
-
-    console.log('🎭 Component render state:', {
+    console.log('Component render state:', {
         loading,
         error,
         hasData: !!data,
@@ -889,7 +959,7 @@ const SimilarityTestPage: React.FC = () => {
     })
 
     if (loading) {
-        console.log('⏳ Rendering loading state')
+        console.log('Rendering loading state')
         return (
             <div className="h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
@@ -909,7 +979,7 @@ const SimilarityTestPage: React.FC = () => {
     }
 
     if (error) {
-        console.log('❌ Rendering error state:', error)
+        console.log('Rendering error state:', error)
         return (
             <div className="h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center bg-white p-8 rounded-lg shadow-lg border border-red-200">
@@ -933,7 +1003,7 @@ const SimilarityTestPage: React.FC = () => {
     }
 
     if (!data || !data.file_pairs || data.file_pairs.length === 0) {
-        console.log('📭 Rendering empty data state')
+        console.log('Rendering empty data state')
         return (
             <div className="h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center bg-white p-8 rounded-lg shadow-lg">
@@ -949,9 +1019,9 @@ const SimilarityTestPage: React.FC = () => {
         )
     }
 
-    console.log('🎨 Rendering main component')
+    console.log('Rendering main component')
     const currentPair = data.file_pairs[selectedPairIndex]
-    console.log('📍 Current pair:', {
+    console.log('Current pair:', {
         index: selectedPairIndex,
         exists: !!currentPair,
         calculator_file: currentPair?.file_pair?.calculator_file,
@@ -959,7 +1029,7 @@ const SimilarityTestPage: React.FC = () => {
     })
 
     if (!currentPair) {
-        console.log('❌ Current pair is null/undefined')
+        console.log('Current pair is null/undefined')
         return (
             <div className="h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center bg-white p-8 rounded-lg shadow-lg border border-yellow-200">
@@ -1110,49 +1180,6 @@ const SimilarityTestPage: React.FC = () => {
                                     <div className="bg-green-50 text-green-800 px-2 py-1 rounded text-sm font-medium">
                                         📁 {currentPair.react_flow.files.file2}
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Layout Configuration */}
-                        <div className="p-4 border-b border-gray-200">
-                            <h2 className="text-sm font-semibold text-gray-900 mb-3">
-                                Layout Configuration
-                            </h2>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-600">
-                                        Direction
-                                    </span>
-                                    <span className="font-medium">
-                                        {layoutInfo.direction}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-600">
-                                        Node Sep
-                                    </span>
-                                    <span className="font-medium">
-                                        {layoutInfo.nodesSeparation}px
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-600">
-                                        Rank Sep
-                                    </span>
-                                    <span className="font-medium">
-                                        {layoutInfo.rankSeparation}px
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-600">
-                                        Original Auto Layout
-                                    </span>
-                                    <span
-                                        className={`font-medium ${layoutInfo.autoLayout ? 'text-green-600' : 'text-gray-600'}`}
-                                    >
-                                        {layoutInfo.autoLayout ? '✓' : '✗'}
-                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -1344,8 +1371,12 @@ const SimilarityTestPage: React.FC = () => {
                                     <span className="text-gray-600">
                                         ⏱️ Processing
                                     </span>
-                                    <span className={`font-medium ${isApplyingLayout ? 'text-orange-600' : 'text-green-600'}`}>
-                                        {isApplyingLayout ? '⚡ Active' : '✓ Ready'}
+                                    <span
+                                        className={`font-medium ${isApplyingLayout ? 'text-orange-600' : 'text-green-600'}`}
+                                    >
+                                        {isApplyingLayout
+                                            ? '⚡ Active'
+                                            : '✓ Ready'}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
@@ -1353,17 +1384,25 @@ const SimilarityTestPage: React.FC = () => {
                                         🔍 Current Zoom
                                     </span>
                                     <span className="font-medium text-blue-600">
-                                        {reactFlowInstance ? `${(reactFlowInstance.getZoom() * 100).toFixed(0)}%` : '---'}
+                                        {reactFlowInstance
+                                            ? `${(reactFlowInstance.getZoom() * 100).toFixed(0)}%`
+                                            : '---'}
                                     </span>
                                 </div>
                             </div>
-                            
+
                             {/* Zoom Controls */}
                             <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                                <h3 className="text-xs font-semibold text-blue-900 mb-2">🔍 Zoom Controls</h3>
+                                <h3 className="text-xs font-semibold text-blue-900 mb-2">
+                                    🔍 Zoom Controls
+                                </h3>
                                 <button
                                     onClick={() => applyDynamicZoom(nodes)}
-                                    disabled={!reactFlowInstance || nodes.length === 0 || isApplyingZoom}
+                                    disabled={
+                                        !reactFlowInstance ||
+                                        nodes.length === 0 ||
+                                        isApplyingZoom
+                                    }
                                     className="w-full text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                                 >
                                     {isApplyingZoom ? (
@@ -1406,7 +1445,9 @@ const SimilarityTestPage: React.FC = () => {
                                         <span>•</span>
                                         <div className="flex items-center gap-1 text-blue-600">
                                             <div className="animate-spin rounded-full h-3 w-3 border border-blue-600 border-t-transparent"></div>
-                                            <span className="text-xs">Optimizing Zoom...</span>
+                                            <span className="text-xs">
+                                                Optimizing Zoom...
+                                            </span>
                                         </div>
                                     </>
                                 )}
@@ -1421,15 +1462,21 @@ const SimilarityTestPage: React.FC = () => {
                                 </div>
                                 <div className="flex items-center space-x-1 text-xs">
                                     <div className="w-3 h-3 bg-green-100 border-2 border-green-500 rounded"></div>
-                                    <span className="text-gray-600">Imports</span>
+                                    <span className="text-gray-600">
+                                        Imports
+                                    </span>
                                 </div>
                                 <div className="flex items-center space-x-1 text-xs">
                                     <div className="w-3 h-3 bg-orange-100 border border-orange-500 rounded"></div>
-                                    <span className="text-gray-600">Functions</span>
+                                    <span className="text-gray-600">
+                                        Functions
+                                    </span>
                                 </div>
                                 <div className="flex items-center space-x-1 text-xs">
                                     <div className="w-3 h-3 bg-red-100 border-2 border-red-500 rounded"></div>
-                                    <span className="text-gray-600">Similar</span>
+                                    <span className="text-gray-600">
+                                        Similar
+                                    </span>
                                 </div>
                                 <div className="flex items-center space-x-1 text-xs">
                                     <div className="w-3 h-3 bg-blue-100 border border-blue-500 rounded border-dashed"></div>
@@ -1437,7 +1484,9 @@ const SimilarityTestPage: React.FC = () => {
                                 </div>
                                 <div className="flex items-center space-x-1 text-xs">
                                     <div className="w-3 h-3 bg-purple-100 border border-purple-500 rounded border-dashed"></div>
-                                    <span className="text-gray-600">Comments</span>
+                                    <span className="text-gray-600">
+                                        Comments
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -1486,4 +1535,3 @@ const SimilarityTestPage: React.FC = () => {
 }
 
 export default SimilarityTestPage
- 
