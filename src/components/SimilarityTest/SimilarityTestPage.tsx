@@ -17,102 +17,7 @@ import {
 import 'reactflow/dist/style.css'
 import ELK from 'elkjs/lib/elk.bundled.js'
 
-// Layout algorithm types
-type LayoutAlgorithm = 
-    | 'elk-layered'
-    | 'elk-force'
-    | 'elk-stress' 
-    | 'elk-radial'
-    | 'elk-box'
-    | 'dagre-tb'
-    | 'dagre-lr'
-    | 'dagre-bt'
-    | 'dagre-rl'
-    | 'force-directed'
-    | 'circular'
-    | 'hierarchical'
-    | 'manual'
-
-interface LayoutConfig {
-    name: string
-    description: string
-    algorithm: LayoutAlgorithm
-    icon: string
-    color: string
-}
-
-const LAYOUT_ALGORITHMS: LayoutConfig[] = [
-    {
-        name: 'ELK Layered',
-        description: 'Hierarchical layout with layers (recommended)',
-        algorithm: 'elk-layered',
-        icon: '📊',
-        color: 'text-blue-600 bg-blue-50 border-blue-200'
-    },
-    {
-        name: 'ELK Force',
-        description: 'Physics-based force-directed layout',
-        algorithm: 'elk-force',
-        icon: '⚡',
-        color: 'text-purple-600 bg-purple-50 border-purple-200'
-    },
-    {
-        name: 'ELK Stress',
-        description: 'Stress minimization layout',
-        algorithm: 'elk-stress',
-        icon: '🎯',
-        color: 'text-green-600 bg-green-50 border-green-200'
-    },
-    {
-        name: 'ELK Radial',
-        description: 'Radial tree layout from center',
-        algorithm: 'elk-radial',
-        icon: '☀️',
-        color: 'text-yellow-600 bg-yellow-50 border-yellow-200'
-    },
-    {
-        name: 'ELK Box',
-        description: 'Simple box packing layout',
-        algorithm: 'elk-box',
-        icon: '📦',
-        color: 'text-indigo-600 bg-indigo-50 border-indigo-200'
-    },
-    {
-        name: 'Dagre Top-Bottom',
-        description: 'Traditional hierarchical (Dagre)',
-        algorithm: 'dagre-tb',
-        icon: '⬇️',
-        color: 'text-cyan-600 bg-cyan-50 border-cyan-200'
-    },
-    {
-        name: 'Dagre Left-Right',
-        description: 'Horizontal hierarchical (Dagre)',
-        algorithm: 'dagre-lr',
-        icon: '➡️',
-        color: 'text-teal-600 bg-teal-50 border-teal-200'
-    },
-    {
-        name: 'Force Directed',
-        description: 'Custom force simulation',
-        algorithm: 'force-directed',
-        icon: '🌀',
-        color: 'text-pink-600 bg-pink-50 border-pink-200'
-    },
-    {
-        name: 'Circular',
-        description: 'Circular node arrangement',
-        algorithm: 'circular',
-        icon: '⭕',
-        color: 'text-orange-600 bg-orange-50 border-orange-200'
-    },
-    {
-        name: 'Manual',
-        description: 'Manual positioning (draggable)',
-        algorithm: 'manual',
-        icon: '✋',
-        color: 'text-gray-600 bg-gray-50 border-gray-200'
-    }
-]
+// Using ELK Layered as the single layout algorithm
 
 interface SimilarityResponse {
     timestamp: string
@@ -170,9 +75,7 @@ const SimilarityTestPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null)
     const [selectedPairIndex, setSelectedPairIndex] = useState<number>(0)
     const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false)
-    const [selectedLayout, setSelectedLayout] = useState<LayoutAlgorithm>('elk-layered')
     const [isApplyingLayout, setIsApplyingLayout] = useState<boolean>(false)
-    const [autoLayoutEnabled, setAutoLayoutEnabled] = useState<boolean>(true)
     const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
     const [isApplyingZoom, setIsApplyingZoom] = useState<boolean>(false)
 
@@ -189,51 +92,45 @@ const SimilarityTestPage: React.FC = () => {
         (changes: any[]) => {
             onNodesChange(changes)
             
-            // If in manual mode or auto-layout is disabled, recalculate boundaries after node position changes
-            if (selectedLayout === 'manual' || !autoLayoutEnabled) {
-                const hasPositionChanges = changes.some(change => change.type === 'position')
-                if (hasPositionChanges) {
-                    // Debounce boundary recalculation to avoid excessive updates
-                    setTimeout(() => {
-                        setNodes(currentNodes => {
-                            const boundaries = calculateSubflowBoundaries(currentNodes)
-                            let updatedNodes = currentNodes.map(node => {
-                                if (node.data?.type === 'file_subflow') {
-                                    const bounds = boundaries.get(node.id)
-                                    if (bounds) {
-                                        return {
-                                            ...node,
-                                            style: {
-                                                ...node.style,
-                                                width: `${bounds.width}px`,
-                                                height: `${bounds.height}px`,
-                                                minWidth: `${bounds.width}px`,
-                                                minHeight: `${bounds.height}px`,
-                                            }
+            // Recalculate boundaries after node position changes
+            const hasPositionChanges = changes.some(change => change.type === 'position')
+            if (hasPositionChanges) {
+                // Debounce boundary recalculation to avoid excessive updates
+                setTimeout(() => {
+                    setNodes(currentNodes => {
+                        const boundaries = calculateSubflowBoundaries(currentNodes)
+                        let updatedNodes = currentNodes.map(node => {
+                            if (node.data?.type === 'file_subflow') {
+                                const bounds = boundaries.get(node.id)
+                                if (bounds) {
+                                    return {
+                                        ...node,
+                                        style: {
+                                            ...node.style,
+                                            width: `${bounds.width}px`,
+                                            height: `${bounds.height}px`,
+                                            minWidth: `${bounds.width}px`,
+                                            minHeight: `${bounds.height}px`,
                                         }
                                     }
                                 }
-                                return node
-                            })
-                            
-                            // Adjust child positions to be relative to their containers
-                            updatedNodes = adjustChildPositions(updatedNodes, boundaries)
-                            return updatedNodes
+                            }
+                            return node
                         })
-                    }, 100) // 100ms debounce
-                }
+                        
+                        // Adjust child positions to be relative to their containers
+                        updatedNodes = adjustChildPositions(updatedNodes, boundaries)
+                        return updatedNodes
+                    })
+                }, 100) // 100ms debounce
             }
         },
-        [onNodesChange, selectedLayout, autoLayoutEnabled, setNodes]
+        [onNodesChange, setNodes]
     )
 
-    // Enhanced ELK Layout function with multiple algorithms
-    const applyELKLayout = async (
-        nodes: Node[], 
-        edges: Edge[], 
-        algorithm: LayoutAlgorithm = 'elk-layered'
-    ): Promise<Node[]> => {
-        console.log(`🎯 Applying ${algorithm} layout...`)
+    // ELK Layered Layout function
+    const applyELKLayout = async (nodes: Node[], edges: Edge[]): Promise<Node[]> => {
+        console.log('🎯 Applying ELK Layered layout...')
         
         const elk = new ELK()
         
@@ -242,59 +139,16 @@ const SimilarityTestPage: React.FC = () => {
         const childNodes = nodes.filter(n => n.parentNode)
         const standaloneNodes = nodes.filter(n => !n.parentNode && n.data?.type !== 'file_subflow')
         
-        // Get layout options based on algorithm
-        const getLayoutOptions = (alg: LayoutAlgorithm) => {
-            const baseOptions = {
-                'elk.padding': '[top=50,left=50,bottom=50,right=50]',
-                'elk.spacing.nodeNode': '100',
-                'elk.spacing.componentComponent': '80',
-            }
-
-            switch (alg) {
-                case 'elk-layered':
-                    return {
-                        ...baseOptions,
-                        'elk.algorithm': 'layered',
-                        'elk.direction': 'DOWN',
-                        'elk.layered.spacing.nodeNodeBetweenLayers': '150',
-                        'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
-                        'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-                    }
-                case 'elk-force':
-                    return {
-                        ...baseOptions,
-                        'elk.algorithm': 'force',
-                        'elk.force.temperature': '0.001',
-                        'elk.force.iterations': '300',
-                        'elk.force.repulsivePower': '1',
-                    }
-                case 'elk-stress':
-                    return {
-                        ...baseOptions,
-                        'elk.algorithm': 'stress',
-                        'elk.stress.iterations': '1000',
-                        'elk.stress.epsilon': '0.0001',
-                    }
-                case 'elk-radial':
-                    return {
-                        ...baseOptions,
-                        'elk.algorithm': 'radial',
-                        'elk.radial.radius': '100',
-                        'elk.radial.compactor': 'NONE',
-                    }
-                case 'elk-box':
-                    return {
-                        ...baseOptions,
-                        'elk.algorithm': 'box',
-                        'elk.box.packingMode': 'SIMPLE',
-                    }
-                default:
-                    return {
-                        ...baseOptions,
-                        'elk.algorithm': 'layered',
-                        'elk.direction': 'DOWN',
-                    }
-            }
+        // ELK Layered layout options
+        const layoutOptions = {
+            'elk.padding': '[top=50,left=50,bottom=50,right=50]',
+            'elk.spacing.nodeNode': '100',
+            'elk.spacing.componentComponent': '80',
+            'elk.algorithm': 'layered',
+            'elk.direction': 'DOWN',
+            'elk.layered.spacing.nodeNodeBetweenLayers': '150',
+            'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+            'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
         }
         
         // First pass: calculate initial container sizes based on current child positions
@@ -303,7 +157,7 @@ const SimilarityTestPage: React.FC = () => {
         // Create ELK graph structure with dynamic container sizing
         const elkGraph = {
             id: 'root',
-            layoutOptions: getLayoutOptions(algorithm),
+            layoutOptions: layoutOptions,
             children: [
                 ...fileContainers.map(fileNode => {
                     const bounds = initialBoundaries.get(fileNode.id) || { width: 600, height: 500 }
@@ -340,11 +194,11 @@ const SimilarityTestPage: React.FC = () => {
             }))
         }
         
-        console.log(`📊 ${algorithm} graph structure:`, elkGraph)
+        console.log('📊 ELK Layered graph structure:', elkGraph)
         
         try {
             const layoutedGraph = await elk.layout(elkGraph)
-            console.log(`✅ ${algorithm} layout completed:`, layoutedGraph)
+            console.log('✅ ELK Layered layout completed:', layoutedGraph)
             
             // Apply the layout results back to nodes
             let layoutedNodes = nodes.map(node => {
@@ -385,237 +239,16 @@ const SimilarityTestPage: React.FC = () => {
             // Adjust child positions to be relative to their containers
             layoutedNodes = adjustChildPositions(layoutedNodes, finalBoundaries)
             
-            console.log(`🎯 Applied ${algorithm} layout to ${layoutedNodes.length} nodes with dynamic boundaries`)
+            console.log(`🎯 Applied ELK Layered layout to ${layoutedNodes.length} nodes with dynamic boundaries`)
             return layoutedNodes
             
         } catch (error) {
-            console.error(`❌ ${algorithm} layout failed:`, error)
+            console.error('❌ ELK Layered layout failed:', error)
             return nodes // Return original nodes if layout fails
         }
     }
 
-    // Custom layout algorithms
-    const applyForceDirectedLayout = (nodes: Node[], edges: Edge[]): Node[] => {
-        console.log('🌀 Applying Force Directed layout...')
-        
-        const center = { x: 400, y: 300 }
-        const strength = 0.3
-        const distance = 200
-        
-        let layoutedNodes = nodes.map((node, index) => {
-            const angle = (index / nodes.length) * 2 * Math.PI
-            const radius = distance + Math.random() * 100
-            
-            return {
-                ...node,
-                position: {
-                    x: center.x + Math.cos(angle) * radius + (Math.random() - 0.5) * 100,
-                    y: center.y + Math.sin(angle) * radius + (Math.random() - 0.5) * 100,
-                },
-            }
-        })
-        
-        // Recalculate and apply subflow boundaries
-        const boundaries = calculateSubflowBoundaries(layoutedNodes)
-        layoutedNodes = layoutedNodes.map(node => {
-            if (node.data?.type === 'file_subflow') {
-                const bounds = boundaries.get(node.id)
-                if (bounds) {
-                    return {
-                        ...node,
-                        style: {
-                            ...node.style,
-                            width: `${bounds.width}px`,
-                            height: `${bounds.height}px`,
-                            minWidth: `${bounds.width}px`,
-                            minHeight: `${bounds.height}px`,
-                        }
-                    }
-                }
-            }
-            return node
-        })
-        
-        // Adjust child positions to be relative to their containers
-        layoutedNodes = adjustChildPositions(layoutedNodes, boundaries)
-        
-        return layoutedNodes
-    }
 
-    const applyCircularLayout = (nodes: Node[], edges: Edge[]): Node[] => {
-        console.log('⭕ Applying Circular layout...')
-        
-        const center = { x: 400, y: 300 }
-        const outerRadius = 300
-        const innerRadius = 150
-        
-        const fileContainers = nodes.filter(n => n.data?.type === 'file_subflow')
-        const childNodes = nodes.filter(n => n.parentNode)
-        const standaloneNodes = nodes.filter(n => !n.parentNode && n.data?.type !== 'file_subflow')
-        
-        let layoutedNodes = nodes.map((node, index) => {
-            if (node.data?.type === 'file_subflow') {
-                // File containers in outer circle
-                const angle = (fileContainers.indexOf(node) / fileContainers.length) * 2 * Math.PI
-                return {
-                    ...node,
-                    position: {
-                        x: center.x + Math.cos(angle) * outerRadius,
-                        y: center.y + Math.sin(angle) * outerRadius,
-                    },
-                }
-            } else if (node.parentNode) {
-                // Child nodes relative to their parent
-                const parent = nodes.find(n => n.id === node.parentNode)
-                if (parent) {
-                    const siblings = childNodes.filter(n => n.parentNode === node.parentNode)
-                    const siblingIndex = siblings.indexOf(node)
-                    const angle = (siblingIndex / siblings.length) * 2 * Math.PI
-                    const radius = 80
-                    
-                    return {
-                        ...node,
-                        position: {
-                            x: radius * Math.cos(angle),
-                            y: radius * Math.sin(angle),
-                        },
-                    }
-                }
-            } else {
-                // Standalone nodes in inner circle
-                const angle = (standaloneNodes.indexOf(node) / standaloneNodes.length) * 2 * Math.PI
-                return {
-                    ...node,
-                    position: {
-                        x: center.x + Math.cos(angle) * innerRadius,
-                        y: center.y + Math.sin(angle) * innerRadius,
-                    },
-                }
-            }
-            
-            return node
-        })
-        
-        // Recalculate and apply subflow boundaries
-        const boundaries = calculateSubflowBoundaries(layoutedNodes)
-        layoutedNodes = layoutedNodes.map(node => {
-            if (node.data?.type === 'file_subflow') {
-                const bounds = boundaries.get(node.id)
-                if (bounds) {
-                    return {
-                        ...node,
-                        style: {
-                            ...node.style,
-                            width: `${bounds.width}px`,
-                            height: `${bounds.height}px`,
-                            minWidth: `${bounds.width}px`,
-                            minHeight: `${bounds.height}px`,
-                        }
-                    }
-                }
-            }
-            return node
-        })
-        
-        // Adjust child positions to be relative to their containers
-        layoutedNodes = adjustChildPositions(layoutedNodes, boundaries)
-        
-        return layoutedNodes
-    }
-
-    const applyDagreLayout = (nodes: Node[], edges: Edge[], direction: 'TB' | 'LR' | 'BT' | 'RL' = 'TB'): Node[] => {
-        console.log(`⬇️ Applying Dagre ${direction} layout...`)
-        
-        // Simple Dagre-like layout implementation
-        const layers: Node[][] = []
-        const visited = new Set<string>()
-        const nodeMap = new Map(nodes.map(n => [n.id, n]))
-        
-        // Group nodes by hierarchy level
-        const assignLayers = (nodeId: string, layer: number) => {
-            if (visited.has(nodeId)) return
-            visited.add(nodeId)
-            
-            if (!layers[layer]) layers[layer] = []
-            const node = nodeMap.get(nodeId)
-            if (node) layers[layer].push(node)
-            
-            // Find children
-            const childEdges = edges.filter(e => e.source === nodeId)
-            childEdges.forEach(edge => {
-                assignLayers(edge.target, layer + 1)
-            })
-        }
-        
-        // Start with root nodes (no incoming edges)
-        const rootNodes = nodes.filter(node => 
-            !edges.some(edge => edge.target === node.id)
-        )
-        
-        rootNodes.forEach(node => assignLayers(node.id, 0))
-        
-        // Position nodes
-        const layerSpacing = direction === 'LR' || direction === 'RL' ? 300 : 200
-        const nodeSpacing = direction === 'TB' || direction === 'BT' ? 200 : 150
-        
-        let layoutedNodes = nodes.map(node => {
-            const layerIndex = layers.findIndex(layer => layer.includes(node))
-            const nodeIndex = layers[layerIndex]?.indexOf(node) || 0
-            const layerSize = layers[layerIndex]?.length || 1
-            
-            let x, y
-            
-            switch (direction) {
-                case 'LR':
-                    x = layerIndex * layerSpacing + 100
-                    y = (nodeIndex - (layerSize - 1) / 2) * nodeSpacing + 300
-                    break
-                case 'RL':
-                    x = (layers.length - layerIndex - 1) * layerSpacing + 100
-                    y = (nodeIndex - (layerSize - 1) / 2) * nodeSpacing + 300
-                    break
-                case 'BT':
-                    x = (nodeIndex - (layerSize - 1) / 2) * nodeSpacing + 400
-                    y = (layers.length - layerIndex - 1) * layerSpacing + 100
-                    break
-                default: // TB
-                    x = (nodeIndex - (layerSize - 1) / 2) * nodeSpacing + 400
-                    y = layerIndex * layerSpacing + 100
-                    break
-            }
-            
-            return {
-                ...node,
-                position: { x, y },
-            }
-        })
-        
-        // Recalculate and apply subflow boundaries
-        const boundaries = calculateSubflowBoundaries(layoutedNodes)
-        layoutedNodes = layoutedNodes.map(node => {
-            if (node.data?.type === 'file_subflow') {
-                const bounds = boundaries.get(node.id)
-                if (bounds) {
-                    return {
-                        ...node,
-                        style: {
-                            ...node.style,
-                            width: `${bounds.width}px`,
-                            height: `${bounds.height}px`,
-                            minWidth: `${bounds.width}px`,
-                            minHeight: `${bounds.height}px`,
-                        }
-                    }
-                }
-            }
-            return node
-        })
-        
-        // Adjust child positions to be relative to their containers
-        layoutedNodes = adjustChildPositions(layoutedNodes, boundaries)
-        
-        return layoutedNodes
-    }
 
     // Helper function to calculate subflow boundaries based on child positions
     const calculateSubflowBoundaries = (nodes: Node[]): Map<string, {width: number, height: number, minX: number, minY: number}> => {
@@ -898,13 +531,9 @@ const SimilarityTestPage: React.FC = () => {
         return processedEdges
     }
 
-    // Enhanced process nodes with layout algorithm selection
-    const processNodes = async (
-        rawNodes: Node[], 
-        rawEdges: Edge[] = [], 
-        layoutAlgorithm: LayoutAlgorithm = selectedLayout
-    ): Promise<Node[]> => {
-        console.log(`🔧 Processing nodes with ${layoutAlgorithm} layout...`)
+    // Process nodes with ELK Layered layout
+    const processNodes = async (rawNodes: Node[], rawEdges: Edge[] = []): Promise<Node[]> => {
+        console.log('🔧 Processing nodes with ELK Layered layout...')
         if (!rawNodes || rawNodes.length === 0) {
             return rawNodes
         }
@@ -942,52 +571,11 @@ const SimilarityTestPage: React.FC = () => {
             return newNode
         })
 
-        // Apply selected layout algorithm
+        // Apply ELK Layered layout algorithm
         try {
-            let layoutedNodes: Node[]
+            const layoutedNodes = await applyELKLayout(styledNodes, rawEdges)
 
-            if (layoutAlgorithm === 'manual') {
-                // Keep original positions for manual mode but still recalculate boundaries
-                layoutedNodes = styledNodes
-                
-                // Recalculate and apply subflow boundaries even in manual mode
-                const boundaries = calculateSubflowBoundaries(layoutedNodes)
-                layoutedNodes = layoutedNodes.map(node => {
-                    if (node.data?.type === 'file_subflow') {
-                        const bounds = boundaries.get(node.id)
-                        if (bounds) {
-                            return {
-                                ...node,
-                                style: {
-                                    ...node.style,
-                                    width: `${bounds.width}px`,
-                                    height: `${bounds.height}px`,
-                                    minWidth: `${bounds.width}px`,
-                                    minHeight: `${bounds.height}px`,
-                                }
-                            }
-                        }
-                    }
-                    return node
-                })
-                
-                // Adjust child positions to be relative to their containers
-                layoutedNodes = adjustChildPositions(layoutedNodes, boundaries)
-            } else if (layoutAlgorithm.startsWith('elk-')) {
-                layoutedNodes = await applyELKLayout(styledNodes, rawEdges, layoutAlgorithm)
-            } else if (layoutAlgorithm.startsWith('dagre-')) {
-                const direction = layoutAlgorithm.split('-')[1].toUpperCase() as 'TB' | 'LR' | 'BT' | 'RL'
-                layoutedNodes = applyDagreLayout(styledNodes, rawEdges, direction)
-            } else if (layoutAlgorithm === 'force-directed') {
-                layoutedNodes = applyForceDirectedLayout(styledNodes, rawEdges)
-            } else if (layoutAlgorithm === 'circular') {
-                layoutedNodes = applyCircularLayout(styledNodes, rawEdges)
-            } else {
-                // Fallback to ELK layered
-                layoutedNodes = await applyELKLayout(styledNodes, rawEdges, 'elk-layered')
-            }
-
-            console.log(`✅ ${layoutAlgorithm} layout applied to ${layoutedNodes.length} nodes with dynamic boundaries`)
+            console.log(`✅ ELK Layered layout applied to ${layoutedNodes.length} nodes with dynamic boundaries`)
             
             // Apply dynamic zoom after layout is complete
             setTimeout(() => {
@@ -996,7 +584,7 @@ const SimilarityTestPage: React.FC = () => {
             
             return layoutedNodes
         } catch (error) {
-            console.error(`❌ ${layoutAlgorithm} layout failed, falling back to styled nodes:`, error)
+            console.error('❌ ELK Layered layout failed, falling back to styled nodes:', error)
             return styledNodes
         } finally {
             setIsApplyingLayout(false)
@@ -1037,28 +625,7 @@ const SimilarityTestPage: React.FC = () => {
         }
     }, [nodes, applyDynamicZoom])
 
-    // Keyboard shortcuts for layout switching
-    useEffect(() => {
-        const handleKeyPress = (event: KeyboardEvent) => {
-            if (event.ctrlKey || event.metaKey) {
-                const key = event.key
-                const layoutIndex = parseInt(key) - 1
-                if (layoutIndex >= 0 && layoutIndex < LAYOUT_ALGORITHMS.length) {
-                    event.preventDefault()
-                    handleLayoutChange(LAYOUT_ALGORITHMS[layoutIndex].algorithm)
-                }
-                
-                // Special shortcuts
-                if (key === '0') {
-                    event.preventDefault()
-                    handleAutoLayoutToggle()
-                }
-            }
-        }
 
-        window.addEventListener('keydown', handleKeyPress)
-        return () => window.removeEventListener('keydown', handleKeyPress)
-    }, [selectedLayout, autoLayoutEnabled])
 
     useEffect(() => {
         const fetchData = async () => {
@@ -1117,8 +684,7 @@ const SimilarityTestPage: React.FC = () => {
                     console.log('🔗 Setting nodes and edges...')
                     const processedNodes = await processNodes(
                         firstPair.react_flow.nodes || [],
-                        firstPair.react_flow.edges || [],
-                        selectedLayout
+                        firstPair.react_flow.edges || []
                     )
                     setNodes(processedNodes)
 
@@ -1178,8 +744,7 @@ const SimilarityTestPage: React.FC = () => {
 
             processNodes(
                 selectedPair.react_flow.nodes || [],
-                selectedPair.react_flow.edges || [],
-                selectedLayout
+                selectedPair.react_flow.edges || []
             ).then((processedNodes) => {
                 setNodes(processedNodes)
                 // Process edges before setting them
@@ -1312,30 +877,7 @@ const SimilarityTestPage: React.FC = () => {
         return info
     }
 
-    // Handle layout algorithm change
-    const handleLayoutChange = async (algorithm: LayoutAlgorithm) => {
-        console.log(`🔄 Changing layout to: ${algorithm}`)
-        setSelectedLayout(algorithm)
-        
-        if (data && data.file_pairs[selectedPairIndex]) {
-            const currentPair = data.file_pairs[selectedPairIndex]
-            const processedNodes = await processNodes(
-                currentPair.react_flow.nodes || [],
-                currentPair.react_flow.edges || [],
-                algorithm
-            )
-            setNodes(processedNodes)
-        }
-    }
 
-    // Auto-layout toggle
-    const handleAutoLayoutToggle = () => {
-        setAutoLayoutEnabled(!autoLayoutEnabled)
-        if (!autoLayoutEnabled) {
-            // Re-apply current layout when enabling auto-layout
-            handleLayoutChange(selectedLayout)
-        }
-    }
 
     console.log('🎭 Component render state:', {
         loading,
@@ -1441,7 +983,7 @@ const SimilarityTestPage: React.FC = () => {
     const layoutInfo = getLayoutInfo(currentPair.react_flow?.layout_config)
 
     return (
-        <div className="h-[100vh - 100px] flex bg-gray-100">
+        <div className="h-[calc(100vh_-_100px)] flex bg-gray-100">
             {/* Sidebar */}
             <div
                 className={`bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ${
@@ -1569,86 +1111,6 @@ const SimilarityTestPage: React.FC = () => {
                                         📁 {currentPair.react_flow.files.file2}
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* Auto Layout Control */}
-                        <div className="p-4 border-b border-gray-200">
-                            <div className="flex items-center justify-between mb-3">
-                                <h2 className="text-sm font-semibold text-gray-900">
-                                    Auto Layout
-                                </h2>
-                                <button
-                                    onClick={handleAutoLayoutToggle}
-                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                                        autoLayoutEnabled
-                                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    }`}
-                                >
-                                    {autoLayoutEnabled ? '✓ Enabled' : '✗ Disabled'}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Layout Algorithm Selector */}
-                        <div className="p-4 border-b border-gray-200">
-                            <h2 className="text-sm font-semibold text-gray-900 mb-3">
-                                Layout Algorithm
-                            </h2>
-                            
-                            {/* Current Layout Display */}
-                            <div className="mb-3">
-                                {(() => {
-                                    const currentLayout = LAYOUT_ALGORITHMS.find(
-                                        l => l.algorithm === selectedLayout
-                                    )
-                                    return currentLayout ? (
-                                        <div className={`p-3 rounded-lg border ${currentLayout.color} ${isApplyingLayout ? 'opacity-50' : ''}`}>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-lg">{currentLayout.icon}</span>
-                                                <span className="font-medium text-sm">{currentLayout.name}</span>
-                                                {isApplyingLayout && (
-                                                    <div className="ml-auto">
-                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <p className="text-xs opacity-80">{currentLayout.description}</p>
-                                        </div>
-                                    ) : null
-                                })()}
-                            </div>
-
-                            {/* Layout Algorithm Grid */}
-                            <div className="grid grid-cols-2 gap-2">
-                                {LAYOUT_ALGORITHMS.map((layout) => (
-                                    <button
-                                        key={layout.algorithm}
-                                        onClick={() => handleLayoutChange(layout.algorithm)}
-                                        disabled={isApplyingLayout || !autoLayoutEnabled}
-                                        className={`p-2 rounded-lg border text-left transition-all text-xs ${
-                                            selectedLayout === layout.algorithm
-                                                ? layout.color
-                                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                        } ${
-                                            isApplyingLayout || !autoLayoutEnabled 
-                                                ? 'opacity-50 cursor-not-allowed' 
-                                                : 'cursor-pointer'
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-1 mb-1">
-                                            <span className="text-sm">{layout.icon}</span>
-                                            <span className="font-medium text-xs">{layout.name}</span>
-                                        </div>
-                                        <p className="text-xs opacity-70" style={{
-                                            display: '-webkit-box',
-                                            WebkitLineClamp: 2,
-                                            WebkitBoxOrient: 'vertical',
-                                            overflow: 'hidden'
-                                        }}>{layout.description}</p>
-                                    </button>
-                                ))}
                             </div>
                         </div>
 
@@ -1864,26 +1326,18 @@ const SimilarityTestPage: React.FC = () => {
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-600">
-                                        🚀 Current Algorithm
+                                        🚀 Algorithm
                                     </span>
                                     <span className="font-medium">
-                                        {LAYOUT_ALGORITHMS.find(l => l.algorithm === selectedLayout)?.icon} {selectedLayout}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-600">
-                                        🎛️ Auto Layout
-                                    </span>
-                                    <span className={`font-medium ${autoLayoutEnabled ? 'text-green-600' : 'text-red-600'}`}>
-                                        {autoLayoutEnabled ? '✓ Active' : '✗ Disabled'}
+                                        📊 ELK Layered
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-600">
                                         📐 Node Dragging
                                     </span>
-                                    <span className={`font-medium ${selectedLayout === 'manual' || !autoLayoutEnabled ? 'text-green-600' : 'text-gray-600'}`}>
-                                        {selectedLayout === 'manual' || !autoLayoutEnabled ? '✓ Enabled' : '✗ Locked'}
+                                    <span className="font-medium text-green-600">
+                                        ✓ Enabled
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
@@ -1902,17 +1356,6 @@ const SimilarityTestPage: React.FC = () => {
                                         {reactFlowInstance ? `${(reactFlowInstance.getZoom() * 100).toFixed(0)}%` : '---'}
                                     </span>
                                 </div>
-                            </div>
-                            
-                            {/* Quick Layout Tips */}
-                            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                                <h3 className="text-xs font-semibold text-blue-900 mb-2">💡 Layout Tips</h3>
-                                <ul className="text-xs text-blue-800 space-y-1">
-                                    <li>• ELK Layered: Best for hierarchical code</li>
-                                    <li>• Force Directed: Good for dense networks</li>
-                                    <li>• Circular: Great for exploring relationships</li>
-                                    <li>• Manual: Full control over positioning</li>
-                                </ul>
                             </div>
                             
                             {/* Zoom Controls */}
@@ -1936,16 +1379,6 @@ const SimilarityTestPage: React.FC = () => {
                                     Automatically fits content to viewport
                                 </p>
                             </div>
-
-                            {/* Keyboard Shortcuts */}
-                            <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                                <h3 className="text-xs font-semibold text-gray-900 mb-2">⌨️ Shortcuts</h3>
-                                <ul className="text-xs text-gray-700 space-y-1">
-                                    <li>• Ctrl/Cmd + 1-9: Switch layouts</li>
-                                    <li>• Ctrl/Cmd + 0: Toggle auto layout</li>
-                                    <li>• Use dropdown or grid for quick access</li>
-                                </ul>
-                            </div>
                         </div>
                     </div>
                 )}
@@ -1958,9 +1391,7 @@ const SimilarityTestPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                             <h1 className="text-lg font-semibold text-gray-900">
-                                Code Structure Visualization (
-                                {LAYOUT_ALGORITHMS.find(l => l.algorithm === selectedLayout)?.name || selectedLayout.toUpperCase()}
-                                )
+                                Code Structure Visualization
                             </h1>
                             <div className="flex items-center space-x-2 text-sm text-gray-500">
                                 <span>•</span>
@@ -1982,26 +1413,6 @@ const SimilarityTestPage: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex items-center space-x-4">
-                            {/* Layout Quick Selector */}
-                            <div className="flex items-center space-x-2">
-                                <span className="text-xs text-gray-500">Layout:</span>
-                                <select
-                                    value={selectedLayout}
-                                    onChange={(e) => handleLayoutChange(e.target.value as LayoutAlgorithm)}
-                                    disabled={isApplyingLayout || !autoLayoutEnabled}
-                                    className="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {LAYOUT_ALGORITHMS.map((layout) => (
-                                        <option key={layout.algorithm} value={layout.algorithm}>
-                                            {layout.icon} {layout.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {isApplyingLayout && (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                )}
-                            </div>
-
                             {/* Legend */}
                             <div className="flex items-center space-x-2">
                                 <div className="flex items-center space-x-1 text-xs">
@@ -2046,7 +1457,7 @@ const SimilarityTestPage: React.FC = () => {
                         fitView={false}
                         minZoom={0.1}
                         maxZoom={1.5}
-                        nodesDraggable={selectedLayout === 'manual' || !autoLayoutEnabled}
+                        nodesDraggable={true}
                         nodesConnectable={false}
                         elementsSelectable={true}
                         attributionPosition="bottom-left"
