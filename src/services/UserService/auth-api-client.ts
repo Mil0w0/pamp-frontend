@@ -15,18 +15,6 @@ import { User } from '@/services/UserService/types.ts'
 import { fetchCurrentUser } from '@/store/user.slice.ts'
 import { AppDispatch } from '@/store'
 
-declare global {
-    interface Window {
-        RUNTIME_CONFIG?: {
-            AUTH_API_URL?: string
-            PROJECT_API_URL?: string
-            LIVEBLOCKS_KEY?: string
-            S3_ACCESS_KEY?: string
-            S3_SECRET_KEY?: string
-        }
-    }
-}
-
 export const AUTH_API_URL: string =
     window.RUNTIME_CONFIG?.AUTH_API_URL ||
     import.meta.env.VITE_AUTH_API_URL ||
