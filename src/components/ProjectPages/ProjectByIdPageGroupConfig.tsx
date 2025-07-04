@@ -35,6 +35,7 @@ export default function ProjectByIdPageGroupConfig() {
     const { projectId } = useParams()
     const dispatch = useDispatch<AppDispatch>()
     const { currentProject } = useSelector((state: RootState) => state.project)
+    const { currentUser } = useSelector((state: RootState) => state.user)
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [deadLine, setDate] = useState<Date | undefined>(undefined)
@@ -107,203 +108,240 @@ export default function ProjectByIdPageGroupConfig() {
 
             <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
                 <h1 className="text-2xl">Update groups composition</h1>
-                <div className="grid auto-rows-min gap-4 md:grid-cols-2">
-                    <div className="grid w-full max-w-sm">
-                        <RadioGroup
-                            defaultValue={currentProject.groupsCreator}
-                            onValueChange={(value: string) =>
-                                setGroupProjectData((prev) => ({
-                                    ...prev,
-                                    groupsCreator: value as
-                                        | 'TEACHER'
-                                        | 'RANDOM'
-                                        | 'STUDENT',
-                                }))
-                            }
-                        >
-                            <h2 className="text-xl">
-                                Who is allowed to make groups ?{' '}
-                            </h2>
-                            <div className="flex items-center gap-3">
-                                <RadioGroupItem value="TEACHER" id="r1" />
-                                <Label htmlFor="r1">Teacher</Label>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <RadioGroupItem value="STUDENT" id="r2" />
-                                <Label htmlFor="r2">Students</Label>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <RadioGroupItem value="RANDOM" id="r3" />
-                                <Label htmlFor="r3">System (automatic)</Label>
-                            </div>
-                        </RadioGroup>
-                    </div>
 
-                    <div className="grid w-full max-w-sm justify-end">
-                        <Label className="mb-1" htmlFor="maxPerGroup">
-                            Max students per group
-                        </Label>
-                        <Input
-                            className="mb-2"
-                            id="maxPerGroup"
-                            type="number"
-                            min={1}
-                            onChange={handleChange}
-                            defaultValue={currentProject.maxPerGroup}
-                        />
-
-                        <Label className="mb-1" htmlFor="minPerGroup">
-                            Min students per group
-                        </Label>
-                        <Input
-                            className="mb-2"
-                            id="minPerGroup"
-                            type="number"
-                            min={1}
-                            onChange={handleChange}
-                            defaultValue={currentProject.minPerGroup}
-                        />
-
-                        <Label className="mb-1" htmlFor="maxGroups">
-                            Max groups allowed
-                        </Label>
-                        <Input
-                            className="mb-2"
-                            id="maxGroups"
-                            type="number"
-                            min={1}
-                            onChange={handleChange}
-                            defaultValue={currentProject.maxGroups}
-                        />
-
-                        <div className="flex gap-4">
-                            <div className="flex flex-col gap-3">
-                                <Label
-                                    htmlFor="creationGroupDeadLineDate"
-                                    className="px-1"
+                {currentUser?.role === 'STUDENT' ? (
+                    <p>
+                        Students have until the{' '}
+                        {DateTime.fromISO(
+                            currentProject.creationGroupDeadLineDate
+                        ).toFormat('dd/MM/yyyy HH:mm')}{' '}
+                        to create groups of {currentProject.minPerGroup} to{' '}
+                        {currentProject.maxPerGroup}.
+                    </p>
+                ) : (
+                    <>
+                        <div className="grid auto-rows-min gap-4 md:grid-cols-2">
+                            <div className="grid w-full max-w-sm">
+                                <RadioGroup
+                                    defaultValue={currentProject.groupsCreator}
+                                    onValueChange={(value: string) =>
+                                        setGroupProjectData((prev) => ({
+                                            ...prev,
+                                            groupsCreator: value as
+                                                | 'TEACHER'
+                                                | 'RANDOM'
+                                                | 'STUDENT',
+                                        }))
+                                    }
                                 >
-                                    Deadline to create group
+                                    <h2 className="text-xl">
+                                        Who is allowed to make groups ?{' '}
+                                    </h2>
+                                    <div className="flex items-center gap-3">
+                                        <RadioGroupItem
+                                            value="TEACHER"
+                                            id="r1"
+                                        />
+                                        <Label htmlFor="r1">Teacher</Label>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <RadioGroupItem
+                                            value="STUDENT"
+                                            id="r2"
+                                        />
+                                        <Label htmlFor="r2">Students</Label>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <RadioGroupItem
+                                            value="RANDOM"
+                                            id="r3"
+                                        />
+                                        <Label htmlFor="r3">
+                                            System (automatic)
+                                        </Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+
+                            <div className="grid w-full max-w-sm justify-end">
+                                <Label className="mb-1" htmlFor="maxPerGroup">
+                                    Max students per group
                                 </Label>
-                                <Popover open={open} onOpenChange={setOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            id="creationGroupDeadLineDate"
-                                            className="w-32 justify-between font-normal"
+                                <Input
+                                    className="mb-2"
+                                    id="maxPerGroup"
+                                    type="number"
+                                    min={1}
+                                    onChange={handleChange}
+                                    defaultValue={currentProject.maxPerGroup}
+                                />
+
+                                <Label className="mb-1" htmlFor="minPerGroup">
+                                    Min students per group
+                                </Label>
+                                <Input
+                                    className="mb-2"
+                                    id="minPerGroup"
+                                    type="number"
+                                    min={1}
+                                    onChange={handleChange}
+                                    defaultValue={currentProject.minPerGroup}
+                                />
+
+                                <Label className="mb-1" htmlFor="maxGroups">
+                                    Max groups allowed
+                                </Label>
+                                <Input
+                                    className="mb-2"
+                                    id="maxGroups"
+                                    type="number"
+                                    min={1}
+                                    onChange={handleChange}
+                                    defaultValue={currentProject.maxGroups}
+                                />
+
+                                <div className="flex gap-4">
+                                    <div className="flex flex-col gap-3">
+                                        <Label
+                                            htmlFor="creationGroupDeadLineDate"
+                                            className="px-1"
+                                        >
+                                            Deadline to create group
+                                        </Label>
+                                        <Popover
+                                            open={open}
+                                            onOpenChange={setOpen}
+                                        >
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    id="creationGroupDeadLineDate"
+                                                    className="w-32 justify-between font-normal"
+                                                    disabled={
+                                                        isLoading ||
+                                                        groupProjectData.groupsCreator !==
+                                                            'STUDENT'
+                                                    }
+                                                >
+                                                    {groupProjectData.creationGroupDeadLineDate
+                                                        ? DateTime.fromISO(
+                                                              groupProjectData.creationGroupDeadLineDate
+                                                          ).toFormat(
+                                                              'dd/MM/yyyy'
+                                                          )
+                                                        : currentProject.creationGroupDeadLineDate
+                                                          ? DateTime.fromISO(
+                                                                currentProject.creationGroupDeadLineDate
+                                                            ).toFormat(
+                                                                'dd/MM/yyyy'
+                                                            )
+                                                          : 'Select date'}
+                                                    <ChevronDownIcon />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent
+                                                className="w-auto overflow-hidden p-0"
+                                                align="start"
+                                            >
+                                                <Calendar
+                                                    mode="single"
+                                                    captionLayout="dropdown"
+                                                    onSelect={(selected) => {
+                                                        if (selected) {
+                                                            const [
+                                                                hourStr,
+                                                                minuteStr,
+                                                                secondStr = '0',
+                                                            ] =
+                                                                deadLineTime.split(
+                                                                    ':'
+                                                                )
+                                                            const formattedDate =
+                                                                DateTime.fromJSDate(
+                                                                    selected
+                                                                ).set({
+                                                                    hour: parseInt(
+                                                                        hourStr
+                                                                    ),
+                                                                    minute: parseInt(
+                                                                        minuteStr
+                                                                    ),
+                                                                    second: parseInt(
+                                                                        secondStr
+                                                                    ),
+                                                                })
+
+                                                            const isoString =
+                                                                formattedDate.toISO()
+
+                                                            console.log(
+                                                                isoString
+                                                            )
+
+                                                            setGroupProjectData(
+                                                                //@ts-expect-error later
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    creationGroupDeadLineDate:
+                                                                        isoString,
+                                                                })
+                                                            )
+                                                        }
+                                                        setOpen(false)
+                                                        setDate(selected)
+                                                    }}
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                    <div className="flex flex-col gap-3">
+                                        <Label htmlFor="time" className="px-1">
+                                            Time
+                                        </Label>
+                                        <Input
+                                            type="time"
+                                            id="time"
+                                            step="1"
+                                            defaultValue={deadLineTime}
+                                            onChange={(e) => {
+                                                const newTime = e.target.value
+                                                setDeadLineTime(newTime)
+
+                                                if (deadLine) {
+                                                    const formattedDate =
+                                                        DateTime.fromJSDate(
+                                                            deadLine
+                                                        ).toFormat('yyyy-MM-dd')
+                                                    const combined = `${formattedDate}T${newTime}`
+
+                                                    setGroupProjectData(
+                                                        (prev) => ({
+                                                            ...prev,
+                                                            creationGroupDeadLineDate:
+                                                                combined,
+                                                        })
+                                                    )
+                                                }
+                                            }}
                                             disabled={
                                                 isLoading ||
                                                 groupProjectData.groupsCreator !==
                                                     'STUDENT'
                                             }
-                                        >
-                                            {groupProjectData.creationGroupDeadLineDate
-                                                ? DateTime.fromISO(
-                                                      groupProjectData.creationGroupDeadLineDate
-                                                  ).toFormat('dd/MM/yyyy')
-                                                : currentProject.creationGroupDeadLineDate
-                                                  ? DateTime.fromISO(
-                                                        currentProject.creationGroupDeadLineDate
-                                                    ).toFormat('dd/MM/yyyy')
-                                                  : 'Select date'}
-                                            <ChevronDownIcon />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                        className="w-auto overflow-hidden p-0"
-                                        align="start"
-                                    >
-                                        <Calendar
-                                            mode="single"
-                                            captionLayout="dropdown"
-                                            onSelect={(selected) => {
-                                                if (selected) {
-                                                    const [
-                                                        hourStr,
-                                                        minuteStr,
-                                                        secondStr = '0',
-                                                    ] = deadLineTime.split(':')
-                                                    const formattedDate =
-                                                        DateTime.fromJSDate(
-                                                            selected
-                                                        ).set({
-                                                            hour: parseInt(
-                                                                hourStr
-                                                            ),
-                                                            minute: parseInt(
-                                                                minuteStr
-                                                            ),
-                                                            second: parseInt(
-                                                                secondStr
-                                                            ),
-                                                        })
-
-                                                    const isoString =
-                                                        formattedDate.toISO()
-
-                                                    console.log(isoString)
-
-                                                    setGroupProjectData(
-                                                        //@ts-expect-error later
-                                                        (prev) => ({
-                                                            ...prev,
-                                                            creationGroupDeadLineDate:
-                                                                isoString,
-                                                        })
-                                                    )
-                                                }
-                                                setOpen(false)
-                                                setDate(selected)
-                                            }}
+                                            className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                                         />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            {/*TO DO : HANDLE TIME*/}
-                            <div className="flex flex-col gap-3">
-                                <Label htmlFor="time" className="px-1">
-                                    Time
-                                </Label>
-                                <Input
-                                    type="time"
-                                    id="time"
-                                    step="1"
-                                    defaultValue={deadLineTime}
-                                    onChange={(e) => {
-                                        const newTime = e.target.value
-                                        setDeadLineTime(newTime)
-
-                                        if (deadLine) {
-                                            const formattedDate =
-                                                DateTime.fromJSDate(
-                                                    deadLine
-                                                ).toFormat('yyyy-MM-dd')
-                                            const combined = `${formattedDate}T${newTime}`
-
-                                            setGroupProjectData((prev) => ({
-                                                ...prev,
-                                                creationGroupDeadLineDate:
-                                                    combined,
-                                            }))
-                                        }
-                                    }}
-                                    disabled={
-                                        isLoading ||
-                                        groupProjectData.groupsCreator !==
-                                            'STUDENT'
-                                    }
-                                    className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                                />
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                <Button
-                    onClick={() => handleProjectEditSave()}
-                    className="self-start"
-                >
-                    Save config changes
-                </Button>
-
+                        <Button
+                            onClick={() => handleProjectEditSave()}
+                            className="self-start"
+                        >
+                            Save config changes
+                        </Button>
+                    </>
+                )}
                 <ProjectGroupsComposition currentProject={currentProject} />
             </div>
         </div>

@@ -23,13 +23,16 @@ export default function ProjectByIdPageGeneral() {
     const { projectId } = useParams()
     const dispatch = useDispatch<AppDispatch>()
     const { currentProject } = useSelector((state: RootState) => state.project)
+    const { currentUser } = useSelector((state: RootState) => state.user)
 
     useEffect(() => {
         if (projectId) {
             dispatch(fetchProjectById(projectId))
         }
-        dispatch(fetchAllProjects())
-    }, [dispatch, projectId])
+        if (currentUser) {
+            dispatch(fetchAllProjects(currentUser.user_id))
+        }
+    }, [dispatch, projectId, currentUser])
 
     if (!currentProject) {
         return <Skeleton />

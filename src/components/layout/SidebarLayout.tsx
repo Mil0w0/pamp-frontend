@@ -13,13 +13,16 @@ export default function SidebarLayout() {
     const { currentProject, allProjects, error } = useSelector(
         (state: RootState) => state.project
     )
+    const { currentUser } = useSelector((state: RootState) => state.user)
 
     useEffect(() => {
         if (projectId) {
             dispatch(fetchProjectById(projectId))
         }
-        dispatch(fetchAllProjects())
-    }, [dispatch, projectId])
+        if (currentUser) {
+            dispatch(fetchAllProjects(currentUser?.user_id))
+        }
+    }, [dispatch, projectId, currentUser])
 
     if (error !== null) {
         navigate('/error')

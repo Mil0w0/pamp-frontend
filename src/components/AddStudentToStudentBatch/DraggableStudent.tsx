@@ -8,7 +8,7 @@ export const DraggableStudent = ({
     canDrag = true,
 }: {
     student: Student
-    canDrag: boolean
+    canDrag?: boolean
 }) => {
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: student.user_id,

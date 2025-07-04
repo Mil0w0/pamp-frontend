@@ -30,12 +30,15 @@ import { RootState } from '@/store'
 export default function ProjectsPage() {
     const navigate = useNavigate()
     const { currentUser } = useSelector((state: RootState) => state.user)
-    const currentBatchId = 'd5d8ca7c-3399-4f84-afc5-07405385e139' //todo: make a state ?
     const [isLoading, setIsLoading] = useState(false)
     const [projects, setProjects] = useState<Project[] | null>(null)
 
     function goToProjectById(id: string) {
-        navigate(`/projects/${id}/settings`)
+        if (currentUser?.role === 'TEACHER') {
+            navigate(`/projects/${id}/settings`)
+        } else {
+            navigate(`/projects/${id}/groups`)
+        }
     }
 
     async function getProjects(): Promise<Project[]> {
@@ -44,11 +47,7 @@ export default function ProjectsPage() {
             return []
         }
         try {
-            const response = await projectService.getAll(
-                currentUser.user_id,
-                currentBatchId,
-                currentUser.role === 'STUDENT'
-            )
+            const response = await projectService.getAll(currentUser.user_id)
             if (response.success) {
                 return response.data as Project[]
             } else {

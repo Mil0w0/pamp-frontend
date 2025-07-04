@@ -87,7 +87,7 @@ export default function GroupsSubmissionDataTable({
     groups,
     stepDeadline,
 }: {
-    submissions: SubmissionResponse[] | undefined
+    submissions: SubmissionResponse[] | null
     groups: ProjectGroup[] | undefined
     stepDeadline: string | undefined
 }) {
@@ -99,7 +99,7 @@ export default function GroupsSubmissionDataTable({
         if (!groups) return
         const deadline = DateTime.fromISO(stepDeadline)
 
-        const mapped: SubmissionRow[] = groups.map((group) => {
+        const mapped = groups.map((group) => {
             const submission = submissions.find(
                 (s) => s.group_uuid === group.id
             )
@@ -122,7 +122,6 @@ export default function GroupsSubmissionDataTable({
                 hasSubmitted: true,
             }
         })
-
         setData(mapped)
     }, [submissions, groups, stepDeadline])
 
