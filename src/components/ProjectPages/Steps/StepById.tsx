@@ -33,7 +33,8 @@ import {
 import { sumbissionService } from '@/services/SubmissionService/submission-api-client.ts'
 import { createS3UploadFunction } from '@/utils/fileUpload.ts'
 import { DateTime } from 'luxon'
-import { OpenLinkButton } from '@blocknote/react'
+import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
+import GroupsSubmissionDataTable from '@/components/ProjectPages/Steps/GroupsSubmissionDataTable.tsx'
 
 export function StepById() {
     const { stepId, projectId } = useParams()
@@ -51,8 +52,19 @@ export function StepById() {
         rules: [],
     })
     const sampleSubmission: SubmissionResponse = {
+        created_at: '2025-06-15T11:00:00Z',
+        group_uuid: 'ecf78cb5-07fd-41fc-ae88-85e45b7edc51',
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        link: 'https://pamp-reports-images.s3.eu-west-1.amazonaws.com/projects/ca690eb6-4bde-455c-aa12-52adef734223/groups/1544d099-d642-44a0-a440-7eca0d3f55ae/steps/15da4300-bbb3-47b6-aac2-8c1cd343fd81/18060267-24c2-4555-9921-9175292b8cb4.png',
+        link_type: 's3',
+        project_step: 'step_1',
+        project_uuid: '550e8400-e29b-41d4-a716-446655440001',
+        status: SubmissionStatus.COMPLETED,
+        submitted_by: 'John Doe',
+    }
+    const sampleSubmission2: SubmissionResponse = {
         created_at: '2025-07-15T11:00:00Z',
-        group_uuid: '550e8400-e29b-41d4-a716-446655440002',
+        group_uuid: '1544d099-d642-44a0-a440-7eca0d3f55ae',
         id: '550e8400-e29b-41d4-a716-446655440000',
         link: 'https://github.com/user/repository.git',
         link_type: 'github',
@@ -64,6 +76,9 @@ export function StepById() {
     const [submission, setSubmission] = useState<SubmissionResponse | null>(
         null
     )
+    const [stepSubmissions, setStepSubmissions] = useState<
+        SubmissionResponse[] | null
+    >(null)
     const { currentUser } = useSelector((state: RootState) => state.user)
     const { currentProject } = useSelector((state: RootState) => state.project)
     const isStudent = currentUser?.role === 'STUDENT'
@@ -74,6 +89,30 @@ export function StepById() {
         //todo: implement
         toast.info('Submission deletion isnt available yet')
         //then remove submission in the microservice linked
+    }
+    const loadAllStepSubmissions = async () => {
+        if (!stepId) return
+        if (!step?.submissionId) return
+        if (!projectId) return
+        try {
+            const response = await sumbissionService.getAllBySteps(
+                stepId,
+                projectId
+            )
+            if (response.success) {
+                if (response.data) {
+                    setStepSubmissions(response.data)
+                    console.log(response.data)
+                }
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error('Error : Error while fetching submission')
+            console.error(error)
+        } finally {
+            setisLoading(false)
+        }
     }
 
     const loadSubmission = async () => {
@@ -106,11 +145,13 @@ export function StepById() {
             ...submissionLocal,
             link: e.currentTarget.value,
             link_type: 'github',
+            group_uuid: currentUserGroup?.id || '',
         })
     }
 
     const checkConformity = async () => {
         setisLoading(true)
+        console.log('checkConformity')
 
         //Check if user can submit even after a dealine
         if (!step) return
@@ -125,16 +166,21 @@ export function StepById() {
             return
         }
 
-        let didUpload = true
+        let s3UrlUploaded: string | null = null
         try {
             if (submissionLocal.link_type === 's3') {
                 //Save file to s3
-                didUpload = await uploadFile()
+                s3UrlUploaded = await uploadFile()
             }
-            if (didUpload) {
+            if (
+                s3UrlUploaded ||
+                (submissionLocal.link && submissionLocal.link.length > 0)
+            ) {
                 //Save submission on the service
-                const response =
-                    await sumbissionService.createOne(submissionLocal)
+                const response = await sumbissionService.createOne({
+                    ...submissionLocal,
+                    link: s3UrlUploaded ? s3UrlUploaded : submissionLocal.link,
+                })
                 console.log(response)
                 if (response.success) {
                     //it got created
@@ -152,6 +198,7 @@ export function StepById() {
                 }
             }
         } catch (error) {
+            toast.error('Something went wrong')
             console.log(error)
         } finally {
             setisLoading(false)
@@ -163,13 +210,6 @@ export function StepById() {
         if (!stepId) return
         if (!currentProject) return
 
-        //Identify the user group
-        const currentUserGroup = currentProject?.groups?.find((group) =>
-            group.studentsIds?.split(',').includes(currentUser?.user_id ?? '')
-        )
-        if (currentUserGroup) {
-            setCurrentUserGroup(currentUserGroup)
-        }
         setSubmissionLocal({
             ...submissionLocal,
             group_uuid: currentUserGroup?.id || '',
@@ -196,7 +236,20 @@ export function StepById() {
         }
     }
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    //Identify the user group
+    const loadCurrentGroup = async () => {
+        if (!currentProject) return
+        if (!currentUser) return
+
+        const currentUserGroup = currentProject?.groups?.find((group) =>
+            group.studentsIds?.split(',').includes(currentUser?.user_id ?? '')
+        )
+        if (currentUserGroup) {
+            setCurrentUserGroup(currentUserGroup)
+        }
+    }
+
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0]
         console.log('selectedFile', selectedFile)
         if (selectedFile) {
@@ -204,10 +257,9 @@ export function StepById() {
         }
 
         //SAVE SUBMISSION WITH S3 lINK
-        const s3Link = ''
         setSubmissionLocal({
             ...submissionLocal,
-            link: s3Link,
+            group_uuid: currentUserGroup?.id || '',
             link_type: 's3',
         })
     }
@@ -216,32 +268,28 @@ export function StepById() {
         setisLoading(true)
         if (!file) {
             toast.error('No file to upload')
-            return false
+            return null
         }
         if (!currentProject) {
             toast.error('No project selected')
-            return false
+            return null
         }
         if (!currentUserGroup) {
             toast.error('No group found for this user')
-            return false
+            return null
         }
 
         try {
             const uploadToS3 = createS3UploadFunction({
                 maxFileSize: 300 * 1024 * 1024,
-                bucketName: 'pamp-step-submission',
+                bucketName: 'pamp-reports-images', //fixme: change bucket name
                 keyPrefix: `projects/${currentProject.id}/groups/${currentUserGroup.id}/steps/${stepId}/`,
             })
 
-            const uploadedUrl = await uploadToS3(file)
-            setSubmissionLocal({ ...submissionLocal, link: uploadedUrl })
-            toast.success('Upload successful!')
-            return true
+            return await uploadToS3(file)
         } catch (err) {
             console.error(err)
-            toast.error('Upload failed.')
-            return false
+            return null
         } finally {
             setisLoading(false)
         }
@@ -250,21 +298,24 @@ export function StepById() {
     useEffect(() => {
         loadStep()
         loadSubmission()
-    }, [step, currentProject, stepId, projectId])
+        loadCurrentGroup()
+        if (isStudent) return
+        loadAllStepSubmissions()
+    }, [currentProject, stepId, projectId, currentUser])
 
     //Display Step Box
     //Display a box to see and send submissions for this step
     if (isloading) {
-        return 'loading'
+        return <LoadingSpinner />
     }
     if (!step) return null
     return (
         <div className="m-2">
             <StepBox
                 step={step}
-                index={0} //todo: get step number
+                index={0} //we display the step name instead of number in list here
             />
-            {step.hasMandatorySubmission && isStudent && (
+            {step.hasMandatorySubmission && isStudent ? (
                 <Tabs
                     defaultValue={
                         submission?.link_type === 's3' ? 'file' : 'link'
@@ -407,6 +458,12 @@ export function StepById() {
                         </div>
                     </TabsContent>
                 </Tabs>
+            ) : (
+                <GroupsSubmissionDataTable
+                    groups={currentProject?.groups}
+                    submissions={stepSubmissions}
+                    stepDeadline={step.submissionDeadLine}
+                />
             )}
         </div>
     )

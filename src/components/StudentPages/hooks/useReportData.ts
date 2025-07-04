@@ -9,7 +9,10 @@ import { ProjectGroup } from '@/components/ProjectPages/types'
 import { ReportDefinition } from '@/services/ProjectService/project-api-client'
 import { ReportData } from '../types'
 
-export function useReportData(projectId: string, groupId: string): ReportData & { refreshData: () => Promise<void> } {
+export function useReportData(
+    projectId: string,
+    groupId: string
+): ReportData & { refreshData: () => Promise<void> } {
     const [project, setProject] = useState<Project | null>(null)
     const [group, setGroup] = useState<ProjectGroup | null>(null)
     const [reportDefinition, setReportDefinition] =

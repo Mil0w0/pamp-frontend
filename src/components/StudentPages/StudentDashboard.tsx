@@ -13,6 +13,7 @@ import { groupService } from '@/services/ProjectService/project-api-client'
 import { ProjectGroup } from '@/components/ProjectPages/types'
 import { BookOpen, Calendar, FileText, Users } from 'lucide-react'
 import { toast } from 'sonner'
+import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
 
 export default function StudentDashboard() {
     const navigate = useNavigate()
@@ -49,11 +50,7 @@ export default function StudentDashboard() {
     }
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-        )
+        return <LoadingSpinner />
     }
 
     return (
@@ -91,7 +88,7 @@ export default function StudentDashboard() {
                                 className="cursor-pointer"
                                 onClick={() =>
                                     navigate(
-                                        `/projects/${group.project.id}/groups/${group.id}`,
+                                        `/projects/${group.project.id}/groups/${group.id}`
                                     )
                                 }
                             >
@@ -107,8 +104,8 @@ export default function StudentDashboard() {
                                         }
                                     >
                                         {group.reportSubmitted
-                                            ? 'Submitted'
-                                            : 'Draft'}
+                                            ? 'Report: Submitted'
+                                            : 'Report: Draft'}
                                     </Badge>
                                 </div>
                                 <CardDescription className="line-clamp-2">

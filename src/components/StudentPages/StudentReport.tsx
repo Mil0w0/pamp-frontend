@@ -47,10 +47,7 @@ import {
     ReportProgressCard,
     ThreadsPanel,
 } from './components'
-import {
-    QuestionProgress,
-    StudentReportContentProps,
-} from './types'
+import { QuestionProgress, StudentReportContentProps } from './types'
 import { groupService } from '@/services/ProjectService/project-api-client'
 
 function ReportLoadingState() {
@@ -102,8 +99,14 @@ function StudentReportContent({
     >([])
 
     // Custom hooks
-    const { project, group, reportDefinition, isLoading, accessDenied, refreshData } =
-        useReportData(projectId, groupId)
+    const {
+        project,
+        group,
+        reportDefinition,
+        isLoading,
+        accessDenied,
+        refreshData,
+    } = useReportData(projectId, groupId)
     const { syncStatus } = useReportSync()
 
     // Get submission status from group data
@@ -194,7 +197,7 @@ function StudentReportContent({
         try {
             console.log('Submitting report for group:', groupId)
             const response = await groupService.submitReport(groupId)
-            
+
             if (response.success) {
                 console.log('Report submitted successfully')
                 // Refresh data to get updated submission status
@@ -390,7 +393,9 @@ function StudentReportContent({
                                                         Submitted
                                                         {reportSubmittedDate && (
                                                             <span className="text-xs ml-1">
-                                                                {new Date(reportSubmittedDate).toLocaleDateString()}
+                                                                {new Date(
+                                                                    reportSubmittedDate
+                                                                ).toLocaleDateString()}
                                                             </span>
                                                         )}
                                                     </>
