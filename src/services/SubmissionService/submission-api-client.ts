@@ -1,7 +1,8 @@
 import {
     CreatedSubmissionResponse,
     SubmissionDTO,
-    SubmissionResponse, ValidationError,
+    SubmissionResponse,
+    ValidationError,
     ValidationFailedSubmissionResponse,
 } from '@/services/SubmissionService/types.ts'
 import { ApiErrorMessage } from '@/services/ProjectService/types.ts'
@@ -62,26 +63,28 @@ export const sumbissionService = {
                 body: JSON.stringify(submissionDto),
             })
             if (!response.ok) {
-                const error: ApiErrorMessage = await response.json()
-                return handleSubmissionApiError(error.message)
+                const error:
+                    | ValidationFailedSubmissionResponse
+                    | ApiErrorMessage = await response.json()
+                console.log(error)
+                if ('detail' in error) {
+                    return {
+                        success: false,
+                        error: error.detail
+                            .map((error) => error.msg)
+                            .join('; '),
+                        data: error.detail,
+                    }
+                } else {
+                    return handleSubmissionApiError(error.message)
+                }
             }
-            const createdSubmission:
-                | CreatedSubmissionResponse
-                | ValidationFailedSubmissionResponse = await response.json()
+            const createdSubmission: CreatedSubmissionResponse =
+                await response.json()
 
-            //Validation Failed
-            if ('detail' in createdSubmission) {
-                return {
-                    success: false,
-                    error: createdSubmission.detail.summary,
-                    data: createdSubmission.detail.errors,
-                }
-                //Successfully saved submission
-            } else {
-                return {
-                    success: true,
-                    data: createdSubmission,
-                }
+            return {
+                success: true,
+                data: createdSubmission,
             }
         } catch (error) {
             const err = error as Error
