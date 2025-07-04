@@ -15,6 +15,9 @@ import { useEffect } from 'react'
 import { fetchAllProjects, fetchProjectById } from '@/store/project.slice.ts'
 import { useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
+import { Button } from '@/components/ui/button.tsx'
+import { toast } from 'sonner'
+import { projectService } from '@/services/ProjectService/project-api-client.ts'
 
 export default function ProjectByIdPageGeneral() {
     const { projectId } = useParams()
@@ -30,6 +33,29 @@ export default function ProjectByIdPageGeneral() {
 
     if (!currentProject) {
         return <Skeleton />
+    }
+
+    const publishProject = async () => {
+        if (!currentProject) return
+        if (!projectId) return
+        try {
+            const response = await projectService.editProject(
+                currentProject.id,
+                {
+                    isPublished: !currentProject.isPublished,
+                }
+            )
+            if (response.success) {
+                toast.success(
+                    'Successfully published. Students will receive a mail '
+                )
+                dispatch(fetchProjectById(projectId))
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error(`Une erreur est survenue. ${error}`)
+        }
     }
     return (
         <div>
@@ -89,6 +115,18 @@ export default function ProjectByIdPageGeneral() {
                         <Input id="uploadProject" type="file" />
                     </div>
                 </div>
+
+                <Button
+                    onClick={() => publishProject()}
+                    className="w-fit"
+                    variant={
+                        currentProject?.isPublished ? 'outline' : 'default'
+                    }
+                >
+                    {currentProject?.isPublished
+                        ? 'Draft project'
+                        : 'Publish project'}
+                </Button>
             </div>
         </div>
     )

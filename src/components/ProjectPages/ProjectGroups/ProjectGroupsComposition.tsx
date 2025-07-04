@@ -11,6 +11,8 @@ import { groupService } from '@/services/ProjectService/project-api-client.ts'
 import { Button } from '@/components/ui/button.tsx'
 import { ProjectGroup } from '@/components/ProjectPages/types.ts'
 import { LogOutIcon } from 'lucide-react'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/store'
 
 type ProjectGroupsCompositionProps = {
     currentProject: Project
@@ -21,6 +23,7 @@ export default function ProjectGroupsComposition({
 }: ProjectGroupsCompositionProps) {
     const { projectId } = useParams()
     const [batchStudents, setBatchStudents] = useState<Student[]>([])
+    const { currentUser } = useSelector((state: RootState) => state.user)
     const [groups, setGroups] = useState<ProjectGroup[]>([])
 
     // Students not assigned to any group
@@ -50,6 +53,13 @@ export default function ProjectGroupsComposition({
                     group.id === targetGroupId
                         ? Array.from(new Set([...ids, studentId]))
                         : ids.filter((id: string) => id !== studentId)
+
+                if (newIds.length > currentProject.maxPerGroup) {
+                    toast.warning(
+                        `Group is limited to ${currentProject.maxPerGroup} students.`
+                    )
+                    return group
+                }
 
                 return {
                     ...group,
@@ -146,7 +156,14 @@ export default function ProjectGroupsComposition({
                     <DroppableZone id="available">
                         <div className="overflow-y-auto space-y-2 max-h-[60vh] w-full">
                             {availableStudents.map((s) => (
-                                <DraggableStudent key={s.user_id} student={s} />
+                                <DraggableStudent
+                                    key={s.user_id}
+                                    student={s}
+                                    canDrag={
+                                        currentUser?.role !== 'STUDENT' ||
+                                        currentUser.user_id === s.user_id
+                                    }
+                                />
                             ))}
                         </div>
                     </DroppableZone>
@@ -180,35 +197,59 @@ export default function ProjectGroupsComposition({
                                                 <DraggableStudent
                                                     key={s.user_id}
                                                     student={s}
+                                                    canDrag={
+                                                        currentUser?.role !==
+                                                            'STUDENT' ||
+                                                        currentUser.user_id ===
+                                                            s.user_id
+                                                    }
                                                 />
-                                                <button
-                                                    className="text-primary hover:text-primary-foreground cursor-pointer"
-                                                    onClick={() => {
-                                                        const updated = (
-                                                            g.studentsIds ?? ''
-                                                        )
-                                                            .split(',')
-                                                            .filter(
-                                                                (id: string) =>
-                                                                    id.trim() !==
-                                                                    s.user_id
-                                                            )
-                                                            .join(',')
-                                                        setGroups((prev) =>
-                                                            prev.map((grp) =>
-                                                                grp.id === g.id
-                                                                    ? {
-                                                                          ...grp,
-                                                                          studentsIds:
-                                                                              updated,
-                                                                      }
-                                                                    : grp
-                                                            )
-                                                        )
-                                                    }}
-                                                >
-                                                    <LogOutIcon />
-                                                </button>
+                                                {currentUser?.role !==
+                                                    'STUDENT' ||
+                                                    (currentUser.user_id ===
+                                                        s.user_id && (
+                                                        <button
+                                                            className="text-primary hover:text-primary-foreground cursor-pointer"
+                                                            onClick={() => {
+                                                                const updated =
+                                                                    (
+                                                                        g.studentsIds ??
+                                                                        ''
+                                                                    )
+                                                                        .split(
+                                                                            ','
+                                                                        )
+                                                                        .filter(
+                                                                            (
+                                                                                id: string
+                                                                            ) =>
+                                                                                id.trim() !==
+                                                                                s.user_id
+                                                                        )
+                                                                        .join(
+                                                                            ','
+                                                                        )
+                                                                setGroups(
+                                                                    (prev) =>
+                                                                        prev.map(
+                                                                            (
+                                                                                grp
+                                                                            ) =>
+                                                                                grp.id ===
+                                                                                g.id
+                                                                                    ? {
+                                                                                          ...grp,
+                                                                                          studentsIds:
+                                                                                              updated,
+                                                                                      }
+                                                                                    : grp
+                                                                        )
+                                                                )
+                                                            }}
+                                                        >
+                                                            <LogOutIcon />
+                                                        </button>
+                                                    ))}
                                             </div>
                                         ))}
                                     </DroppableZone>

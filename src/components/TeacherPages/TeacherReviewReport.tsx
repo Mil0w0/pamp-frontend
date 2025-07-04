@@ -206,12 +206,18 @@ function TeacherReviewReportContent({
                                                     </Badge>
                                                     {group.reportSubmittedDate && (
                                                         <span className="text-sm text-muted-foreground whitespace-nowrap">
-                                                            on {new Date(group.reportSubmittedDate).toLocaleDateString()}
+                                                            on{' '}
+                                                            {new Date(
+                                                                group.reportSubmittedDate
+                                                            ).toLocaleDateString()}
                                                         </span>
                                                     )}
                                                 </div>
                                             ) : (
-                                                <Badge variant="outline" className="bg-orange-500 text-white">
+                                                <Badge
+                                                    variant="outline"
+                                                    className="bg-orange-500 text-white"
+                                                >
                                                     Draft
                                                 </Badge>
                                             )}
@@ -221,7 +227,8 @@ function TeacherReviewReportContent({
                                                     className="flex items-center gap-1"
                                                 >
                                                     <User className="w-3 h-3" />
-                                                    {activeCollaborators} viewing
+                                                    {activeCollaborators}{' '}
+                                                    viewing
                                                 </Badge>
                                             )}
                                         </div>

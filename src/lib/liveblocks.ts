@@ -34,13 +34,17 @@ async function fetchUsers(userIds: string[]): Promise<UserDTO[]> {
         const idsParam = userIds.join(',')
         const response = await fetch(`${AUTH_API_URL}/users?ids=${idsParam}`, {
             headers: {
-                'Authorization': `Bearer ${token}`,
+                Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
         })
 
         if (!response.ok) {
-            console.error('Failed to fetch users:', response.status, response.statusText)
+            console.error(
+                'Failed to fetch users:',
+                response.status,
+                response.statusText
+            )
             return []
         }
 
@@ -131,13 +135,13 @@ const client = createClient({
     },
     resolveUsers: async ({ userIds }) => {
         console.log('Resolving users for IDs:', userIds)
-        
+
         const users = await fetchUsers(userIds)
-        
+
         // Transform UserDTO to Liveblocks user info format - return array in same order as userIds
-        const resolvedUsers = userIds.map(userId => {
-            const user = users.find(u => u.user_id === userId)
-            
+        const resolvedUsers = userIds.map((userId) => {
+            const user = users.find((u) => u.user_id === userId)
+
             if (user) {
                 return {
                     name: `${user.first_name} ${user.last_name}`,
@@ -148,7 +152,7 @@ const client = createClient({
                 return undefined
             }
         })
-        
+
         console.log('Resolved users:', resolvedUsers)
         return resolvedUsers
     },

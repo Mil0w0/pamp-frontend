@@ -1,5 +1,5 @@
-import {Project} from "@/components/ManageProjects/types.ts";
-import {ProjectGroup, Step} from "@/components/ProjectPages/types.ts";
+import { Project } from '@/components/ManageProjects/types.ts'
+import { ProjectGroup, Step } from '@/components/ProjectPages/types.ts'
 
 export type ApiErrorMessage = {
     message: string

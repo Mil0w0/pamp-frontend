@@ -32,7 +32,7 @@ export function StepBox({
         <div className="space-y-6 rounded-xl border p-6 shadow-sm bg-white dark:bg-muted w-full">
             <div className="flex justify-between">
                 <h2 className="text-xl font-semibold">
-                    {step.name ? step.name : `Step ${index}`}
+                    {step.name ? `Step: ${step.name}` : `Step ${index}`}
                 </h2>
                 {!isStudent && (
                     <TrashIcon
