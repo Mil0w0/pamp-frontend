@@ -31,7 +31,9 @@ export function StepBox({
     return (
         <div className="space-y-6 rounded-xl border p-6 shadow-sm bg-white dark:bg-muted w-full">
             <div className="flex justify-between">
-                <h2 className="text-xl font-semibold">Step {index}</h2>
+                <h2 className="text-xl font-semibold">
+                    {step.name ? step.name : `Step ${index}`}
+                </h2>
                 {!isStudent && (
                     <TrashIcon
                         className="cursor-pointer text-primary hover:text-primary-foreground"

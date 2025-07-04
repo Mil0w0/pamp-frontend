@@ -5,8 +5,7 @@ export type SubmissionDTO = {
     group_uuid: string
     project_step: string
     rules: string[]
-};
-
+}
 export type SubmissionResponse = {
     link: string
     link_type: string
@@ -32,31 +31,18 @@ export type CreatedSubmissionResponse = {
 }
 
 export type ValidationFailedSubmissionResponse = {
-    detail: {
-        validation_failed: boolean
-        failed_rule_count: number
-        total_rule_count: number
-        errors: ValidationError[]
-        summary: string
-    }
+    detail: ValidationError[]
 }
 export type ValidationError = {
-    code: string
-    errors: LocalError[]
-    message: string
-    rule_name: string
+    loc: string
+    msg: string
+    input: string
+    type: string
 }
 export type RuleResult = {
     message: string
     passed: boolean
     rule_name: string
-}
-
-type LocalError = {
-    code: string
-    missing_files: string[]
-    patterns: string[]
-    message: string
 }
 
 export enum SubmissionStatus {
