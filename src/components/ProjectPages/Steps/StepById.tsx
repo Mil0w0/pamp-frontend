@@ -1,39 +1,42 @@
-import {useParams} from 'react-router'
-import {StepBox} from '@/components/ProjectPages/Steps/StepBox.tsx'
-import {stepsService} from '@/services/ProjectService/project-api-client.ts'
-import {toast} from 'sonner'
-import {ChangeEvent, useEffect, useState} from 'react'
-import {ProjectGroup, Step} from '@/components/ProjectPages/types.ts'
-import {Label} from '@/components/ui/label.tsx'
-import {Input} from '@/components/ui/input.tsx'
+import { useParams } from 'react-router'
+import { StepBox } from '@/components/ProjectPages/Steps/StepBox.tsx'
+import { stepsService } from '@/services/ProjectService/project-api-client.ts'
+import { toast } from 'sonner'
+import { ChangeEvent, useEffect, useState } from 'react'
+import { ProjectGroup, Step } from '@/components/ProjectPages/types.ts'
+import { Label } from '@/components/ui/label.tsx'
+import { Input } from '@/components/ui/input.tsx'
 import {
     Tabs,
     TabsContent,
     TabsList,
     TabsTrigger,
 } from '@/components/ui/tabs.tsx'
-import {useSelector} from 'react-redux'
-import {RootState} from '@/store'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/store'
 import {
     CheckIcon,
     ClockIcon,
     DownloadIcon,
-    FileIcon, GithubIcon,
+    ExternalLink,
+    FileIcon,
+    GithubIcon,
     TrashIcon,
 } from 'lucide-react'
-import {Button} from '@/components/ui/button.tsx'
+import { Button } from '@/components/ui/button.tsx'
 import {
     SubmissionDTO,
     SubmissionResponse,
     SubmissionStatus,
     ValidationError,
 } from '@/services/SubmissionService/types.ts'
-import {sumbissionService} from '@/services/SubmissionService/submission-api-client.ts'
-import {createS3UploadFunction} from '@/utils/fileUpload.ts'
-import {DateTime} from 'luxon'
+import { sumbissionService } from '@/services/SubmissionService/submission-api-client.ts'
+import { createS3UploadFunction } from '@/utils/fileUpload.ts'
+import { DateTime } from 'luxon'
+import { OpenLinkButton } from '@blocknote/react'
 
 export function StepById() {
-    const {stepId, projectId} = useParams()
+    const { stepId, projectId } = useParams()
     const [step, setStep] = useState<Partial<Step> | null>(null)
     const [isloading, setisLoading] = useState<boolean>(false)
     const [errors, setErrors] = useState<string[] | null>(null)
@@ -59,10 +62,10 @@ export function StepById() {
         submitted_by: 'John Doe',
     }
     const [submission, setSubmission] = useState<SubmissionResponse | null>(
-        sampleSubmission
+        null
     )
-    const {currentUser} = useSelector((state: RootState) => state.user)
-    const {currentProject} = useSelector((state: RootState) => state.project)
+    const { currentUser } = useSelector((state: RootState) => state.user)
+    const { currentProject } = useSelector((state: RootState) => state.project)
     const isStudent = currentUser?.role === 'STUDENT'
     const [currentUserGroup, setCurrentUserGroup] =
         useState<ProjectGroup | null>(null)
@@ -232,7 +235,7 @@ export function StepById() {
             })
 
             const uploadedUrl = await uploadToS3(file)
-            setSubmissionLocal({...submissionLocal, link: uploadedUrl})
+            setSubmissionLocal({ ...submissionLocal, link: uploadedUrl })
             toast.success('Upload successful!')
             return true
         } catch (err) {
@@ -281,7 +284,7 @@ export function StepById() {
                         ))}
 
                     <TabsContent value="link">
-                        <div className="mt-4 space-y-2">
+                        <div className="mt-4 space-y-2 shadow-sm bg-white dark:bg-muted p-6  rounded-xl border">
                             <Label htmlFor="submission-link">Repo link</Label>
                             <Input
                                 id="submission-link"
@@ -299,9 +302,19 @@ export function StepById() {
                             </Button>
                         </div>
                         {submission && submission.link_type === 'github' && (
-                            <div className="flex mt-2 justify-start gap-4">
+                            <div className="flex mt-2 justify-start items-center gap-4 ">
                                 <p> Current file: </p>
                                 <GithubIcon />
+                                <p
+                                    className="cursor-pointer"
+                                    onClick={() =>
+                                        (window.location.href =
+                                            submission?.link)
+                                    }
+                                >
+                                    Link: {submission.link}
+                                    <ExternalLink />
+                                </p>
                                 <p>
                                     Created at:{' '}
                                     {DateTime.fromISO(
