@@ -36,7 +36,7 @@ export default function AddProjectModal() {
                 if (response.data && !(response.data instanceof Array)) {
                     const id = response.data.id
                     toast.success('Successfully created')
-                    navigate(`/projects/${id}`)
+                    navigate(`/projects/${id}/settings`)
                 }
             } else {
                 toast.error(response.error)

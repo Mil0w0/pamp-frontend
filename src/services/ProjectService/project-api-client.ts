@@ -62,14 +62,10 @@ export const projectService = {
             return handleApiError(err.message)
         }
     },
-    getAll: async (
-        userId: string,
-        batchId: string,
-        isStudent: boolean
-    ): Promise<ProjectApiResponse> => {
+    getAll: async (userId: string): Promise<ProjectApiResponse> => {
         try {
             const response = await fetch(
-                `${PROJECT_API_URL}/projects?userId=${userId}${isStudent ? '&batchId=' + batchId : ''}`,
+                `${PROJECT_API_URL}/projects?userId=${userId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('auth_token')}`,

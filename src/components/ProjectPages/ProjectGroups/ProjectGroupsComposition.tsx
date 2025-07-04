@@ -13,6 +13,7 @@ import { ProjectGroup } from '@/components/ProjectPages/types.ts'
 import { LogOutIcon } from 'lucide-react'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
+import { DateTime } from 'luxon'
 
 type ProjectGroupsCompositionProps = {
     currentProject: Project
@@ -39,11 +40,27 @@ export default function ProjectGroupsComposition({
 
     // Handle drag drop student movement
     const handleDragEnd = (e: DragEndEvent) => {
-        console.log(groups)
         const { active, over } = e
         if (!active?.id || !over?.id) return
         const studentId = active.id as string
         const targetGroupId = over.id
+
+        //Students
+        if (
+            currentUser?.role === 'STUDENT' &&
+            currentProject.creationGroupDeadLineDate
+        ) {
+            const deadLineDate = DateTime.fromISO(
+                currentProject.creationGroupDeadLineDate
+            )
+            console.log(deadLineDate.toFormat('dd/MM'))
+            if (deadLineDate < DateTime.now()) {
+                toast.warning(
+                    "Students can't make groups anymore, deadline passed. The teacher will fill in the groups randomly."
+                )
+                return
+            }
+        }
 
         setGroups((prevGroups) =>
             prevGroups.map((group) => {
@@ -143,9 +160,13 @@ export default function ProjectGroupsComposition({
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
         >
-            <h2 className="mt-4 text-xl">
-                Drag and drop the students to move them to a group
-            </h2>
+            {currentUser?.role === 'TEACHER' ? (
+                <h2 className="mt-4 text-xl">
+                    Drag and drop the students to move them to a group
+                </h2>
+            ) : (
+                <h2 className="mt-4">Drag and drop yourself to a group</h2>
+            )}
 
             <div className="grid grid-cols-[1fr_4fr] gap-8 p-6 items-start">
                 {/* Available Students */}

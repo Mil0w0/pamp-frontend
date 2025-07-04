@@ -8,7 +8,7 @@ import {
 import { Separator } from '@/components/ui/separator.tsx'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
     fetchAllProjects,
     fetchGroupById,
@@ -16,9 +16,15 @@ import {
 } from '@/store/project.slice.ts'
 import { Link, useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
-import { Button } from '@/components/ui/button.tsx'
-import { toast } from 'sonner'
 import { SquareArrowOutUpRight } from 'lucide-react'
+import { DraggableStudent } from '@/components/AddStudentToStudentBatch/DraggableStudent.tsx'
+import { ProjectGroup } from '@/components/ProjectPages/types.ts'
+import { Student } from '@/components/ManageStudentBatches/types.ts'
+import { authService } from '@/services/UserService/auth-api-client.ts'
+import { toast } from 'sonner'
+import { StepsSubmissionDataTable } from '@/components/ProjectPages/ProjectGroups/StepsSubmissionDataTable.tsx'
+import { sumbissionService } from '@/services/SubmissionService/submission-api-client.ts'
+import { SubmissionResponse } from '@/services/SubmissionService/types.ts'
 
 export default function ProjectGroupsById() {
     const { projectId, groupId } = useParams()
@@ -26,6 +32,70 @@ export default function ProjectGroupsById() {
     const { currentProject, currentGroup } = useSelector(
         (state: RootState) => state.project
     )
+    const [allStudents, setAllStudents] = useState<Student[]>([])
+    const [groupsStudents, setGroupsStudents] = useState<Student[]>([])
+    const [submissions, setSubmissions] = useState<SubmissionResponse[] | null>(
+        null
+    )
+
+    const getStudentsForGroup = (
+        group: ProjectGroup,
+        allStudents: Student[]
+    ) => {
+        console.log(group)
+        const ids = (group.studentsIds ?? '')
+            .split(',')
+            .map((id) => id.trim())
+            .filter(Boolean)
+
+        setGroupsStudents(
+            allStudents.filter((student) => ids.includes(student.user_id))
+        )
+    }
+    const getAllStudents = async () => {
+        try {
+            const response = await authService.getStudents()
+            if (response.success) {
+                return response.data as Student[]
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error('Something went wrong.')
+            console.error(error)
+        }
+    }
+    const loadAllGroupsSubmissions = async () => {
+        if (!groupId) return
+        if (!projectId) return
+        try {
+            const response = await sumbissionService.getAllByGroup(
+                groupId,
+                projectId
+            )
+            if (response.success) {
+                if (response.data) {
+                    setSubmissions(response.data)
+                    console.log(response.data)
+                }
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error('Error : Error while fetching submission')
+            console.error(error)
+        }
+    }
+
+    useEffect(() => {
+        getAllStudents()
+            .then((students) => {
+                if (typeof students !== 'undefined') {
+                    setAllStudents(students)
+                }
+            })
+            .catch((error) => console.log(error))
+    }, [])
 
     useEffect(() => {
         if (projectId) {
@@ -36,6 +106,13 @@ export default function ProjectGroupsById() {
         }
         dispatch(fetchAllProjects())
     }, [dispatch, projectId, groupId])
+
+    useEffect(() => {
+        if (currentGroup && allStudents.length > 0) {
+            getStudentsForGroup(currentGroup, allStudents)
+            loadAllGroupsSubmissions()
+        }
+    }, [currentGroup, allStudents])
 
     if (!currentProject || !currentGroup) {
         return <Skeleton />
@@ -73,12 +150,32 @@ export default function ProjectGroupsById() {
             <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
                 <h1 className="text-2xl">{currentGroup.name}</h1>
                 <section id="general">
-                    <h2 className="text-xl">Common</h2>
-                    <h2 className="text-lg">Grade</h2>
+                    <h2 className="text-xl">Students: </h2>
+                    <div className="flex flex-col space-y-2 w-1/4">
+                        {groupsStudents.length > 0 ? (
+                            groupsStudents.map((student) => (
+                                <DraggableStudent
+                                    key={student.user_id}
+                                    student={student}
+                                />
+                            ))
+                        ) : (
+                            <div className="text-muted-foreground text-sm">
+                                No students yet
+                            </div>
+                        )}
+                    </div>
                 </section>
 
                 <section id="submissions">
-                    <h2 className="text-xl">Submissions</h2>
+                    <h2 className="text-xl font-semibold mb-4">
+                        Submissions by Step
+                    </h2>
+                    <StepsSubmissionDataTable
+                        groupId={currentGroup.id}
+                        steps={currentProject.steps}
+                        submissions={submissions}
+                    />
                 </section>
 
                 <section id="submissions">
@@ -103,13 +200,6 @@ export default function ProjectGroupsById() {
                         <SquareArrowOutUpRight />
                     </Link>
                 </section>
-
-                <Button
-                    onClick={() => toast.warning('Not implemented yet')}
-                    className="self-start"
-                >
-                    Save changes
-                </Button>
             </div>
         </div>
     )

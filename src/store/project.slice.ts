@@ -60,8 +60,8 @@ export const fetchGroupById = createAsyncThunk(
 // Async thunk to load all projects
 export const fetchAllProjects = createAsyncThunk(
     'project/fetchAll',
-    async () => {
-        const res = await projectService.getAll()
+    async (userId: string) => {
+        const res = await projectService.getAll(userId)
         return res?.data as Project[]
     }
 )

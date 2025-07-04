@@ -282,7 +282,7 @@ export function StepById() {
         try {
             const uploadToS3 = createS3UploadFunction({
                 maxFileSize: 300 * 1024 * 1024,
-                bucketName: 'pamp-reports-images', //fixme: change bucket name
+                bucketName: 'pamp-step-submission',
                 keyPrefix: `projects/${currentProject.id}/groups/${currentUserGroup.id}/steps/${stepId}/`,
             })
 
@@ -304,7 +304,6 @@ export function StepById() {
     }, [currentProject, stepId, projectId, currentUser])
 
     //Display Step Box
-    //Display a box to see and send submissions for this step
     if (isloading) {
         return <LoadingSpinner />
     }
@@ -459,11 +458,13 @@ export function StepById() {
                     </TabsContent>
                 </Tabs>
             ) : (
-                <GroupsSubmissionDataTable
-                    groups={currentProject?.groups}
-                    submissions={stepSubmissions}
-                    stepDeadline={step.submissionDeadLine}
-                />
+                !isStudent && (
+                    <GroupsSubmissionDataTable
+                        groups={currentProject?.groups}
+                        submissions={stepSubmissions}
+                        stepDeadline={step.submissionDeadLine}
+                    />
+                )
             )}
         </div>
     )

@@ -91,6 +91,35 @@ export const sumbissionService = {
             return handleMultipleSubmissionApiError(err.message)
         }
     },
+    getAllByGroup: async (
+        groupId: string,
+        projectId: string
+    ): Promise<MultipleSubmissionApiResponse> => {
+        try {
+            const response = await fetch(
+                `${SUBMISSION_API_URL}/submissions/project/${projectId}/group/${groupId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
+            )
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleMultipleSubmissionApiError(error.message)
+            } else {
+                const submission: SubmissionResponse[] = await response.json()
+                console.log(submission)
+                return {
+                    success: true,
+                    data: submission,
+                }
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleMultipleSubmissionApiError(err.message)
+        }
+    },
     createOne: async (
         submissionDto: SubmissionDTO
     ): Promise<CreatedSubmissionResponse | SubmissionApiResponse> => {
