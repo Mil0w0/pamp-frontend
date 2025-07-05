@@ -1,7 +1,7 @@
 import React from 'react'
-import { ReportDefinition } from '@/services/ProjectService/project-api-client'
 import { Project } from '@/components/ManageProjects/types'
 import { ProjectGroup } from '@/components/ProjectPages/types'
+import { ReportDefinition } from '@/services/ProjectService/types.ts'
 
 export interface TeacherReviewReportContentProps {
     projectId: string

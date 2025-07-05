@@ -8,12 +8,12 @@ import { ProjectGroup } from '@/components/ProjectPages/types.ts'
 
 export type SubmissionRow = {
     id?: string
-    created_at: string
+    created_at?: string
     link?: string
     link_type?: string
     group_name: string
     isLate?: boolean
-    hasSubmitted: boolean
+    hasSubmitted?: boolean
 }
 
 export const columns: ColumnDef<SubmissionRow>[] = [

@@ -7,7 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card'
-import { ReportDefinition } from '@/services/ProjectService/project-api-client'
+import { ReportDefinition } from '@/services/ProjectService/types.ts'
 
 interface GradingRubricCardProps {
     reportDefinition: ReportDefinition | null
