@@ -88,6 +88,12 @@ export function AppSidebar({
                         ? group.studentsIds?.includes(currentUser.user_id)
                         : true
                 )
+                .sort((a, b) => {
+                    const getNumber = (name: string) =>
+                        parseInt(name.replace(/\D/g, ''))
+
+                    return getNumber(a.name) - getNumber(b.name)
+                })
                 .map((group) => ({
                     title: group.name,
                     url: `/projects/${currentProject.id}/groups/${group.id}`,

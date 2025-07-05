@@ -185,20 +185,27 @@ function CustomHeader() {
                                 <div className="space-y-2 py-6">
                                     <a
                                         href="/projects"
-                                        className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold hover:bg-gray-50"
+                                        className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold hover:bg-accent"
                                     >
                                         My projects
                                     </a>
 
                                     {currentUser &&
-                                        currentUser.role !== 'STUDENT' && (
-                                            <a
-                                                href="/student-batches"
-                                                className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold hover:bg-gray-50"
-                                            >
-                                                My student batches
-                                            </a>
-                                        )}
+                                    currentUser.role !== 'STUDENT' ? (
+                                        <a
+                                            href="/student-batches"
+                                            className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold hover:bg-accent"
+                                        >
+                                            My student batches
+                                        </a>
+                                    ) : (
+                                        <a
+                                            href="/student/dashboard"
+                                            className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold hover:bg-accent "
+                                        >
+                                            Dashboard
+                                        </a>
+                                    )}
                                 </div>
 
                                 <div className="py-6">
@@ -208,7 +215,7 @@ function CustomHeader() {
                                                 ? '/login'
                                                 : '/logout'
                                         }
-                                        className="-mx-3 block rounded-lg px-3 py-2.5 text-base/7 font-semibold hover:bg-gray-50"
+                                        className="-mx-3 block rounded-lg px-3 py-2.5 text-base/7 font-semibold hover:bg-accent"
                                     >
                                         {!loginLogoutLink
                                             ? 'Log in'
