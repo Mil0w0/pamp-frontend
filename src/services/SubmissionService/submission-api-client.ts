@@ -9,7 +9,7 @@ import { ApiErrorMessage } from '@/services/ProjectService/types.ts'
 
 export const SUBMISSION_API_URL: string =
     window.RUNTIME_CONFIG?.SUBMISSION_API_URL ||
-    import.meta.env.SUBMISSION_API_URL ||
+    import.meta.env.VITE_SUBMISSION_API_URL ||
     'http://localhost:3002'
 
 const handleSubmissionApiError = (error: string): SubmissionApiResponse => {
