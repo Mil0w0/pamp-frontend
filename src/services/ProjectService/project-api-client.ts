@@ -265,9 +265,16 @@ export const groupService = {
             } else {
                 const groups: ProjectGroup[] = await response.json()
                 console.log(groups)
+                //ORDER GROUPS BY THEIR NAME NUMBER
+                const sortedGroups = (groups as ProjectGroup[]).sort((a, b) => {
+                    const getNumber = (name: string) =>
+                        parseInt(name.replace(/\D/g, ''))
+
+                    return getNumber(a.name) - getNumber(b.name)
+                })
                 return {
                     success: true,
-                    data: groups,
+                    data: sortedGroups,
                 }
             }
         } catch (error) {
