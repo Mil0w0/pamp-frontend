@@ -19,15 +19,13 @@ import { Button } from '@/components/ui/button'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
 import { useEffect, useState } from 'react'
-import { fetchAllProjects, fetchProjectById } from '@/store/project.slice'
+import { fetchProjectById } from '@/store/project.slice'
 import { useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ChevronDownIcon, PlusIcon, TrashIcon } from 'lucide-react'
-import {
-    reportDefinitionService,
-    UpsertReportDefinitionDto,
-} from '@/services/ProjectService/project-api-client'
 import { toast } from 'sonner'
+import { UpsertReportDefinitionDto } from '@/services/ProjectService/types.ts'
+import { reportDefinitionService } from '@/services/ProjectService/project-api-client.ts'
 
 type ReportFormat = 'classic' | 'questionnaire'
 
@@ -86,7 +84,6 @@ export default function ProjectByIdPageReportDefinition() {
             dispatch(fetchProjectById(projectId))
             loadReportDefinition(projectId)
         }
-        dispatch(fetchAllProjects())
     }, [dispatch, projectId])
 
     const handleMandatoryReportChange = (checked: boolean) => {

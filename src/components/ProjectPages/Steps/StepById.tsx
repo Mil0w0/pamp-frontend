@@ -34,6 +34,7 @@ import { createS3UploadFunction } from '@/utils/fileUpload.ts'
 import { DateTime } from 'luxon'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
 import GroupsSubmissionDataTable from '@/components/ProjectPages/Steps/GroupsSubmissionDataTable.tsx'
+import { ApiErrorMessage } from '@/services/ProjectService/types.ts'
 
 export function StepById() {
     const { stepId, projectId } = useParams()
@@ -280,8 +281,9 @@ export function StepById() {
 
             return await uploadToS3(file)
         } catch (err) {
+            const error = err as ApiErrorMessage
             console.error(err)
-            toast.error(err.message)
+            toast.error(error.message)
             return null
         } finally {
             setisLoading(false)

@@ -24,14 +24,16 @@ export default function ProjectByIdPageStepConfig() {
     const { projectId } = useParams()
     const dispatch = useDispatch<AppDispatch>()
     const { currentProject } = useSelector((state: RootState) => state.project)
+    const { currentUser } = useSelector((state: RootState) => state.user)
     const [steps, setSteps] = useState<Partial<Step>[]>([])
 
     useEffect(() => {
         if (projectId) {
             dispatch(fetchProjectById(projectId))
         }
-        dispatch(fetchAllProjects())
-    }, [dispatch, projectId])
+        if (!currentUser) return
+        dispatch(fetchAllProjects(currentUser.user_id))
+    }, [dispatch, projectId, currentUser])
 
     useEffect(() => {
         if (currentProject && currentProject.steps) {
