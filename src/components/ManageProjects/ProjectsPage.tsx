@@ -98,7 +98,7 @@ export default function ProjectsPage() {
             if (response.success) {
                 toast.success('Copied successfully')
                 const copiedProject = response.data as Project
-                navigate(`/projects/${copiedProject.id}`)
+                navigate(`/projects/${copiedProject.id}/settings`)
             } else {
                 toast.error(response.error)
             }
