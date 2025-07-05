@@ -27,7 +27,6 @@ import { Button } from '@/components/ui/button.tsx'
 import {
     SubmissionDTO,
     SubmissionResponse,
-    SubmissionStatus,
     ValidationError,
 } from '@/services/SubmissionService/types.ts'
 import { sumbissionService } from '@/services/SubmissionService/submission-api-client.ts'
