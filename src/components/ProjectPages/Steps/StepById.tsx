@@ -48,31 +48,10 @@ export function StepById() {
         group_uuid: '',
         link: '',
         link_type: '',
-        project_step: stepId || '',
+        project_step_uuid: stepId || '',
         rules: [],
     })
-    const sampleSubmission: SubmissionResponse = {
-        created_at: '2025-06-15T11:00:00Z',
-        group_uuid: 'ecf78cb5-07fd-41fc-ae88-85e45b7edc51',
-        id: '550e8400-e29b-41d4-a716-446655440000',
-        link: 'https://pamp-reports-images.s3.eu-west-1.amazonaws.com/projects/ca690eb6-4bde-455c-aa12-52adef734223/groups/1544d099-d642-44a0-a440-7eca0d3f55ae/steps/15da4300-bbb3-47b6-aac2-8c1cd343fd81/18060267-24c2-4555-9921-9175292b8cb4.png',
-        link_type: 's3',
-        project_step: 'step_1',
-        project_uuid: '550e8400-e29b-41d4-a716-446655440001',
-        status: SubmissionStatus.COMPLETED,
-        submitted_by: 'John Doe',
-    }
-    const sampleSubmission2: SubmissionResponse = {
-        created_at: '2025-07-15T11:00:00Z',
-        group_uuid: '1544d099-d642-44a0-a440-7eca0d3f55ae',
-        id: '550e8400-e29b-41d4-a716-446655440000',
-        link: 'https://github.com/user/repository.git',
-        link_type: 'github',
-        project_step: 'step_1',
-        project_uuid: '550e8400-e29b-41d4-a716-446655440001',
-        status: SubmissionStatus.COMPLETED,
-        submitted_by: 'John Doe',
-    }
+
     const [submission, setSubmission] = useState<SubmissionResponse | null>(
         null
     )
@@ -151,10 +130,11 @@ export function StepById() {
 
     const checkConformity = async () => {
         setisLoading(true)
-        console.log('checkConformity')
+        console.log(submissionLocal)
 
         //Check if user can submit even after a dealine
         if (!step) return
+        if (!projectId) return
         if (
             !step.allowSubmittingAfterDeadLine &&
             step.submissionDeadLine &&
@@ -182,12 +162,25 @@ export function StepById() {
                     link: s3UrlUploaded ? s3UrlUploaded : submissionLocal.link,
                 })
                 console.log(response)
-                if (response.success) {
+                if (
+                    response.success &&
+                    response.data &&
+                    'data' in response.data
+                ) {
                     //it got created
-                    toast.success(response.success)
+                    //Update step with the submissionID
+                    const updateStepResponse = await stepsService.update(
+                        projectId,
+                        step.id,
+                        { submissionId: response.data.data.id }
+                    )
+                    if (updateStepResponse.success) {
+                        toast.success(response.data.message)
+                    } else {
+                        toast.error('Something went wrong')
+                    }
                 } else {
                     //it didn't create
-                    toast.error(response.error)
                     if (response.data && response.data instanceof Array) {
                         setErrors(
                             response.data.map(
@@ -199,7 +192,7 @@ export function StepById() {
             }
         } catch (error) {
             toast.error('Something went wrong')
-            console.log(error)
+            console.error(error)
         } finally {
             setisLoading(false)
         }
@@ -289,6 +282,7 @@ export function StepById() {
             return await uploadToS3(file)
         } catch (err) {
             console.error(err)
+            toast.error(err.message)
             return null
         } finally {
             setisLoading(false)
@@ -350,45 +344,52 @@ export function StepById() {
                             <Button onClick={() => checkConformity()}>
                                 Send
                             </Button>
+
+                            {submission &&
+                                submission.link_type === 'github' && (
+                                    <div className="flex mt-2 justify-start items-center gap-4 ">
+                                        <p> Current file: </p>
+                                        <GithubIcon />
+                                        <p
+                                            className="cursor-pointer"
+                                            onClick={() =>
+                                                (window.location.href =
+                                                    submission?.link)
+                                            }
+                                        >
+                                            Link: {submission.link}
+                                            <ExternalLink />
+                                        </p>
+                                        <p>
+                                            Created at:{' '}
+                                            {DateTime.fromISO(
+                                                submission.created_at
+                                            ).toFormat('dd/MM/yyyy HH:mm')}
+                                        </p>
+                                        <p className="flex items-center gap-1">
+                                            Status:
+                                            {step.submissionDeadLine &&
+                                            DateTime.fromISO(
+                                                submission.created_at
+                                            ) >
+                                                DateTime.fromISO(
+                                                    step.submissionDeadLine
+                                                ) ? (
+                                                <ClockIcon className="text-red-600" />
+                                            ) : (
+                                                <CheckIcon className="text-green-600" />
+                                            )}
+                                        </p>
+                                        <p className="text-green-600">
+                                            Conformity: {'100 %'}
+                                        </p>
+                                        <TrashIcon
+                                            className="cursor-pointer"
+                                            onClick={() => deleteFromS3()}
+                                        />
+                                    </div>
+                                )}
                         </div>
-                        {submission && submission.link_type === 'github' && (
-                            <div className="flex mt-2 justify-start items-center gap-4 ">
-                                <p> Current file: </p>
-                                <GithubIcon />
-                                <p
-                                    className="cursor-pointer"
-                                    onClick={() =>
-                                        (window.location.href =
-                                            submission?.link)
-                                    }
-                                >
-                                    Link: {submission.link}
-                                    <ExternalLink />
-                                </p>
-                                <p>
-                                    Created at:{' '}
-                                    {DateTime.fromISO(
-                                        submission.created_at
-                                    ).toFormat('dd/MM/yyyy HH:mm')}
-                                </p>
-                                <p className="flex items-center gap-1">
-                                    Status:
-                                    {step.submissionDeadLine &&
-                                    DateTime.fromISO(submission.created_at) >
-                                        DateTime.fromISO(
-                                            step.submissionDeadLine
-                                        ) ? (
-                                        <ClockIcon className="text-red-600" />
-                                    ) : (
-                                        <CheckIcon className="text-green-600" />
-                                    )}
-                                </p>
-                                <TrashIcon
-                                    className="cursor-pointer"
-                                    onClick={() => deleteFromS3()}
-                                />
-                            </div>
-                        )}
                     </TabsContent>
 
                     <TabsContent value="file">
@@ -409,7 +410,7 @@ export function StepById() {
                                     Send
                                 </Button>
                             </div>
-                            {submission && (
+                            {submission && submission.link_type === 's3' && (
                                 <div>
                                     <Label>Current file: </Label>
                                     <div className="flex mt-2 justify-start gap-4">

@@ -9,11 +9,9 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label.tsx'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { useDispatch, useSelector } from 'react-redux'
-import { AppDispatch, RootState } from '@/store'
-import { ChangeEvent, useEffect, useState } from 'react'
-import { fetchAllProjects, fetchProjectById } from '@/store/project.slice.ts'
-import { useParams } from 'react-router'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/store'
+import { ChangeEvent, useState } from 'react'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
 import { Button } from '@/components/ui/button.tsx'
 import { Input } from '@/components/ui/input.tsx'
@@ -32,8 +30,6 @@ import { projectService } from '@/services/ProjectService/project-api-client.ts'
 
 const initialData: EditProjectDto = {}
 export default function ProjectByIdPageGroupConfig() {
-    const { projectId } = useParams()
-    const dispatch = useDispatch<AppDispatch>()
     const { currentProject } = useSelector((state: RootState) => state.project)
     const { currentUser } = useSelector((state: RootState) => state.user)
     const [open, setOpen] = useState(false)
@@ -44,12 +40,6 @@ export default function ProjectByIdPageGroupConfig() {
     )
     const [groupProjectData, setGroupProjectData] =
         useState<EditProjectDto>(initialData)
-    useEffect(() => {
-        if (projectId) {
-            dispatch(fetchProjectById(projectId))
-        }
-        dispatch(fetchAllProjects())
-    }, [dispatch, projectId])
 
     if (!currentProject) {
         return <Skeleton />
@@ -186,18 +176,6 @@ export default function ProjectByIdPageGroupConfig() {
                                     min={1}
                                     onChange={handleChange}
                                     defaultValue={currentProject.minPerGroup}
-                                />
-
-                                <Label className="mb-1" htmlFor="maxGroups">
-                                    Max groups allowed
-                                </Label>
-                                <Input
-                                    className="mb-2"
-                                    id="maxGroups"
-                                    type="number"
-                                    min={1}
-                                    onChange={handleChange}
-                                    defaultValue={currentProject.maxGroups}
                                 />
 
                                 <div className="flex gap-4">

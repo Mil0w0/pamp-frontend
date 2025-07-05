@@ -9,11 +9,7 @@ import { Separator } from '@/components/ui/separator.tsx'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
 import { useEffect, useState } from 'react'
-import {
-    fetchAllProjects,
-    fetchGroupById,
-    fetchProjectById,
-} from '@/store/project.slice.ts'
+import { fetchGroupById, fetchProjectById } from '@/store/project.slice.ts'
 import { Link, useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
 import { SquareArrowOutUpRight } from 'lucide-react'
@@ -73,6 +69,8 @@ export default function ProjectGroupsById() {
                 groupId,
                 projectId
             )
+            console.log('all groups submissions')
+            console.log(response)
             if (response.success) {
                 if (response.data) {
                     setSubmissions(response.data)
@@ -104,7 +102,6 @@ export default function ProjectGroupsById() {
         if (groupId) {
             dispatch(fetchGroupById(groupId))
         }
-        dispatch(fetchAllProjects())
     }, [dispatch, projectId, groupId])
 
     useEffect(() => {
