@@ -91,7 +91,7 @@ export function StepsSubmissionDataTable({
 
     const rows: StepSubmissionRow[] = requiredSteps.map((step) => {
         const sub = submissions?.find(
-            (s) => s.project_step === step.id && s.group_uuid === groupId
+            (s) => s.project_step_uuid === step.id && s.group_uuid === groupId
         )
         const created = sub?.created_at
         return {

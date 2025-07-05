@@ -3,7 +3,8 @@ export type SubmissionDTO = {
     link_type: string
     project_uuid: string
     group_uuid: string
-    project_step: string
+    project_step_uuid: string
+    submitted_by_uuid?: string
     rules: string[]
 }
 export type SubmissionResponse = {
@@ -11,11 +12,11 @@ export type SubmissionResponse = {
     link_type: string
     project_uuid: string
     group_uuid: string
-    project_step: string
+    project_step_uuid: string
     created_at: string
     id: string
     status: SubmissionStatus
-    submitted_by: string
+    submitted_by_uuid: string
     description?: number
     file_size_bytes?: number
     file_count?: number

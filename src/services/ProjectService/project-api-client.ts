@@ -267,7 +267,7 @@ export const groupService = {
                 console.log(groups)
                 return {
                     success: true,
-                    data: groups, //fixme : by project filter needed
+                    data: groups,
                 }
             }
         } catch (error) {
@@ -512,6 +512,39 @@ export const stepsService = {
                 return {
                     success: true,
                     data: project,
+                }
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleApiStepError(err.message)
+        }
+    },
+    update: async (
+        projectId: string,
+        id: string | undefined,
+        stepDTP: Partial<Step>
+    ): Promise<StepApiResponse> => {
+        if (!id) return handleApiStepError('Step id missing')
+        try {
+            const response = await fetch(
+                `${PROJECT_API_URL}/projects/${projectId}/steps/${id}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                    body: JSON.stringify(stepDTP),
+                }
+            )
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiStepError(error.message)
+            } else {
+                const step: Step = await response.json()
+                return {
+                    success: true,
+                    data: step,
                 }
             }
         } catch (error) {
