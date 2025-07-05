@@ -62,6 +62,29 @@ export const sumbissionService = {
             return handleSubmissionApiError(err.message)
         }
     },
+    getOneByStepAndGroup: async (
+        stepId: string,
+        projectId: string,
+        groupId: string
+    ): Promise<MultipleSubmissionApiResponse> => {
+        const sumbissionsOfTheGroup = await sumbissionService.getAllByGroup(
+            groupId,
+            projectId
+        )
+        if (!sumbissionsOfTheGroup.success) {
+            return handleMultipleSubmissionApiError(
+                'Loading submissions for this group and step went wrong'
+            )
+        }
+        const stepSubmissionsOfTheGroup = sumbissionsOfTheGroup.data?.filter(
+            (submission: SubmissionResponse) =>
+                submission.project_step_uuid === stepId
+        )
+        return {
+            success: true,
+            data: stepSubmissionsOfTheGroup,
+        }
+    },
     getAllBySteps: async (
         stepId: string,
         projectId: string

@@ -87,24 +87,30 @@ export function StepsSubmissionDataTable({
     steps: Step[]
 }) {
     // Filter steps that require submission
-    const requiredSteps = steps.filter((step) => step.hasMandatorySubmission)
+    const rows: StepSubmissionRow[] = steps
+        .filter((step) => step.hasMandatorySubmission)
+        .map((step) => {
+            const submission = submissions?.find(
+                (s) =>
+                    s.project_step_uuid === step.id && s.group_uuid === groupId
+            )
 
-    const rows: StepSubmissionRow[] = requiredSteps.map((step) => {
-        const sub = submissions?.find(
-            (s) => s.project_step_uuid === step.id && s.group_uuid === groupId
-        )
-        const created = sub?.created_at
-        return {
-            stepName: step.name,
-            created_at: created,
-            link: sub?.link,
-            link_type: sub?.link_type,
-            isLate: created
-                ? DateTime.fromISO(created) >
-                  DateTime.fromISO(step.submissionDeadLine)
-                : undefined,
-        }
-    })
+            const submittedAt = submission?.created_at
+            const deadline = step.submissionDeadLine
+
+            const isLate =
+                submittedAt && deadline
+                    ? DateTime.fromISO(submittedAt) > DateTime.fromISO(deadline)
+                    : undefined
+
+            return {
+                stepName: step.name,
+                created_at: submittedAt,
+                link: submission?.link,
+                link_type: submission?.link_type,
+                isLate,
+            }
+        })
 
     return (
         <div className="py-4">

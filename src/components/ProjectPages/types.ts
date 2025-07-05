@@ -16,7 +16,6 @@ export type Step = {
     submissionDeadLine: string
     hasMandatorySubmission: boolean
     allowSubmittingAfterDeadLine: boolean
-    submissionId?: string
 }
 
 export type PostStep = {

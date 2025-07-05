@@ -71,7 +71,6 @@ export function StepById() {
     }
     const loadAllStepSubmissions = async () => {
         if (!stepId) return
-        if (!step?.submissionId) return
         if (!projectId) return
         try {
             const response = await sumbissionService.getAllBySteps(
@@ -96,16 +95,20 @@ export function StepById() {
 
     const loadSubmission = async () => {
         if (!stepId) return
-        if (!step?.submissionId) return
         if (!projectId) return
+        if (!currentUserGroup) return
         console.log(stepId)
         try {
-            const response = await sumbissionService.getOneById(
-                step.submissionId
+            const response = await sumbissionService.getOneByStepAndGroup(
+                stepId,
+                projectId,
+                currentUserGroup?.id
             )
+            console.log('Submission')
+            console.log(response)
             if (response.success) {
-                if (response.data && 'data' in response.data) {
-                    setSubmission(response.data.data)
+                if (response.data && response.data.length === 1) {
+                    setSubmission(response.data[0])
                     console.log(response.data)
                 }
             } else {
@@ -169,16 +172,8 @@ export function StepById() {
                 ) {
                     //it got created
                     //Update step with the submissionID
-                    const updateStepResponse = await stepsService.update(
-                        projectId,
-                        step.id,
-                        { submissionId: response.data.data.id }
-                    )
-                    if (updateStepResponse.success) {
-                        toast.success(response.data.message)
-                    } else {
-                        toast.error('Something went wrong')
-                    }
+
+                    toast.success(response.data.message)
                 } else {
                     //it didn't create
                     if (response.data && response.data instanceof Array) {
