@@ -49,7 +49,7 @@ export function StepById() {
         link: '',
         link_type: '',
         project_step_uuid: stepId || '',
-        rules: [],
+        rules: null,
     })
 
     const [submission, setSubmission] = useState<SubmissionResponse | null>(
@@ -211,6 +211,11 @@ export function StepById() {
             if (response.success) {
                 if (response.data) {
                     setStep(response.data)
+                    setSubmissionLocal({
+                        ...submissionLocal,
+                        rules: response.data.submissionConformityRules,
+                    })
+                    console.log('STEP data')
                     console.log(response.data)
                 }
             } else {

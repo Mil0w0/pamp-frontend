@@ -1,4 +1,5 @@
 import { Project } from '@/components/ManageProjects/types.ts'
+import { ConformityRules } from '@/components/ProjectPages/ConformityRules/types.ts'
 
 export type ProjectGroup = {
     id: string
@@ -16,12 +17,5 @@ export type Step = {
     submissionDeadLine: string
     hasMandatorySubmission: boolean
     allowSubmittingAfterDeadLine: boolean
-}
-
-export type PostStep = {
-    name: string
-    description: string
-    submissionDeadLine: string
-    hasMandatorySubmission: boolean
-    allowSubmittingAfterDeadLine: boolean
+    submissionConformityRules: ConformityRules[]
 }

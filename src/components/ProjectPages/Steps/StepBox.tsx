@@ -8,6 +8,8 @@ import { Switch } from '@/components/ui/switch.tsx'
 import { DateTime } from 'luxon'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
+import StepSubmissionConformityRulesModal from '@/components/ProjectPages/ConformityRules/StepSubmissionConformityRulesModal.tsx'
+import { ConformityRules } from '@/components/ProjectPages/ConformityRules/types.ts'
 
 type StepBoxProps = {
     step: Partial<Step>
@@ -15,7 +17,7 @@ type StepBoxProps = {
     handleStepChange?: (
         index: number,
         field: keyof Step,
-        value: string | boolean
+        value: string | boolean | ConformityRules[]
     ) => void
     removeItem?: (index: number) => void
 }
@@ -120,6 +122,13 @@ export function StepBox({
                                     )
                                 }
                             />
+                            {step.hasMandatorySubmission && (
+                                <StepSubmissionConformityRulesModal
+                                    step={step}
+                                    stepIndex={index}
+                                    handleStepChange={handleStepChange}
+                                />
+                            )}
                         </div>
 
                         <div className="flex items-center gap-4 w-2/3">
