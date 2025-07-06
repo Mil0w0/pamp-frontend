@@ -1,5 +1,6 @@
 import {
     CreatedSubmissionResponse,
+    RulesAPIAvailable,
     SubmissionDTO,
     SubmissionResponse,
     ValidationError,
@@ -24,6 +25,11 @@ const handleMultipleSubmissionApiError = (
     return { success: false, error: error }
 }
 
+const handleRulesApiError = (error: string): RulesAPIResponse => {
+    console.error('API Erreur:', error)
+    return { success: false, error: error }
+}
+
 export type SubmissionApiResponse = {
     error?: string
     success: boolean
@@ -34,6 +40,11 @@ export type MultipleSubmissionApiResponse = {
     error?: string
     success: boolean
     data?: SubmissionResponse[]
+}
+export type RulesAPIResponse = {
+    error?: string
+    success: boolean
+    data?: RulesAPIAvailable
 }
 export const sumbissionService = {
     getOneById: async (id: string): Promise<SubmissionApiResponse> => {
@@ -141,6 +152,31 @@ export const sumbissionService = {
         } catch (error) {
             const err = error as ApiErrorMessage
             return handleMultipleSubmissionApiError(err.message)
+        }
+    },
+    getAvailableRules: async (): Promise<RulesAPIResponse> => {
+        try {
+            const response = await fetch(
+                `${SUBMISSION_API_URL}/submissions/rules/documentation`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
+            )
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleRulesApiError(error.message)
+            } else {
+                const rules: RulesAPIAvailable = await response.json()
+                return {
+                    success: true,
+                    data: rules,
+                }
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleRulesApiError(err.message)
         }
     },
     createOne: async (

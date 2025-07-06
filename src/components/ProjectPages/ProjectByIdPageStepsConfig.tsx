@@ -19,6 +19,7 @@ import { projectService } from '@/services/ProjectService/project-api-client.ts'
 import { Step } from '@/components/ProjectPages/types.ts'
 import PampButton from '@/components/ui/pamp-button.tsx'
 import { StepBox } from '@/components/ProjectPages/Steps/StepBox.tsx'
+import {ConformityRules} from "@/components/ProjectPages/ConformityRules/types.ts";
 
 export default function ProjectByIdPageStepConfig() {
     const { projectId } = useParams()
@@ -48,8 +49,9 @@ export default function ProjectByIdPageStepConfig() {
     const handleStepChange = (
         index: number,
         field: keyof Step,
-        value: string | boolean
+        value: string | boolean | ConformityRules[]
     ) => {
+        console.log(steps)
         setSteps((prevSteps) =>
             prevSteps.map((step, i) =>
                 i === index ? { ...step, [field]: value } : step

@@ -67,11 +67,7 @@ export function AppSidebar({
     allProjects,
     ...props
 }: AppSidebarProps) {
-    console.log('### DEBUG STORE (global state)')
-    console.log(allProjects)
-
     const { currentUser } = useSelector((state: RootState) => state.user)
-
     const [navLinks, setNavLinks] = React.useState<NavItem[]>(navMain)
 
     useEffect(() => {

@@ -1,3 +1,8 @@
+import {
+    AvailableRule,
+    ConformityRules,
+} from '@/components/ProjectPages/ConformityRules/types.ts'
+
 export type SubmissionDTO = {
     link: string
     link_type: string
@@ -5,7 +10,7 @@ export type SubmissionDTO = {
     group_uuid: string
     project_step_uuid: string
     submitted_by_uuid?: string
-    rules: string[]
+    rules: ConformityRules[] | null
 }
 export type SubmissionResponse = {
     link: string
@@ -52,4 +57,8 @@ export enum SubmissionStatus {
     COMPLETED = 'completed',
     FAILED = 'failed',
     REJECTED = 'rejected',
+}
+
+export type RulesAPIAvailable = {
+    available_rules: AvailableRule[]
 }
