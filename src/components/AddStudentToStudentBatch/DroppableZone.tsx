@@ -1,4 +1,6 @@
 import { useDroppable } from '@dnd-kit/core'
+import { cn } from '@/lib/utils'
+
 export const DroppableZone = ({
     id,
     children,
@@ -11,9 +13,11 @@ export const DroppableZone = ({
     return (
         <div
             ref={setNodeRef}
-            className={`min-h-[24vh] p-4 rounded ${
-                isOver ? 'border border-primary' : ''
-            }`}
+            className={cn(
+                'min-h-[100px] transition-all duration-200',
+                isOver &&
+                    'bg-primary/5 border-2 border-primary border-dashed rounded-lg'
+            )}
         >
             {children}
         </div>
