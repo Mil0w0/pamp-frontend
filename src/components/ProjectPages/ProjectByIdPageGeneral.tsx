@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton.tsx'
 import { Button } from '@/components/ui/button.tsx'
 import { toast } from 'sonner'
 import { projectService } from '@/services/ProjectService/project-api-client.ts'
+import StudentBatchAssignementSelector from '@/components/ManageProjects/StudentBatchAssignementSelector.tsx'
 
 export default function ProjectByIdPageGeneral() {
     const { projectId } = useParams()
@@ -119,17 +120,41 @@ export default function ProjectByIdPageGeneral() {
                     </div>
                 </div>
 
-                <Button
-                    onClick={() => publishProject()}
-                    className="w-fit"
-                    variant={
-                        currentProject?.isPublished ? 'outline' : 'default'
-                    }
-                >
-                    {currentProject?.isPublished
-                        ? 'Draft project'
-                        : 'Publish project'}
-                </Button>
+                <Separator className="my-4" />
+                <div className="flex flex-col gap-4">
+                    <div>
+                        <h2 className="text-lg font-semibold mb-2">
+                            Assign Promotion
+                        </h2>
+                        <StudentBatchAssignementSelector
+                            project={currentProject}
+                            userIsStudent={currentUser?.role === 'STUDENT'}
+                            onSuccess={() => {
+                                if (projectId) {
+                                    dispatch(fetchProjectById(projectId))
+                                }
+                            }}
+                        />
+                    </div>
+
+                    {/*separator with a section title "Publishing the project"*/}
+                    <Separator className="my-4" />
+                    <h2 className="text-lg font-semibold">
+                        Publishing the project
+                    </h2>
+
+                    <Button
+                        onClick={() => publishProject()}
+                        className="w-fit"
+                        variant={
+                            currentProject?.isPublished ? 'outline' : 'default'
+                        }
+                    >
+                        {currentProject?.isPublished
+                            ? 'Unpublish project'
+                            : 'Publish project'}
+                    </Button>
+                </div>
             </div>
         </div>
     )

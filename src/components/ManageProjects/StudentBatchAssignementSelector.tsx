@@ -17,11 +17,13 @@ import { useNavigate } from 'react-router'
 type StudentBatchAssignementSelectorProps = {
     project: Project
     userIsStudent: boolean
+    onSuccess?: () => void
 }
 
 export default function StudentBatchAssignementSelector({
     project,
     userIsStudent,
+    onSuccess,
 }: StudentBatchAssignementSelectorProps) {
     const [studentBatches, setStudentBatches] = useState<StudentBatch[]>()
     const navigate = useNavigate()
@@ -60,7 +62,11 @@ export default function StudentBatchAssignementSelector({
         try {
             const response = await projectService.editProject(project.id, data)
             if (response.success) {
-                navigate('/projects')
+                if (onSuccess) {
+                    onSuccess()
+                } else {
+                    navigate('/projects')
+                }
             } else {
                 toast.error(response.error)
             }
