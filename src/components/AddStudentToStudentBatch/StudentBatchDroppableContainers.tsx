@@ -1,4 +1,4 @@
-import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core'
+import { closestCenter, DndContext, DragEndEvent } from '@dnd-kit/core'
 import { useEffect, useState } from 'react'
 import { Student } from '@/components/ManageStudentBatches/types.ts'
 import { DroppableZone } from '@/components/AddStudentToStudentBatch/DroppableZone.tsx'
@@ -47,7 +47,11 @@ export default function StudentBatchDroppableContainers({
         const toAdd = availableStudents.filter(
             (s) => !selectedStudents.find((ss) => ss.user_id === s.user_id)
         )
-        setSelectedStudents(toAdd)
+        setSelectedStudents([...selectedStudents, ...toAdd])
+    }
+
+    const handleRemoveAll = () => {
+        setSelectedStudents([])
     }
 
     const handleFilterStudents = () => {}
@@ -105,6 +109,10 @@ export default function StudentBatchDroppableContainers({
                         <div className="flex-row flex mt-4 gap-4">
                             <Button variant="outline" onClick={handleAddAll}>
                                 Add all
+                            </Button>
+
+                            <Button variant="outline" onClick={handleRemoveAll}>
+                                Remove all
                             </Button>
 
                             <Button

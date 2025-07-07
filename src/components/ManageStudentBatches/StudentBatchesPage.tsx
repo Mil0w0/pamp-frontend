@@ -108,7 +108,11 @@ export default function StudentBatchesPage() {
                         </TableRow>
                     ) : (
                         studentBatches?.map((batch) => (
-                            <TableRow key={batch.id} className="h-4">
+                            <TableRow
+                                key={batch.id}
+                                className="h-4 cursor-pointer hover:bg-muted/50"
+                                onClick={() => goToStudentBatchesById(batch.id)}
+                            >
                                 <TableCell className="font-medium">
                                     <Badge
                                         variant={
@@ -128,7 +132,7 @@ export default function StudentBatchesPage() {
                                     {formatToShortDate(batch.createdAt)}
                                 </TableCell>
                                 <TableCell>{batch.tags}</TableCell>
-                                <TableCell>
+                                <TableCell onClick={(e) => e.stopPropagation()}>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button
