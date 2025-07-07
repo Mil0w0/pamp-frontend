@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Node, Edge, ReactFlowInstance, NodeChange } from 'reactflow'
 import { useTheme } from '@/components/ui/theme-provider'
 import {
@@ -7,7 +7,6 @@ import {
     adjustChildPositions,
     processEdges,
     getNodeStyling,
-    calculateOptimalZoom,
 } from '../utils'
 import { LayoutState } from '../types'
 
@@ -27,84 +26,30 @@ export const useReactFlowLayout = ({
         isTransitioning: false,
     })
 
-    // Refs to prevent circular dependencies and track zoom state
-    const isZoomingRef = useRef<boolean>(false)
-    const lastZoomAppliedRef = useRef<number>(0)
-    const sidebarCollapsedRef = useRef<boolean>(sidebarCollapsed)
+    // Simple fitView function using React Flow's native method
+    const applyFitView = useCallback(() => {
+        if (!reactFlowInstance) {
+            console.log('Cannot fit view: ReactFlow instance not available')
+            return
+        }
 
-    // Update sidebar ref when it changes
-    sidebarCollapsedRef.current = sidebarCollapsed
+        console.log('Applying fit view...')
+        setLayoutState((prev) => ({ ...prev, isApplyingZoom: true }))
 
-    // Reset zoom state when ReactFlow instance changes
-    useEffect(() => {
-        isZoomingRef.current = false
-        lastZoomAppliedRef.current = 0
+        // Use React Flow's native fitView with padding
+        reactFlowInstance.fitView({
+            padding: 0.1, // 10% padding around content
+            includeHiddenNodes: false,
+            minZoom: 0.1,
+            maxZoom: 1.5,
+            duration: 300, // Smooth animation
+        })
+
+        // Clear applying state after animation
+        setTimeout(() => {
+            setLayoutState((prev) => ({ ...prev, isApplyingZoom: false }))
+        }, 350)
     }, [reactFlowInstance])
-
-    // Apply dynamic zoom and center to the flow
-    const applyDynamicZoom = useCallback(
-        (nodes: Node[]) => {
-            if (!reactFlowInstance || !nodes || nodes.length === 0) {
-                console.log(
-                    'Cannot apply dynamic zoom: missing instance or nodes'
-                )
-                return
-            }
-
-            // Prevent multiple simultaneous zoom operations
-            if (isZoomingRef.current) {
-                console.log('Zoom already in progress, skipping...')
-                return
-            }
-
-            const now = Date.now()
-            // Throttle zoom applications to prevent rapid successive calls
-            if (now - lastZoomAppliedRef.current < 500) {
-                console.log('Zoom throttled, too soon since last application')
-                return
-            }
-
-            isZoomingRef.current = true
-            lastZoomAppliedRef.current = now
-            setLayoutState((prev) => ({ ...prev, isApplyingZoom: true }))
-
-            const { zoom, center } = calculateOptimalZoom(
-                nodes,
-                sidebarCollapsedRef.current
-            )
-
-            console.log('Applying dynamic zoom:', {
-                zoom: zoom.toFixed(2),
-                center,
-            })
-
-            // Apply the calculated zoom and center
-            requestAnimationFrame(() => {
-                if (reactFlowInstance) {
-                    reactFlowInstance.setViewport({
-                        x:
-                            -center.x * zoom +
-                            (sidebarCollapsedRef.current
-                                ? window.innerWidth - 64
-                                : window.innerWidth - 320) /
-                                2,
-                        y: -center.y * zoom + (window.innerHeight - 120) / 2,
-                        zoom: zoom,
-                    })
-                }
-
-                // Clear zoom applying state after animation
-                setTimeout(() => {
-                    isZoomingRef.current = false
-                    setLayoutState((prev) => ({
-                        ...prev,
-                        isApplyingZoom: false,
-                    }))
-                }, 300)
-            })
-        },
-        [reactFlowInstance] // Remove sidebarCollapsed dependency
-    )
 
     // Process nodes with ELK Layered layout
     const processNodes = useCallback(
@@ -140,9 +85,9 @@ export const useReactFlowLayout = ({
                     `ELK Layered layout applied to ${layoutedNodes.length} nodes with dynamic boundaries`
                 )
 
-                // Apply dynamic zoom after layout is complete
+                // Apply fit view after layout is complete
                 setTimeout(() => {
-                    applyDynamicZoom(layoutedNodes)
+                    applyFitView()
                 }, 100) // Small delay to ensure nodes are rendered
 
                 return layoutedNodes
@@ -156,8 +101,8 @@ export const useReactFlowLayout = ({
                 setLayoutState((prev) => ({ ...prev, isApplyingLayout: false }))
             }
         },
-        [theme, applyDynamicZoom]
-    ) // Use applyDynamicZoom which is stable now
+        [theme, applyFitView]
+    )
 
     // Handle node changes and recalculate boundaries for file containers
     const onNodesChangeWithBoundaryUpdate = useCallback(
@@ -218,44 +163,33 @@ export const useReactFlowLayout = ({
         [theme]
     )
 
-    // Handle sidebar toggle zoom adjustment
+    // Handle sidebar toggle - refit view when sidebar changes
     useEffect(() => {
-        // Only apply zoom if we have an instance and we're not currently zooming
-        if (reactFlowInstance && !isZoomingRef.current) {
+        if (reactFlowInstance) {
             // Small delay to allow sidebar animation to complete
             const timeoutId = setTimeout(() => {
-                if (!isZoomingRef.current) {
-                    const nodes = reactFlowInstance.getNodes()
-                    if (nodes.length > 0) {
-                        applyDynamicZoom(nodes)
-                    }
-                }
-            }, 350) // Slightly longer delay
+                applyFitView()
+            }, 350)
 
             return () => clearTimeout(timeoutId)
         }
-    }, [sidebarCollapsed]) // Only depend on sidebarCollapsed
+    }, [sidebarCollapsed, applyFitView])
 
-    // Handle window resize to reapply dynamic zoom
+    // Handle window resize - refit view when window resizes
     useEffect(() => {
         const handleResize = () => {
-            if (reactFlowInstance && !isZoomingRef.current) {
-                const nodes = reactFlowInstance.getNodes()
-                if (nodes.length > 0) {
-                    // Debounced zoom reapplication on window resize
-                    setTimeout(() => {
-                        if (!isZoomingRef.current) {
-                            applyDynamicZoom(nodes)
-                        }
-                    }, 150)
-                }
+            if (reactFlowInstance) {
+                // Debounced fit view on window resize
+                setTimeout(() => {
+                    applyFitView()
+                }, 150)
             }
         }
 
         let resizeTimeout: NodeJS.Timeout
         const debouncedResize = () => {
             clearTimeout(resizeTimeout)
-            resizeTimeout = setTimeout(handleResize, 300) // Longer debounce
+            resizeTimeout = setTimeout(handleResize, 300)
         }
 
         window.addEventListener('resize', debouncedResize)
@@ -263,7 +197,7 @@ export const useReactFlowLayout = ({
             window.removeEventListener('resize', debouncedResize)
             clearTimeout(resizeTimeout)
         }
-    }, []) // No dependencies - use refs instead
+    }, [applyFitView])
 
     return {
         reactFlowInstance,
@@ -272,7 +206,7 @@ export const useReactFlowLayout = ({
         setLayoutState,
         processNodes,
         processEdgesWithTheme,
-        applyDynamicZoom,
+        applyFitView,
         onNodesChangeWithBoundaryUpdate,
     }
 }

@@ -1,5 +1,5 @@
 import { Node, Edge } from 'reactflow'
-import { NodeStats, ZoomConfig, FilePair } from '../types'
+import { NodeStats, FilePair } from '../types'
 
 // Process edges to fix duplicate keys and invalid types
 export const processEdges = (rawEdges: Edge[], theme: string): Edge[] => {
@@ -259,97 +259,6 @@ export const getNodeStats = (nodes: Node[]): NodeStats => {
     }
     console.log('Node stats calculated:', stats)
     return stats
-}
-
-// Calculate optimal zoom level based on content bounds
-export const calculateOptimalZoom = (
-    nodes: Node[],
-    sidebarCollapsed: boolean
-): ZoomConfig => {
-    if (!nodes || nodes.length === 0) {
-        return { zoom: 1, center: { x: 0, y: 0 } }
-    }
-
-    console.log('Calculating optimal zoom for', nodes.length, 'nodes')
-
-    // Calculate bounding box of all nodes
-    let minX = Infinity,
-        maxX = -Infinity
-    let minY = Infinity,
-        maxY = -Infinity
-
-    nodes.forEach((node) => {
-        const x = node.position?.x || 0
-        const y = node.position?.y || 0
-
-        // More accurate dimension calculation
-        let width: number, height: number
-        if (node.data?.type === 'file_subflow') {
-            // Use actual calculated dimensions for file containers
-            width = parseFloat(
-                node.style?.width?.toString().replace('px', '') || '600'
-            )
-            height = parseFloat(
-                node.style?.height?.toString().replace('px', '') || '500'
-            )
-        } else {
-            // Use default or calculated dimensions for other nodes
-            width = parseFloat(
-                node.style?.width?.toString().replace('px', '') || '180'
-            )
-            height = parseFloat(
-                node.style?.height?.toString().replace('px', '') || '50'
-            )
-        }
-
-        minX = Math.min(minX, x)
-        maxX = Math.max(maxX, x + width)
-        minY = Math.min(minY, y)
-        maxY = Math.max(maxY, y + height)
-    })
-
-    // Handle edge case
-    if (minX === Infinity) {
-        return { zoom: 1, center: { x: 0, y: 0 } }
-    }
-
-    // Calculate content dimensions
-    const contentWidth = maxX - minX
-    const contentHeight = maxY - minY
-    const centerX = (minX + maxX) / 2
-    const centerY = (minY + maxY) / 2
-
-    // Get viewport dimensions (approximated)
-    const viewportWidth = sidebarCollapsed
-        ? window.innerWidth - 64
-        : window.innerWidth - 320
-    const viewportHeight = window.innerHeight - 120 // Account for header
-
-    // Calculate zoom to fit content with padding
-    const padding = 100
-    const zoomX = (viewportWidth - padding * 2) / contentWidth
-    const zoomY = (viewportHeight - padding * 2) / contentHeight
-
-    // Use the smaller zoom to ensure everything fits
-    const optimalZoom = Math.min(zoomX, zoomY)
-
-    // Clamp zoom between reasonable bounds
-    const clampedZoom = Math.max(0.1, Math.min(optimalZoom, 1.5))
-
-    console.log('Content bounds:', {
-        contentWidth: Math.round(contentWidth),
-        contentHeight: Math.round(contentHeight),
-        center: { x: Math.round(centerX), y: Math.round(centerY) },
-        viewportWidth,
-        viewportHeight,
-        calculatedZoom: optimalZoom.toFixed(2),
-        finalZoom: clampedZoom.toFixed(2),
-    })
-
-    return {
-        zoom: clampedZoom,
-        center: { x: centerX, y: centerY },
-    }
 }
 
 // Format code content for display

@@ -44,11 +44,6 @@ export interface NodeStats {
     fileSubflows: number
 }
 
-export interface ZoomConfig {
-    zoom: number
-    center: { x: number; y: number }
-}
-
 export interface BoundaryInfo {
     width: number
     height: number
