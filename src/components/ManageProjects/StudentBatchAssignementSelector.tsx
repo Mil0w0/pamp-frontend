@@ -85,7 +85,8 @@ export default function StudentBatchAssignementSelector({
             .catch((error) => toast.error(error))
     }, [])
 
-    const hasAssignedBatch = project.studentBatch && project.studentBatch.name.length > 0
+    const hasAssignedBatch =
+        project.studentBatch && project.studentBatch.name.length > 0
 
     // Show placeholder with pencil when batch is assigned and not editing
     if (hasAssignedBatch && !isEditing) {
@@ -110,8 +111,8 @@ export default function StudentBatchAssignementSelector({
 
     // Show selector when no batch assigned or when editing
     return (
-        <Select 
-            onValueChange={assignStudentBatch} 
+        <Select
+            onValueChange={assignStudentBatch}
             disabled={userIsStudent}
             open={isEditing ? undefined : undefined}
         >
