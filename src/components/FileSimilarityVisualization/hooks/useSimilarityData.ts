@@ -21,17 +21,22 @@ export const useSimilarityData = () => {
                         timestamp: result.data.timestamp,
                         layout_used: result.data.layout_used,
                         total_file_pairs: result.data.file_pairs?.length,
-                        total_file_pairs_with_similarity: result.data.total_file_pairs_with_similarity,
+                        total_file_pairs_with_similarity:
+                            result.data.total_file_pairs_with_similarity,
                     })
                     setData(result.data)
                 } else {
-                    const errorMessage = result.error || 'Failed to fetch similarity data'
+                    const errorMessage =
+                        result.error || 'Failed to fetch similarity data'
                     console.error('API Error:', errorMessage)
                     setError(errorMessage)
                 }
             } catch (err) {
                 console.error('Unexpected error in useSimilarityData:', err)
-                const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
+                const errorMessage =
+                    err instanceof Error
+                        ? err.message
+                        : 'An unexpected error occurred'
                 setError(errorMessage)
             } finally {
                 console.log('Setting loading to false')
@@ -53,4 +58,4 @@ export const useSimilarityData = () => {
             // The effect will run again and fetch data
         },
     }
-} 
+}

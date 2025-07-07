@@ -7,7 +7,7 @@ interface TopBarProps {
     layoutState: LayoutState
 }
 
-const TopBar: React.FC<TopBarProps> = ({ currentPair, layoutState }) => {
+export const TopBar: React.FC<TopBarProps> = ({ currentPair, layoutState }) => {
     return (
         <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -22,7 +22,8 @@ const TopBar: React.FC<TopBarProps> = ({ currentPair, layoutState }) => {
                     </span>
                     <Separator orientation="vertical" className="h-4" />
                     <span>Code Structure Analysis</span>
-                    {(layoutState.isApplyingZoom || layoutState.isTransitioning) && (
+                    {(layoutState.isApplyingZoom ||
+                        layoutState.isTransitioning) && (
                         <>
                             <Separator orientation="vertical" className="h-4" />
                             <div className="flex items-center gap-1 text-primary">
@@ -72,4 +73,4 @@ const TopBar: React.FC<TopBarProps> = ({ currentPair, layoutState }) => {
 
 export const VisualizationArea = {
     TopBar,
-} 
+}

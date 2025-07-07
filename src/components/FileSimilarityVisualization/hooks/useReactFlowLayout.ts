@@ -1,13 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Node, Edge, ReactFlowInstance, NodeChange } from 'reactflow'
 import { useTheme } from '@/components/ui/theme-provider'
-import { 
-    applyELKLayout, 
-    calculateSubflowBoundaries, 
-    adjustChildPositions, 
-    processEdges, 
-    getNodeStyling, 
-    calculateOptimalZoom 
+import {
+    applyELKLayout,
+    calculateSubflowBoundaries,
+    adjustChildPositions,
+    processEdges,
+    getNodeStyling,
+    calculateOptimalZoom,
 } from '../utils'
 import { LayoutState } from '../types'
 
@@ -15,9 +15,12 @@ interface UseReactFlowLayoutProps {
     sidebarCollapsed: boolean
 }
 
-export const useReactFlowLayout = ({ sidebarCollapsed }: UseReactFlowLayoutProps) => {
+export const useReactFlowLayout = ({
+    sidebarCollapsed,
+}: UseReactFlowLayoutProps) => {
     const { theme } = useTheme()
-    const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
+    const [reactFlowInstance, setReactFlowInstance] =
+        useState<ReactFlowInstance | null>(null)
     const [layoutState, setLayoutState] = useState<LayoutState>({
         isApplyingLayout: false,
         isApplyingZoom: false,
@@ -28,7 +31,7 @@ export const useReactFlowLayout = ({ sidebarCollapsed }: UseReactFlowLayoutProps
     const isZoomingRef = useRef<boolean>(false)
     const lastZoomAppliedRef = useRef<number>(0)
     const sidebarCollapsedRef = useRef<boolean>(sidebarCollapsed)
-    
+
     // Update sidebar ref when it changes
     sidebarCollapsedRef.current = sidebarCollapsed
 
@@ -42,7 +45,9 @@ export const useReactFlowLayout = ({ sidebarCollapsed }: UseReactFlowLayoutProps
     const applyDynamicZoom = useCallback(
         (nodes: Node[]) => {
             if (!reactFlowInstance || !nodes || nodes.length === 0) {
-                console.log('Cannot apply dynamic zoom: missing instance or nodes')
+                console.log(
+                    'Cannot apply dynamic zoom: missing instance or nodes'
+                )
                 return
             }
 
@@ -61,9 +66,12 @@ export const useReactFlowLayout = ({ sidebarCollapsed }: UseReactFlowLayoutProps
 
             isZoomingRef.current = true
             lastZoomAppliedRef.current = now
-            setLayoutState(prev => ({ ...prev, isApplyingZoom: true }))
-            
-            const { zoom, center } = calculateOptimalZoom(nodes, sidebarCollapsedRef.current)
+            setLayoutState((prev) => ({ ...prev, isApplyingZoom: true }))
+
+            const { zoom, center } = calculateOptimalZoom(
+                nodes,
+                sidebarCollapsedRef.current
+            )
 
             console.log('Applying dynamic zoom:', {
                 zoom: zoom.toFixed(2),
@@ -74,9 +82,12 @@ export const useReactFlowLayout = ({ sidebarCollapsed }: UseReactFlowLayoutProps
             requestAnimationFrame(() => {
                 if (reactFlowInstance) {
                     reactFlowInstance.setViewport({
-                        x: -center.x * zoom + (sidebarCollapsedRef.current
-                            ? window.innerWidth - 64
-                            : window.innerWidth - 320) / 2,
+                        x:
+                            -center.x * zoom +
+                            (sidebarCollapsedRef.current
+                                ? window.innerWidth - 64
+                                : window.innerWidth - 320) /
+                                2,
                         y: -center.y * zoom + (window.innerHeight - 120) / 2,
                         zoom: zoom,
                     })
@@ -85,7 +96,10 @@ export const useReactFlowLayout = ({ sidebarCollapsed }: UseReactFlowLayoutProps
                 // Clear zoom applying state after animation
                 setTimeout(() => {
                     isZoomingRef.current = false
-                    setLayoutState(prev => ({ ...prev, isApplyingZoom: false }))
+                    setLayoutState((prev) => ({
+                        ...prev,
+                        isApplyingZoom: false,
+                    }))
                 }, 300)
             })
         },
@@ -93,58 +107,65 @@ export const useReactFlowLayout = ({ sidebarCollapsed }: UseReactFlowLayoutProps
     )
 
     // Process nodes with ELK Layered layout
-    const processNodes = useCallback(async (
-        rawNodes: Node[],
-        rawEdges: Edge[] = []
-    ): Promise<Node[]> => {
-        console.log('Processing nodes with ELK Layered layout...')
-        if (!rawNodes || rawNodes.length === 0) {
-            return rawNodes
-        }
-
-        setLayoutState(prev => ({ ...prev, isApplyingLayout: true }))
-
-        // Apply proper styling based on node types
-        const styledNodes = rawNodes.map((node) => {
-            const styling = getNodeStyling(node, theme)
-
-            return {
-                ...node,
-                style: styling,
-                // Ensure draggable and selectable properties
-                draggable: true,
-                selectable: true,
+    const processNodes = useCallback(
+        async (rawNodes: Node[], rawEdges: Edge[] = []): Promise<Node[]> => {
+            console.log('Processing nodes with ELK Layered layout...')
+            if (!rawNodes || rawNodes.length === 0) {
+                return rawNodes
             }
-        })
 
-        // Apply ELK Layered layout algorithm
-        try {
-            const layoutedNodes = await applyELKLayout(styledNodes, rawEdges)
+            setLayoutState((prev) => ({ ...prev, isApplyingLayout: true }))
 
-            console.log(
-                `ELK Layered layout applied to ${layoutedNodes.length} nodes with dynamic boundaries`
-            )
+            // Apply proper styling based on node types
+            const styledNodes = rawNodes.map((node) => {
+                const styling = getNodeStyling(node, theme)
 
-            // Apply dynamic zoom after layout is complete
-            setTimeout(() => {
-                applyDynamicZoom(layoutedNodes)
-            }, 100) // Small delay to ensure nodes are rendered
+                return {
+                    ...node,
+                    style: styling,
+                    // Ensure draggable and selectable properties
+                    draggable: true,
+                    selectable: true,
+                }
+            })
 
-            return layoutedNodes
-        } catch (error) {
-            console.error(
-                'ELK Layered layout failed, falling back to styled nodes:',
-                error
-            )
-            return styledNodes
-        } finally {
-            setLayoutState(prev => ({ ...prev, isApplyingLayout: false }))
-        }
-    }, [theme, applyDynamicZoom]) // Use applyDynamicZoom which is stable now
+            // Apply ELK Layered layout algorithm
+            try {
+                const layoutedNodes = await applyELKLayout(
+                    styledNodes,
+                    rawEdges
+                )
+
+                console.log(
+                    `ELK Layered layout applied to ${layoutedNodes.length} nodes with dynamic boundaries`
+                )
+
+                // Apply dynamic zoom after layout is complete
+                setTimeout(() => {
+                    applyDynamicZoom(layoutedNodes)
+                }, 100) // Small delay to ensure nodes are rendered
+
+                return layoutedNodes
+            } catch (error) {
+                console.error(
+                    'ELK Layered layout failed, falling back to styled nodes:',
+                    error
+                )
+                return styledNodes
+            } finally {
+                setLayoutState((prev) => ({ ...prev, isApplyingLayout: false }))
+            }
+        },
+        [theme, applyDynamicZoom]
+    ) // Use applyDynamicZoom which is stable now
 
     // Handle node changes and recalculate boundaries for file containers
     const onNodesChangeWithBoundaryUpdate = useCallback(
-        (changes: NodeChange[], onNodesChange: (changes: NodeChange[]) => void, setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void) => {
+        (
+            changes: NodeChange[],
+            onNodesChange: (changes: NodeChange[]) => void,
+            setNodes: (nodes: Node[] | ((nodes: Node[]) => Node[])) => void
+        ) => {
             onNodesChange(changes)
 
             // Recalculate boundaries after node position changes
@@ -155,7 +176,8 @@ export const useReactFlowLayout = ({ sidebarCollapsed }: UseReactFlowLayoutProps
                 // Debounce boundary recalculation to avoid excessive updates
                 setTimeout(() => {
                     setNodes((currentNodes) => {
-                        const boundaries = calculateSubflowBoundaries(currentNodes)
+                        const boundaries =
+                            calculateSubflowBoundaries(currentNodes)
                         let updatedNodes = currentNodes.map((node) => {
                             if (node.data?.type === 'file_subflow') {
                                 const bounds = boundaries.get(node.id)
@@ -176,7 +198,10 @@ export const useReactFlowLayout = ({ sidebarCollapsed }: UseReactFlowLayoutProps
                         })
 
                         // Adjust child positions to be relative to their containers
-                        updatedNodes = adjustChildPositions(updatedNodes, boundaries)
+                        updatedNodes = adjustChildPositions(
+                            updatedNodes,
+                            boundaries
+                        )
                         return updatedNodes
                     })
                 }, 100) // 100ms debounce
@@ -186,9 +211,12 @@ export const useReactFlowLayout = ({ sidebarCollapsed }: UseReactFlowLayoutProps
     )
 
     // Process edges with theme-aware styling
-    const processEdgesWithTheme = useCallback((rawEdges: Edge[]): Edge[] => {
-        return processEdges(rawEdges, theme)
-    }, [theme])
+    const processEdgesWithTheme = useCallback(
+        (rawEdges: Edge[]): Edge[] => {
+            return processEdges(rawEdges, theme)
+        },
+        [theme]
+    )
 
     // Handle sidebar toggle zoom adjustment
     useEffect(() => {
@@ -247,4 +275,4 @@ export const useReactFlowLayout = ({ sidebarCollapsed }: UseReactFlowLayoutProps
         applyDynamicZoom,
         onNodesChangeWithBoundaryUpdate,
     }
-} 
+}
