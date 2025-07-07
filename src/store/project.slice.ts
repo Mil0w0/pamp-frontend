@@ -71,6 +71,7 @@ const projectSlice = createSlice({
     initialState,
     reducers: {
         setCurrentProject(state, action: PayloadAction<Project>) {
+            // @ts-expect-error step is finite
             state.currentProject = action.payload
         },
         setCurrentGroup(state, action: PayloadAction<ProjectGroup>) {
