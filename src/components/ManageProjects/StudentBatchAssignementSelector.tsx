@@ -13,6 +13,8 @@ import { batchService } from '@/services/UserService/auth-api-client.ts'
 import { toast } from 'sonner'
 import { projectService } from '@/services/ProjectService/project-api-client.ts'
 import { useNavigate } from 'react-router'
+import { Button } from '@/components/ui/button'
+import { PencilIcon } from 'lucide-react'
 
 type StudentBatchAssignementSelectorProps = {
     project: Project
@@ -26,6 +28,7 @@ export default function StudentBatchAssignementSelector({
     onSuccess,
 }: StudentBatchAssignementSelectorProps) {
     const [studentBatches, setStudentBatches] = useState<StudentBatch[]>()
+    const [isEditing, setIsEditing] = useState(false)
     const navigate = useNavigate()
 
     //Load student batches
@@ -62,6 +65,7 @@ export default function StudentBatchAssignementSelector({
         try {
             const response = await projectService.editProject(project.id, data)
             if (response.success) {
+                setIsEditing(false)
                 if (onSuccess) {
                     onSuccess()
                 } else {
@@ -81,13 +85,40 @@ export default function StudentBatchAssignementSelector({
             .catch((error) => toast.error(error))
     }, [])
 
+    const hasAssignedBatch = project.studentBatch && project.studentBatch.name.length > 0
+
+    // Show placeholder with pencil when batch is assigned and not editing
+    if (hasAssignedBatch && !isEditing) {
+        return (
+            <div className="flex items-center gap-2 w-fit">
+                <div className="flex-1 px-3 py-2 text-sm border rounded-md bg-background text-foreground font-medium">
+                    {project.studentBatch.name}
+                </div>
+                {!userIsStudent && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                        className="h-8 w-8 p-0 hover:bg-muted"
+                    >
+                        <PencilIcon className="h-4 w-4" />
+                    </Button>
+                )}
+            </div>
+        )
+    }
+
+    // Show selector when no batch assigned or when editing
     return (
-        <Select onValueChange={assignStudentBatch} disabled={userIsStudent}>
+        <Select 
+            onValueChange={assignStudentBatch} 
+            disabled={userIsStudent}
+            open={isEditing ? undefined : undefined}
+        >
             <SelectTrigger className="">
                 <SelectValue
                     placeholder={
-                        project.studentBatch &&
-                        project.studentBatch.name.length > 0
+                        hasAssignedBatch
                             ? project.studentBatch.name
                             : 'Select a batch'
                     }
