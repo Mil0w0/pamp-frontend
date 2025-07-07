@@ -60,7 +60,7 @@ const FileSimilarityVisualizationPage: React.FC = () => {
         setLayoutState,
         processNodes,
         processEdgesWithTheme,
-        applyDynamicZoom,
+        applyFitView,
         onNodesChangeWithBoundaryUpdate,
     } = useReactFlowLayout({ sidebarCollapsed })
 
@@ -120,8 +120,8 @@ const FileSimilarityVisualizationPage: React.FC = () => {
             return
         }
         lastZoomButtonClickRef.current = now
-        applyDynamicZoom(nodes)
-    }, [applyDynamicZoom, nodes])
+        applyFitView()
+    }, [applyFitView])
 
     // Initialize with first file pair when data loads
     useEffect(() => {
@@ -180,12 +180,12 @@ const FileSimilarityVisualizationPage: React.FC = () => {
 
             // Add a small delay to ensure nodes are rendered
             const timeoutId = setTimeout(() => {
-                applyDynamicZoom(nodes)
+                applyFitView()
             }, 300)
 
             return () => clearTimeout(timeoutId)
         }
-    }, [reactFlowInstance, nodes, selectedPairIndex, applyDynamicZoom])
+    }, [reactFlowInstance, nodes, selectedPairIndex, applyFitView])
 
     // Handle theme changes by reloading the page
     useEffect(() => {
