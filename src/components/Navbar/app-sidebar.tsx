@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useEffect } from 'react'
 import { BookOpen, Footprints, Settings2, UsersRound } from 'lucide-react'
 
 import { NavMain } from '@/components/Navbar/nav-main.tsx'
@@ -6,13 +7,17 @@ import { ProjectSwitcher } from '@/components/Navbar/project-switcher.tsx'
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarHeader,
     SidebarRail,
 } from '@/components/ui/sidebar.tsx'
 import { Project } from '@/components/ManageProjects/types.ts'
-import { useEffect } from 'react'
-import { useSelector } from 'react-redux'
-import { RootState } from '@/store'
+import { useDispatch, useSelector } from 'react-redux'
+import { AppDispatch, RootState } from '@/store'
+import { Button } from '@/components/ui/button.tsx'
+import { projectService } from '@/services/ProjectService/project-api-client.ts'
+import { toast } from 'sonner'
+import { fetchProjectById } from '@/store/project.slice.ts'
 
 export type NavSubItem = {
     title: string
@@ -68,6 +73,8 @@ export function AppSidebar({
     ...props
 }: AppSidebarProps) {
     const { currentUser } = useSelector((state: RootState) => state.user)
+    const dispatch = useDispatch<AppDispatch>()
+
     const [navLinks, setNavLinks] = React.useState<NavItem[]>(navMain)
 
     useEffect(() => {
@@ -155,8 +162,35 @@ export function AppSidebar({
         ])
     }, [currentProject, currentUser])
 
+    const publishProject = async () => {
+        if (!currentProject) return
+        if (!currentProject.id) return
+        try {
+            const response = await projectService.editProject(
+                currentProject.id,
+                {
+                    isPublished: !currentProject.isPublished,
+                }
+            )
+            if (response.success) {
+                toast.success(
+                    'Successfully published. Students will receive a mail '
+                )
+                dispatch(fetchProjectById(currentProject.id))
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error(`Une erreur est survenue. ${error}`)
+        }
+    }
+
     return (
-        <Sidebar collapsible="icon" {...props} className={'top-24'}>
+        <Sidebar
+            collapsible="icon"
+            {...props}
+            className={'top-24 h-[calc(100vh-6rem)]'}
+        >
             <SidebarHeader>
                 <ProjectSwitcher
                     projects={allProjects}
@@ -166,6 +200,19 @@ export function AppSidebar({
             <SidebarContent>
                 <NavMain items={navLinks} />
             </SidebarContent>
+            <SidebarFooter className={'items-center pb-5'}>
+                <Button
+                    onClick={() => publishProject()}
+                    className="w-fit"
+                    variant={
+                        currentProject?.isPublished ? 'outline' : 'default'
+                    }
+                >
+                    {currentProject?.isPublished
+                        ? 'Draft project'
+                        : 'Publish project'}
+                </Button>
+            </SidebarFooter>
             <SidebarRail />
         </Sidebar>
     )
