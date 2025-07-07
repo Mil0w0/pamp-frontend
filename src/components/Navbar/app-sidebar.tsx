@@ -209,7 +209,7 @@ export function AppSidebar({
                     }
                 >
                     {currentProject?.isPublished
-                        ? 'Draft project'
+                        ? 'Unpublish project'
                         : 'Publish project'}
                 </Button>
             </SidebarFooter>
