@@ -1,5 +1,5 @@
 import { Node, Edge } from 'reactflow'
-import { NodeStats, ZoomConfig } from '../types'
+import { NodeStats, ZoomConfig, FilePair } from '../types'
 
 // Process edges to fix duplicate keys and invalid types
 export const processEdges = (rawEdges: Edge[], theme: string): Edge[] => {
@@ -19,9 +19,7 @@ export const processEdges = (rawEdges: Edge[], theme: string): Edge[] => {
         }
 
         if (edgeKey !== newEdge.id) {
-            console.log(
-                `Fixed duplicate edge key: ${newEdge.id} -> ${edgeKey}`
-            )
+            console.log(`Fixed duplicate edge key: ${newEdge.id} -> ${edgeKey}`)
             newEdge.id = edgeKey
         }
 
@@ -84,9 +82,7 @@ export const processEdges = (rawEdges: Edge[], theme: string): Edge[] => {
                         : 'rgba(248, 250, 252, 0.9)',
                     padding: '3px 6px',
                     borderRadius: '4px',
-                    border: isDark
-                        ? '1px solid #64748b'
-                        : '1px solid #cbd5e1',
+                    border: isDark ? '1px solid #64748b' : '1px solid #cbd5e1',
                 }
 
                 // Background styling for the label
@@ -161,9 +157,7 @@ export const getNodeStyling = (node: Node, theme: string) => {
                     background: isDark
                         ? 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)'
                         : 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
-                    border: isDark
-                        ? '3px solid #ef4444'
-                        : '3px solid #f44336',
+                    border: isDark ? '3px solid #ef4444' : '3px solid #f44336',
                     borderRadius: '12px',
                     padding: '12px',
                     fontWeight: '600',
@@ -180,9 +174,7 @@ export const getNodeStyling = (node: Node, theme: string) => {
                     background: isDark
                         ? 'linear-gradient(135deg, #92400e 0%, #a16207 100%)'
                         : 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)',
-                    border: isDark
-                        ? '2px solid #f59e0b'
-                        : '2px solid #ff9800',
+                    border: isDark ? '2px solid #f59e0b' : '2px solid #ff9800',
                     borderRadius: '10px',
                     padding: '10px',
                     boxShadow: isDark
@@ -199,9 +191,7 @@ export const getNodeStyling = (node: Node, theme: string) => {
                 background: isDark
                     ? 'linear-gradient(135deg, #581c87 0%, #6b21a8 100%)'
                     : 'linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%)',
-                border: isDark
-                    ? '2px dashed #a855f7'
-                    : '2px dashed #9c27b0',
+                border: isDark ? '2px dashed #a855f7' : '2px dashed #9c27b0',
                 borderRadius: '10px',
                 padding: '10px',
                 fontSize: '10px',
@@ -242,9 +232,7 @@ export const getNodeStats = (nodes: Node[]): NodeStats => {
         }
     }
 
-    const fileNodes = nodes.filter(
-        (node) => node.data?.type === 'file'
-    ).length
+    const fileNodes = nodes.filter((node) => node.data?.type === 'file').length
     const fileSubflows = nodes.filter(
         (node) => node.data?.type === 'file_subflow'
     ).length
@@ -258,8 +246,7 @@ export const getNodeStats = (nodes: Node[]): NodeStats => {
         (node) => node.data?.type === 'similarity_comment'
     ).length
     const similarFunctions = nodes.filter(
-        (node) =>
-            node.data?.type === 'function' && node.data?.has_similarity
+        (node) => node.data?.type === 'function' && node.data?.has_similarity
     ).length
 
     const stats = {
@@ -373,7 +360,10 @@ export const formatCode = (code: string): string => {
 }
 
 // Get similarity score display
-export const getSimilarityScoreDisplay = (node: Node, currentPair?: any): string => {
+export const getSimilarityScoreDisplay = (
+    node: Node,
+    currentPair?: FilePair
+): string => {
     if (node.data?.similarity_score !== undefined) {
         return (node.data.similarity_score * 100).toFixed(1)
     }
@@ -382,17 +372,18 @@ export const getSimilarityScoreDisplay = (node: Node, currentPair?: any): string
         currentPair?.react_flow?.analysis_metadata?.average_similarity
     ) {
         return (
-            currentPair.react_flow.analysis_metadata.average_similarity *
-            100
+            currentPair.react_flow.analysis_metadata.average_similarity * 100
         ).toFixed(1)
     }
     return '0'
 }
 
 // Get similarity badge variant based on score
-export const getSimilarityBadgeVariant = (score: number): 'destructive' | 'secondary' | 'outline' | 'default' => {
+export const getSimilarityBadgeVariant = (
+    score: number
+): 'destructive' | 'secondary' | 'outline' | 'default' => {
     if (score >= 0.8) return 'destructive'
     if (score >= 0.6) return 'secondary'
     if (score >= 0.4) return 'outline'
     return 'default'
-} 
+}

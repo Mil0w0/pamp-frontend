@@ -6,7 +6,9 @@ import {
     Connection,
     ConnectionMode,
     Controls,
+    Edge,
     Node,
+    NodeChange,
     ReactFlow,
     useEdgesState,
     useNodesState,
@@ -43,8 +45,10 @@ const FileSimilarityVisualizationPage: React.FC = () => {
     const [edges, setEdges, onEdgesChange] = useEdgesState([])
 
     // Store stable references to prevent re-render loops
-    const processNodesRef = useRef<any>(null)
-    const processEdgesRef = useRef<any>(null)
+    const processNodesRef = useRef<
+        ((nodes: Node[], edges: Edge[]) => Promise<Node[]>) | null
+    >(null)
+    const processEdgesRef = useRef<((edges: Edge[]) => Edge[]) | null>(null)
 
     // Custom hooks
     const { data, loading, error } = useSimilarityData()
@@ -102,7 +106,7 @@ const FileSimilarityVisualizationPage: React.FC = () => {
 
     // Handle node changes with boundary updates
     const handleNodesChange = useCallback(
-        (changes: any) => {
+        (changes: NodeChange[]) => {
             onNodesChangeWithBoundaryUpdate(changes, onNodesChange, setNodes)
         },
         [onNodesChangeWithBoundaryUpdate, onNodesChange, setNodes]

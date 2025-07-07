@@ -36,9 +36,7 @@ export const calculateSubflowBoundaries = (
     const boundaries = new Map<string, BoundaryInfo>()
 
     // Get all file containers
-    const fileContainers = nodes.filter(
-        (n) => n.data?.type === 'file_subflow'
-    )
+    const fileContainers = nodes.filter((n) => n.data?.type === 'file_subflow')
 
     fileContainers.forEach((container) => {
         // Find all children of this container
@@ -64,12 +62,8 @@ export const calculateSubflowBoundaries = (
         children.forEach((child) => {
             const x = child.position?.x || 0
             const y = child.position?.y || 0
-            const width = parseFloat(
-                child.style?.width?.toString() || '180'
-            )
-            const height = parseFloat(
-                child.style?.height?.toString() || '50'
-            )
+            const width = parseFloat(child.style?.width?.toString() || '180')
+            const height = parseFloat(child.style?.height?.toString() || '50')
 
             minX = Math.min(minX, x)
             maxX = Math.max(maxX, x + width)
@@ -141,9 +135,7 @@ export const applyELKLayout = async (
     const elk = new ELK()
 
     // Separate file containers from child nodes
-    const fileContainers = nodes.filter(
-        (n) => n.data?.type === 'file_subflow'
-    )
+    const fileContainers = nodes.filter((n) => n.data?.type === 'file_subflow')
     const childNodes = nodes.filter((n) => n.parentNode)
     const standaloneNodes = nodes.filter(
         (n) => !n.parentNode && n.data?.type !== 'file_subflow'
@@ -183,8 +175,7 @@ export const applyELKLayout = async (
                         'elk.direction': 'DOWN',
                         'elk.spacing.nodeNode': '60',
                         'elk.layered.spacing.nodeNodeBetweenLayers': '80',
-                        'elk.padding':
-                            '[top=60,left=30,bottom=30,right=30]',
+                        'elk.padding': '[top=60,left=30,bottom=30,right=30]',
                     },
                     children: childNodes
                         .filter((child) => child.parentNode === fileNode.id)
@@ -265,4 +256,4 @@ export const applyELKLayout = async (
         console.error('ELK Layered layout failed:', error)
         return nodes // Return original nodes if layout fails
     }
-} 
+}

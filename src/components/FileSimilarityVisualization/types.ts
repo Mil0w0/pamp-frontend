@@ -71,4 +71,4 @@ export interface SimilarityVisualizationState {
     layoutState: LayoutState
     selectedSimilarityNode: Node | null
     isComparisonOpen: boolean
-} 
+}

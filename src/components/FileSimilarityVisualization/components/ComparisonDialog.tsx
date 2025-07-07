@@ -11,7 +11,11 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 import { FilePair } from '../types'
-import { formatCode, getSimilarityScoreDisplay, getSimilarityBadgeVariant } from '../utils'
+import {
+    formatCode,
+    getSimilarityScoreDisplay,
+    getSimilarityBadgeVariant,
+} from '../utils'
 
 interface ComparisonDialogProps {
     isOpen: boolean
@@ -52,15 +56,26 @@ export const ComparisonDialog: React.FC<ComparisonDialogProps> = ({
                                 <DialogDescription className="mt-1">
                                     <span className="flex items-center space-x-2 text-sm">
                                         <span>
-                                            Function: {selectedNode.data?.label || selectedNode.id}
+                                            Function:{' '}
+                                            {selectedNode.data?.label ||
+                                                selectedNode.id}
                                         </span>
                                         <Badge
                                             variant={getSimilarityBadgeVariant(
-                                                parseFloat(getSimilarityScoreDisplay(selectedNode, currentPair)) / 100
+                                                parseFloat(
+                                                    getSimilarityScoreDisplay(
+                                                        selectedNode,
+                                                        currentPair
+                                                    )
+                                                ) / 100
                                             )}
                                             className="text-xs"
                                         >
-                                            {getSimilarityScoreDisplay(selectedNode, currentPair)}% similar
+                                            {getSimilarityScoreDisplay(
+                                                selectedNode,
+                                                currentPair
+                                            )}
+                                            % similar
                                         </Badge>
                                     </span>
                                 </DialogDescription>
@@ -89,8 +104,11 @@ export const ComparisonDialog: React.FC<ComparisonDialogProps> = ({
                                         onClick={() =>
                                             copyToClipboard(
                                                 formatCode(
-                                                    selectedNode.data?.source_code?.file1_code ||
-                                                        selectedNode.data?.content ||
+                                                    selectedNode.data
+                                                        ?.source_code
+                                                        ?.file1_code ||
+                                                        selectedNode.data
+                                                            ?.content ||
                                                         ''
                                                 )
                                             )
@@ -105,7 +123,8 @@ export const ComparisonDialog: React.FC<ComparisonDialogProps> = ({
                                 <pre className="text-sm bg-card rounded-md p-4 border overflow-x-auto">
                                     <code className="text-foreground font-mono whitespace-pre">
                                         {formatCode(
-                                            selectedNode.data?.source_code?.file1_code ||
+                                            selectedNode.data?.source_code
+                                                ?.file1_code ||
                                                 selectedNode.data?.content ||
                                                 'No code content available'
                                         )}
@@ -132,8 +151,11 @@ export const ComparisonDialog: React.FC<ComparisonDialogProps> = ({
                                         onClick={() =>
                                             copyToClipboard(
                                                 formatCode(
-                                                    selectedNode.data?.source_code?.file2_code ||
-                                                        selectedNode.data?.content ||
+                                                    selectedNode.data
+                                                        ?.source_code
+                                                        ?.file2_code ||
+                                                        selectedNode.data
+                                                            ?.content ||
                                                         ''
                                                 )
                                             )
@@ -148,7 +170,8 @@ export const ComparisonDialog: React.FC<ComparisonDialogProps> = ({
                                 <pre className="text-sm bg-card rounded-md p-4 border overflow-x-auto">
                                     <code className="text-foreground font-mono whitespace-pre">
                                         {formatCode(
-                                            selectedNode.data?.source_code?.file2_code ||
+                                            selectedNode.data?.source_code
+                                                ?.file2_code ||
                                                 selectedNode.data?.content ||
                                                 'No code content available'
                                         )}
@@ -164,20 +187,33 @@ export const ComparisonDialog: React.FC<ComparisonDialogProps> = ({
                     <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-2">
-                                <span className="text-muted-foreground">Node Type:</span>
+                                <span className="text-muted-foreground">
+                                    Node Type:
+                                </span>
                                 <Badge variant="outline">
                                     {selectedNode.data?.type || 'unknown'}
                                 </Badge>
                             </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <span className="text-muted-foreground">Similarity Score:</span>
+                            <span className="text-muted-foreground">
+                                Similarity Score:
+                            </span>
                             <Badge
                                 variant={getSimilarityBadgeVariant(
-                                    parseFloat(getSimilarityScoreDisplay(selectedNode, currentPair)) / 100
+                                    parseFloat(
+                                        getSimilarityScoreDisplay(
+                                            selectedNode,
+                                            currentPair
+                                        )
+                                    ) / 100
                                 )}
                             >
-                                {getSimilarityScoreDisplay(selectedNode, currentPair)}%
+                                {getSimilarityScoreDisplay(
+                                    selectedNode,
+                                    currentPair
+                                )}
+                                %
                             </Badge>
                         </div>
                     </div>
@@ -185,4 +221,4 @@ export const ComparisonDialog: React.FC<ComparisonDialogProps> = ({
             </DialogContent>
         </Dialog>
     )
-} 
+}

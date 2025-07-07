@@ -1,3 +1,3 @@
 export { useSimilarityData } from './useSimilarityData'
 export { useReactFlowLayout } from './useReactFlowLayout'
-export { useFilePairNavigation } from './useFilePairNavigation' 
+export { useFilePairNavigation } from './useFilePairNavigation'
