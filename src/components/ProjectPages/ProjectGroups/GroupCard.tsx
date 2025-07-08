@@ -47,7 +47,7 @@ export function GroupCard({
         if (isUnderMin && !isEmpty)
             return <Badge variant="outline">Needs more students</Badge>
         if (isEmpty) return <Badge variant="outline">Empty</Badge>
-        return <Badge variant="default">Ready</Badge>
+        return <Badge variant="default">Valid</Badge>
     }
 
     return (

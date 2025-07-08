@@ -193,6 +193,161 @@ export default function ProjectGroupsComposition({
         setHasChanges(true)
     }
 
+    // Join group function for students
+    const handleJoinGroup = async (groupId: string) => {
+        if (currentUser?.role !== 'STUDENT') {
+            toast.warning('Only students can join groups.')
+            return
+        }
+
+        if (!canStudentMakeChanges()) {
+            toast.warning(
+                'Deadline has passed. You can no longer make changes to groups.'
+            )
+            return
+        }
+
+        const targetGroup = groups.find((g) => g.id === groupId)
+        if (!targetGroup) return
+
+        // Check if student is already in a group
+        const currentStudentGroup = groups.find((group) => {
+            const studentIds = (group.studentsIds ?? '')
+                .split(',')
+                .filter(Boolean)
+            return studentIds.includes(currentUser.user_id)
+        })
+
+        if (currentStudentGroup) {
+            toast.warning(
+                'You are already in a group. Please leave your current group first.'
+            )
+            return
+        }
+
+        // Check group capacity
+        const targetGroupIds = (targetGroup.studentsIds ?? '')
+            .split(',')
+            .filter(Boolean)
+        if (targetGroupIds.length >= currentProject.maxPerGroup) {
+            toast.warning(
+                `Group "${targetGroup.name}" is full (${currentProject.maxPerGroup} students maximum).`
+            )
+            return
+        }
+
+        // Add student to group and save immediately
+        const updatedGroups = groups.map((group) =>
+            group.id === groupId
+                ? {
+                      ...group,
+                      studentsIds: group.studentsIds
+                          ? `${group.studentsIds},${currentUser.user_id}`
+                          : currentUser.user_id,
+                  }
+                : group
+        )
+
+        setGroups(updatedGroups)
+
+        // Save immediately
+        try {
+            const response = await groupService.update(groupId, {
+                studentsIds:
+                    updatedGroups.find((g) => g.id === groupId)?.studentsIds ||
+                    '',
+            })
+
+            if (response.success) {
+                toast.success(`Successfully joined group "${targetGroup.name}"`)
+            } else {
+                toast.error(`Failed to join group: ${response.error}`)
+                // Revert changes on error
+                setGroups(groups)
+            }
+        } catch (error) {
+            toast.error('Failed to join group')
+            console.error(error)
+            // Revert changes on error
+            setGroups(groups)
+        }
+    }
+
+    // Leave group function for students
+    const handleLeaveGroup = async (groupId: string) => {
+        if (currentUser?.role !== 'STUDENT') {
+            toast.warning('Only students can leave groups.')
+            return
+        }
+
+        if (!canStudentMakeChanges()) {
+            toast.warning(
+                'Deadline has passed. You can no longer make changes to groups.'
+            )
+            return
+        }
+
+        const targetGroup = groups.find((g) => g.id === groupId)
+        if (!targetGroup) return
+
+        // Remove student from group and save immediately
+        const updatedGroups = groups.map((group) =>
+            group.id === groupId
+                ? {
+                      ...group,
+                      studentsIds: (group.studentsIds ?? '')
+                          .split(',')
+                          .filter((id) => id.trim() !== currentUser.user_id)
+                          .join(','),
+                  }
+                : group
+        )
+
+        setGroups(updatedGroups)
+
+        // Save immediately
+        try {
+            const response = await groupService.update(groupId, {
+                studentsIds:
+                    updatedGroups.find((g) => g.id === groupId)?.studentsIds ||
+                    '',
+            })
+
+            if (response.success) {
+                toast.success(`Successfully left group "${targetGroup.name}"`)
+            } else {
+                toast.error(`Failed to leave group: ${response.error}`)
+                // Revert changes on error
+                setGroups(groups)
+            }
+        } catch (error) {
+            toast.error('Failed to leave group')
+            console.error(error)
+            // Revert changes on error
+            setGroups(groups)
+        }
+    }
+
+    // Check if current student is in a specific group
+    const isStudentInGroup = (groupId: string): boolean => {
+        if (currentUser?.role !== 'STUDENT') return false
+        const group = groups.find((g) => g.id === groupId)
+        if (!group) return false
+        const studentIds = (group.studentsIds ?? '').split(',').filter(Boolean)
+        return studentIds.includes(currentUser.user_id)
+    }
+
+    // Check if current student is in any group
+    const isStudentInAnyGroup = (): boolean => {
+        if (currentUser?.role !== 'STUDENT') return false
+        return groups.some((group) => {
+            const studentIds = (group.studentsIds ?? '')
+                .split(',')
+                .filter(Boolean)
+            return studentIds.includes(currentUser.user_id)
+        })
+    }
+
     // Load batch students
     const loadBatchStudents = async () => {
         try {
@@ -366,27 +521,28 @@ export default function ProjectGroupsComposition({
                     </CardContent>
                 </Card>
 
-                {currentProject.creationGroupDeadLineDate && (
-                    <Card>
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-purple-600" />
-                                <div>
-                                    <p className="text-xs font-medium">
-                                        {deadlinePassed
-                                            ? 'Deadline passed'
-                                            : 'Deadline'}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {DateTime.fromISO(
-                                            currentProject.creationGroupDeadLineDate
-                                        ).toFormat('dd/MM HH:mm')}
-                                    </p>
+                {currentProject.creationGroupDeadLineDate &&
+                    currentProject.groupsCreator === 'STUDENT' && (
+                        <Card className="justify-center">
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4 text-purple-600" />
+                                    <div>
+                                        <p className="text-xs font-medium">
+                                            {deadlinePassed
+                                                ? 'Deadline passed'
+                                                : 'Deadline'}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {DateTime.fromISO(
+                                                currentProject.creationGroupDeadLineDate
+                                            ).toFormat('dd/MM HH:mm')}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+                            </CardContent>
+                        </Card>
+                    )}
             </div>
 
             {/* Instructions */}
@@ -421,12 +577,40 @@ export default function ProjectGroupsComposition({
                                     You can no longer make changes. The teacher
                                     will finalize group assignments.
                                 </p>
+                            ) : currentUser?.role === 'STUDENT' ? (
+                                currentProject.groupsCreator === 'STUDENT' ? (
+                                    <p className="text-sm">
+                                        Use the "Join Group" button to join a
+                                        group. You can only be in one group at a
+                                        time. Groups need{' '}
+                                        <Badge variant="outline">
+                                            {currentProject.minPerGroup}-
+                                            {currentProject.maxPerGroup}{' '}
+                                            students
+                                        </Badge>{' '}
+                                        to be valid.
+                                    </p>
+                                ) : (
+                                    <p className="text-sm">
+                                        Your teacher will assign you to a group.
+                                        Groups need{' '}
+                                        <Badge variant="outline">
+                                            {currentProject.minPerGroup}-
+                                            {currentProject.maxPerGroup}{' '}
+                                            students
+                                        </Badge>{' '}
+                                        to be valid.
+                                    </p>
+                                )
                             ) : (
                                 <p className="text-sm">
-                                    Drag and drop yourself to join a group. You
-                                    can only move yourself between groups.
-                                    Groups need {currentProject.minPerGroup}-
-                                    {currentProject.maxPerGroup} students.
+                                    Drag and drop students to move them between
+                                    groups. Groups need{' '}
+                                    <Badge variant="outline">
+                                        {currentProject.minPerGroup}-
+                                        {currentProject.maxPerGroup} students
+                                    </Badge>{' '}
+                                    to be valid.
                                 </p>
                             )}
                         </div>
@@ -434,171 +618,339 @@ export default function ProjectGroupsComposition({
                 </CardContent>
             </Card>
 
-            <DndContext
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-            >
-                <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-6">
-                    {/* Available Students Panel */}
-                    <Card className="h-fit">
-                        <CardHeader className="pb-4">
-                            <CardTitle className="flex items-center gap-2 text-lg">
-                                <Users className="h-5 w-5" />
-                                Available Students
-                                <Badge variant="secondary">
-                                    {availableStudents.length}
-                                </Badge>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <DroppableZone id="available">
-                                <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                                    {availableStudents.length > 0 ? (
-                                        availableStudents.map((student) => (
-                                            <StudentCard
-                                                key={student.user_id}
-                                                student={student}
-                                                canDrag={
-                                                    canStudentMakeChanges() &&
-                                                    (currentUser?.role !==
-                                                        'STUDENT' ||
-                                                        currentUser.user_id ===
-                                                            student.user_id)
-                                                }
-                                                isDragging={
-                                                    activeStudent?.user_id ===
-                                                    student.user_id
-                                                }
-                                            />
-                                        ))
-                                    ) : (
-                                        <div className="text-center p-6 text-muted-foreground">
-                                            <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                            <p className="text-sm">
-                                                All students assigned to groups
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </DroppableZone>
-                        </CardContent>
-                    </Card>
+            {/* Student UI - card-based interface */}
+            {currentUser?.role === 'STUDENT' ? (
+                <div className="space-y-4">
+                    {groups.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {groups.map((group) => {
+                                const assignedStudents = batchStudents.filter(
+                                    (student) =>
+                                        (group.studentsIds ?? '')
+                                            .split(',')
+                                            .map((id: string) => id.trim())
+                                            .includes(student.user_id)
+                                )
+                                const isStudentInThisGroup = isStudentInGroup(
+                                    group.id
+                                )
+                                const groupIsFull =
+                                    assignedStudents.length >=
+                                    currentProject.maxPerGroup
 
-                    {/* Groups Grid */}
-                    <div className="space-y-4">
-                        {groups.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {groups.map((group) => {
-                                    const assignedStudents =
-                                        batchStudents.filter((student) =>
-                                            (group.studentsIds ?? '')
-                                                .split(',')
-                                                .map((id: string) => id.trim())
-                                                .includes(student.user_id)
-                                        )
-
-                                    return (
-                                        <DroppableZone
-                                            key={group.id}
-                                            id={group.id}
-                                        >
-                                            <GroupCard
-                                                group={group}
-                                                studentCount={
-                                                    assignedStudents.length
-                                                }
-                                                minPerGroup={
-                                                    currentProject.minPerGroup
-                                                }
-                                                maxPerGroup={
-                                                    currentProject.maxPerGroup
-                                                }
-                                            >
+                                return (
+                                    <Card
+                                        key={group.id}
+                                        className={`relative ${isStudentInThisGroup ? 'ring-2 ring-purple-400' : ''}`}
+                                    >
+                                        <CardHeader className="pb-3">
+                                            <div className="flex items-center justify-between">
+                                                <CardTitle className="text-lg">
+                                                    {group.name}
+                                                </CardTitle>
+                                                <Badge
+                                                    variant={
+                                                        assignedStudents.length >=
+                                                            currentProject.minPerGroup &&
+                                                        assignedStudents.length <=
+                                                            currentProject.maxPerGroup
+                                                            ? 'default'
+                                                            : 'secondary'
+                                                    }
+                                                >
+                                                    {assignedStudents.length}/
+                                                    {currentProject.maxPerGroup}
+                                                </Badge>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-3">
                                                 <div className="space-y-2">
                                                     {assignedStudents.length >
                                                     0 ? (
                                                         assignedStudents.map(
                                                             (student) => (
-                                                                <StudentCard
+                                                                <div
                                                                     key={
                                                                         student.user_id
                                                                     }
-                                                                    student={
-                                                                        student
-                                                                    }
-                                                                    canDrag={
-                                                                        canStudentMakeChanges() &&
-                                                                        (currentUser?.role !==
-                                                                            'STUDENT' ||
-                                                                            currentUser.user_id ===
-                                                                                student.user_id)
-                                                                    }
-                                                                    isDragging={
-                                                                        activeStudent?.user_id ===
-                                                                        student.user_id
-                                                                    }
-                                                                    showRemoveButton={
-                                                                        canStudentMakeChanges() &&
-                                                                        (currentUser?.role !==
-                                                                            'STUDENT' ||
-                                                                            currentUser.user_id ===
-                                                                                student.user_id)
-                                                                    }
-                                                                    onRemove={() =>
-                                                                        handleRemoveStudent(
-                                                                            group.id,
-                                                                            student.user_id
-                                                                        )
-                                                                    }
-                                                                />
+                                                                    className="flex items-center gap-2 p-2 bg-muted rounded"
+                                                                >
+                                                                    <img
+                                                                        src={`https://api.dicebear.com/7.x/thumbs/svg?seed=${student.user_id}`}
+                                                                        alt="avatar"
+                                                                        className="w-6 h-6 rounded-full border flex-shrink-0"
+                                                                    />
+                                                                    <span className="text-sm">
+                                                                        {
+                                                                            student.first_name
+                                                                        }{' '}
+                                                                        {
+                                                                            student.last_name
+                                                                        }
+                                                                    </span>
+                                                                    {currentUser.user_id ===
+                                                                        student.user_id && (
+                                                                        <Badge
+                                                                            variant="outline"
+                                                                            className="ml-auto"
+                                                                        >
+                                                                            You
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
                                                             )
                                                         )
                                                     ) : (
-                                                        <div className="text-center p-4 text-muted-foreground border-2 border-dashed rounded-lg">
-                                                            <p className="text-xs">
-                                                                Drop students
-                                                                here
+                                                        <div className="text-center p-4 text-muted-foreground">
+                                                            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                            <p className="text-sm">
+                                                                No students in
+                                                                this group
                                                             </p>
                                                         </div>
                                                     )}
                                                 </div>
-                                            </GroupCard>
-                                        </DroppableZone>
-                                    )
-                                })}
-                            </div>
-                        ) : (
-                            <Card>
-                                <CardContent className="p-8 text-center">
-                                    <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                                    <h3 className="font-medium mb-2">
-                                        No Groups Available
-                                    </h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Groups will appear here after you save
-                                        your configuration settings.
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-                </div>
 
-                {/* Drag Overlay */}
-                <DragOverlay>
-                    {activeStudent && (
-                        <StudentCard
-                            student={activeStudent}
-                            isDragging={true}
-                            className="shadow-2xl rotate-3 scale-105"
-                        />
+                                                {canStudentMakeChanges() &&
+                                                    currentProject.groupsCreator ===
+                                                        'STUDENT' && (
+                                                        <div className="pt-2 border-t">
+                                                            {isStudentInThisGroup ? (
+                                                                <Button
+                                                                    onClick={() =>
+                                                                        handleLeaveGroup(
+                                                                            group.id
+                                                                        )
+                                                                    }
+                                                                    variant="outline"
+                                                                    className="w-full"
+                                                                    size="sm"
+                                                                >
+                                                                    Leave Group
+                                                                </Button>
+                                                            ) : !isStudentInAnyGroup() ? (
+                                                                <Button
+                                                                    onClick={() =>
+                                                                        handleJoinGroup(
+                                                                            group.id
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        groupIsFull
+                                                                    }
+                                                                    className="w-full"
+                                                                    size="sm"
+                                                                >
+                                                                    {groupIsFull
+                                                                        ? 'Group Full'
+                                                                        : 'Join Group'}
+                                                                </Button>
+                                                            ) : (
+                                                                <div className="text-center p-2 text-muted-foreground">
+                                                                    <p className="text-xs">
+                                                                        You are
+                                                                        already
+                                                                        in a
+                                                                        group
+                                                                    </p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <Card>
+                            <CardContent className="p-8 text-center">
+                                <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                                <h3 className="font-medium mb-2">
+                                    No Groups Available
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Groups will appear here after your teacher
+                                    saves the configuration settings.
+                                </p>
+                            </CardContent>
+                        </Card>
                     )}
-                </DragOverlay>
-            </DndContext>
+                </div>
+            ) : (
+                /* Teacher/Admin UI with drag-and-drop */
+                <DndContext
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                >
+                    <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-6">
+                        {/* Available Students Panel */}
+                        <Card className="h-fit">
+                            <CardHeader className="pb-4">
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <Users className="h-5 w-5" />
+                                    Available Students
+                                    <Badge variant="secondary">
+                                        {availableStudents.length}
+                                    </Badge>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DroppableZone id="available">
+                                    <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                                        {availableStudents.length > 0 ? (
+                                            availableStudents.map((student) => (
+                                                <StudentCard
+                                                    key={student.user_id}
+                                                    student={student}
+                                                    canDrag={
+                                                        canStudentMakeChanges() &&
+                                                        (currentUser?.role !==
+                                                            'STUDENT' ||
+                                                            currentUser.user_id ===
+                                                                student.user_id)
+                                                    }
+                                                    isDragging={
+                                                        activeStudent?.user_id ===
+                                                        student.user_id
+                                                    }
+                                                />
+                                            ))
+                                        ) : (
+                                            <div className="text-center p-6 text-muted-foreground">
+                                                <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                                <p className="text-sm">
+                                                    All students assigned to
+                                                    groups
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </DroppableZone>
+                            </CardContent>
+                        </Card>
 
-            {/* Save Changes */}
-            {groups.length > 0 && (
+                        {/* Groups Grid */}
+                        <div className="space-y-4">
+                            {groups.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {groups.map((group) => {
+                                        const assignedStudents =
+                                            batchStudents.filter((student) =>
+                                                (group.studentsIds ?? '')
+                                                    .split(',')
+                                                    .map((id: string) =>
+                                                        id.trim()
+                                                    )
+                                                    .includes(student.user_id)
+                                            )
+
+                                        return (
+                                            <DroppableZone
+                                                key={group.id}
+                                                id={group.id}
+                                            >
+                                                <GroupCard
+                                                    group={group}
+                                                    studentCount={
+                                                        assignedStudents.length
+                                                    }
+                                                    minPerGroup={
+                                                        currentProject.minPerGroup
+                                                    }
+                                                    maxPerGroup={
+                                                        currentProject.maxPerGroup
+                                                    }
+                                                >
+                                                    <div className="space-y-2">
+                                                        {assignedStudents.length >
+                                                        0 ? (
+                                                            assignedStudents.map(
+                                                                (student) => (
+                                                                    <StudentCard
+                                                                        key={
+                                                                            student.user_id
+                                                                        }
+                                                                        student={
+                                                                            student
+                                                                        }
+                                                                        canDrag={
+                                                                            canStudentMakeChanges() &&
+                                                                            (currentUser?.role !==
+                                                                                'STUDENT' ||
+                                                                                currentUser.user_id ===
+                                                                                    student.user_id)
+                                                                        }
+                                                                        isDragging={
+                                                                            activeStudent?.user_id ===
+                                                                            student.user_id
+                                                                        }
+                                                                        showRemoveButton={
+                                                                            canStudentMakeChanges() &&
+                                                                            (currentUser?.role !==
+                                                                                'STUDENT' ||
+                                                                                currentUser.user_id ===
+                                                                                    student.user_id)
+                                                                        }
+                                                                        onRemove={() =>
+                                                                            handleRemoveStudent(
+                                                                                group.id,
+                                                                                student.user_id
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                )
+                                                            )
+                                                        ) : (
+                                                            <div className="text-center p-4 text-muted-foreground border-2 border-dashed rounded-lg">
+                                                                <p className="text-xs">
+                                                                    Drop
+                                                                    students
+                                                                    here
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </GroupCard>
+                                            </DroppableZone>
+                                        )
+                                    })}
+                                </div>
+                            ) : (
+                                <Card>
+                                    <CardContent className="p-8 text-center">
+                                        <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                                        <h3 className="font-medium mb-2">
+                                            No Groups Available
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Groups will appear here after you
+                                            save your configuration settings.
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
+
+                        {/* Drag Overlay */}
+                        <DragOverlay>
+                            {activeStudent && (
+                                <StudentCard
+                                    student={activeStudent}
+                                    isDragging={true}
+                                    className="shadow-2xl rotate-3 scale-105"
+                                />
+                            )}
+                        </DragOverlay>
+                    </div>
+                </DndContext>
+            )}
+
+            {/* Save Changes - Hide for students when group creation is set to 'STUDENT' */}
+            {groups.length > 0 && !(currentUser?.role === 'STUDENT') && (
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
                     <div className="flex items-center gap-4">
                         {hasChanges ? (

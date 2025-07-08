@@ -71,7 +71,7 @@ export default function ProjectByIdPageGroupConfig() {
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
     const [refreshTrigger, setRefreshTrigger] = useState(0)
     const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-    const [setHasStudentsInGroups] = useState(false)
+    const [, setHasStudentsInGroups] = useState(false)
     const [fieldErrors, setFieldErrors] = useState<{
         groupsCreator?: boolean
         minPerGroup?: boolean
@@ -221,7 +221,11 @@ export default function ProjectByIdPageGroupConfig() {
             if (response.success && response.data) {
                 const groups = response.data as ProjectGroup[]
                 const hasStudents = groups.some((group) => {
-                    const studentIds = (group.studentsIds ?? '')
+                    // Add null check for group object
+                    if (!group || !group.studentsIds) {
+                        return false
+                    }
+                    const studentIds = group.studentsIds
                         .split(',')
                         .filter(Boolean)
                     return studentIds.length > 0
@@ -369,46 +373,57 @@ export default function ProjectByIdPageGroupConfig() {
                 {/* Page Header */}
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold tracking-tight">
-                        Group Configuration
+                        {/*either Groups for student or else Group Configuration*/}
+                        {currentUser?.role === 'STUDENT'
+                            ? 'Groups'
+                            : 'Group Configuration'}
                     </h1>
-                    <p className="text-muted-foreground">
-                        Configure how groups are created and managed for this
-                        project.
-                    </p>
+                    {currentUser?.role !== 'STUDENT' && (
+                        <p className="text-muted-foreground">
+                            Configure how groups are created and managed for
+                            this project.
+                        </p>
+                    )}
                 </div>
 
                 {/* Student View */}
                 {currentUser?.role === 'STUDENT' ? (
-                    <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-                        <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                                <Users className="h-5 w-5 text-blue-600 mt-0.5" />
-                                <div className="space-y-2">
-                                    <p className="text-sm">
-                                        Students have until{' '}
-                                        <strong>
-                                            {DateTime.fromISO(
-                                                currentProject.creationGroupDeadLineDate
-                                            ).toFormat('dd/MM/yyyy HH:mm')}
-                                        </strong>{' '}
-                                        to create groups of{' '}
-                                        {currentProject.minPerGroup} to{' '}
-                                        {currentProject.maxPerGroup} students.
-                                    </p>
-                                    {deadlineStatus && (
-                                        <StatusIndicator
-                                            type={deadlineStatus.type}
-                                            icon="calendar"
-                                            text={deadlineStatus.text}
-                                            description={
-                                                deadlineStatus.description
-                                            }
-                                        />
-                                    )}
+                    currentProject.groupsCreator === 'STUDENT' && (
+                        <Card>
+                            <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                    <Users className="h-5 w-5 text-blue-600 mt-0.5" />
+                                    <div className="space-y-2">
+                                        <p className="text-sm">
+                                            {currentUser.role === 'STUDENT'
+                                                ? 'You'
+                                                : 'Students'}{' '}
+                                            have until{' '}
+                                            <strong>
+                                                {DateTime.fromISO(
+                                                    currentProject.creationGroupDeadLineDate
+                                                ).toFormat('dd/MM/yyyy HH:mm')}
+                                            </strong>{' '}
+                                            to create groups of{' '}
+                                            {currentProject.minPerGroup} to{' '}
+                                            {currentProject.maxPerGroup}{' '}
+                                            students.
+                                        </p>
+                                        {deadlineStatus && (
+                                            <StatusIndicator
+                                                type={deadlineStatus.type}
+                                                icon="calendar"
+                                                text={deadlineStatus.text}
+                                                description={
+                                                    deadlineStatus.description
+                                                }
+                                            />
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    )
                 ) : (
                     /* Teacher Configuration */
                     <div className="grid gap-6 lg:grid-cols-2">
@@ -432,7 +447,7 @@ export default function ProjectByIdPageGroupConfig() {
                                       ? 'Manual'
                                       : groupProjectData.groupsCreator ===
                                           'STUDENT'
-                                        ? 'Student-led'
+                                        ? 'Students choice'
                                         : 'Automatic'
                             }
                         >
@@ -737,19 +752,6 @@ export default function ProjectByIdPageGroupConfig() {
                                         </div>
                                     </div>
                                 </div>
-
-                                {deadlineStatus && (
-                                    <div className="mt-4">
-                                        <StatusIndicator
-                                            type={deadlineStatus.type}
-                                            icon="calendar"
-                                            text={deadlineStatus.text}
-                                            description={
-                                                deadlineStatus.description
-                                            }
-                                        />
-                                    </div>
-                                )}
                             </ConfigurationSection>
                         )}
                     </div>
