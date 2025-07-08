@@ -20,6 +20,7 @@ import StudentBatchDroppableContainers from '@/components/AddStudentToStudentBat
 import { Input } from '@/components/ui/input.tsx'
 import { Button } from '@/components/ui/button.tsx'
 import { formatToShortDate } from '@/utils/dateFormatter.ts'
+import LoadingSpinner from '../ui/LoadingSpinner'
 
 export default function StudentBatchById() {
     const params = useParams()
@@ -91,7 +92,7 @@ export default function StudentBatchById() {
         return <Error404 />
     }
     if (isLoading) {
-        return 'is loading'
+        return <LoadingSpinner className={'w-full h-full self-center'} />
     }
     //TODO:  error handling
     return (

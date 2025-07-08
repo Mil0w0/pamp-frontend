@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner'
 import { UserLoginDto, UserLoginResponse } from '@/components/LogIn/types.ts'
 import { useDispatch } from 'react-redux'
+import { useNavigate, useLocation } from 'react-router'
 
 export default function LogIn({
     className,
@@ -23,11 +24,17 @@ export default function LogIn({
     })
 
     const [isLoading, setIsLoading] = useState(false)
+    const navigate = useNavigate()
+    const location = useLocation()
+    const dispatch = useDispatch()
+
+    // Get the original location the user was trying to access
+    const from = (location.state as any)?.from || '/'
+
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.currentTarget
         setFormData((prev) => ({ ...prev, [id]: value }))
     }
-    const dispatch = useDispatch()
 
     const handleLoginSubmit = async (e: FormEvent) => {
         e.preventDefault()
@@ -40,7 +47,7 @@ export default function LogIn({
             if (response.success) {
                 toast.success(`Logged in successfully`)
                 console.log(response.token)
-                window.location.href = '/'
+                navigate(from, { replace: true })
             } else {
                 toast.error(response.error)
             }

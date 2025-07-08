@@ -26,6 +26,7 @@ import AddProjectModal from '@/components/ManageProjects/AddProjectsModal.tsx'
 import StudentBatchAssignementSelector from '@/components/ManageProjects/StudentBatchAssignementSelector.tsx'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
+import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
 
 export default function ProjectsPage() {
     const navigate = useNavigate()
@@ -110,7 +111,11 @@ export default function ProjectsPage() {
     }
 
     if (!currentUser || !projects) {
-        return 'loading'
+        return (
+            <LoadingSpinner
+                className={'w-full h-[calc(100vh-6rem)] self-center'}
+            />
+        )
     }
 
     return (
