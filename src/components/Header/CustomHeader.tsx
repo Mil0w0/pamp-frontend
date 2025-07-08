@@ -3,6 +3,13 @@ import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
 import { fetchCurrentUser } from '@/store/user.slice.ts'
+import { MenuIcon } from 'lucide-react'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip.tsx'
+import UserProfile from '@/components/Header/UserProfile.tsx'
 
 function CustomHeader() {
     const { theme, setTheme } = useTheme()
@@ -11,6 +18,8 @@ function CustomHeader() {
         !localStorage.getItem('auth_token')
     )
     const { currentUser } = useSelector((state: RootState) => state.user)
+    const avatarUrl = `https://api.dicebear.com/7.x/thumbs/svg?seed=${currentUser?.user_id}`
+
     const dispatch = useDispatch<AppDispatch>()
 
     useEffect(() => {
@@ -48,17 +57,7 @@ function CustomHeader() {
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5"
                     >
-                        <span className="sr-only">Open main menu</span>
-                        <svg
-                            className="size-6"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            aria-hidden="true"
-                            data-slot="icon"
-                        >
-                            <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                        </svg>
+                        <MenuIcon />
                     </button>
                 </div>
                 <div className="hidden lg:flex justify-items-start lg:gap-x-12">
@@ -82,6 +81,20 @@ function CustomHeader() {
                     )}
                 </div>
                 <div className="hidden lg:flex lg:flex-1  lg:items-center lg:justify-end">
+                    {currentUser && (
+                        <Tooltip>
+                            <TooltipTrigger className="mr-4">
+                                <img
+                                    src={avatarUrl}
+                                    alt="avatar"
+                                    className="w-8 h-8 rounded-full border"
+                                />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <UserProfile user={currentUser} />
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
                     <a
                         href={!loginLogoutLink ? '/login' : '/logout'}
                         className="text-sm/6 font-semibold"
@@ -277,6 +290,22 @@ function CustomHeader() {
                                             </span>
                                         </label>
                                     </div>
+                                    {currentUser && (
+                                        <Tooltip>
+                                            <TooltipTrigger className="mr-4 mt-4">
+                                                <img
+                                                    src={avatarUrl}
+                                                    alt="avatar"
+                                                    className="w-8 h-8 rounded-full border"
+                                                />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <UserProfile
+                                                    user={currentUser}
+                                                />
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    )}
                                 </div>
                             </div>
                         </div>
