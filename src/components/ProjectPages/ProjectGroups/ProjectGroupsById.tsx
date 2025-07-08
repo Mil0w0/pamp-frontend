@@ -356,7 +356,7 @@ export default function ProjectGroupsById() {
 
                                 <Separator />
 
-                                <div className="space-y-2">
+                                <div className="space-y-2 gap-3 flex flex-col">
                                     <span className="text-sm font-medium">
                                         Quick Actions
                                     </span>
@@ -366,16 +366,13 @@ export default function ProjectGroupsById() {
                                             size="sm"
                                             className="w-full justify-start"
                                         >
-                                            <Users className="h-4 w-4 mr-2" />
-                                            Manage Members
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full justify-start"
-                                        >
-                                            <FileText className="h-4 w-4 mr-2" />
-                                            View All Submissions
+                                            <Link
+                                                to={`/projects/${currentProject.id}/groups`}
+                                                className="ml-2 w-full justify-star flex items-center gap-2"
+                                            >
+                                                <Users className="h-4 w-4 mr-2" />
+                                                Manage Members
+                                            </Link>
                                         </Button>
                                     </div>
                                 </div>
@@ -480,7 +477,7 @@ export default function ProjectGroupsById() {
                                     <div className="flex -space-x-2">
                                         {groupsStudents
                                             .slice(0, 4)
-                                            .map((student, index) => (
+                                            .map((student) => (
                                                 <Avatar
                                                     key={student.user_id}
                                                     className="border-2 border-background h-8 w-8"

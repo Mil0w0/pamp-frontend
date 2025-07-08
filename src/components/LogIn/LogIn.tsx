@@ -14,6 +14,10 @@ import { UserLoginDto, UserLoginResponse } from '@/components/LogIn/types.ts'
 import { useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router'
 
+interface LocationState {
+    from?: string
+}
+
 export default function LogIn({
     className,
     ...props
@@ -29,7 +33,7 @@ export default function LogIn({
     const dispatch = useDispatch()
 
     // Get the original location the user was trying to access
-    const from = (location.state as any)?.from || '/'
+    const from = (location.state as LocationState)?.from || '/'
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.currentTarget

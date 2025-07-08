@@ -4,9 +4,21 @@ import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
 import { SubmissionResponse } from '@/services/SubmissionService/types'
 import { Step } from '@/components/ProjectPages/types'
-import { ExternalLink, Clock, CheckCircle, AlertTriangle, FileText, Calendar } from 'lucide-react'
+import {
+    ExternalLink,
+    Clock,
+    CheckCircle,
+    AlertTriangle,
+    FileText,
+    Calendar,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export type StepSubmissionRow = {
     stepName: string
@@ -28,8 +40,9 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
         header: 'Step',
         cell: ({ row }) => {
             const stepName: string = row.getValue('stepName')
-            const stepDescription: string | undefined = row.original.stepDescription
-            
+            const stepDescription: string | undefined =
+                row.original.stepDescription
+
             return (
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -51,15 +64,20 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
         cell: ({ row }) => {
             const deadline: string | undefined = row.getValue('deadline')
             const daysUntil = row.original.daysUntilDeadline
-            
+
             if (!deadline) {
-                return <span className="text-muted-foreground text-sm">No deadline</span>
+                return (
+                    <span className="text-muted-foreground text-sm">
+                        No deadline
+                    </span>
+                )
             }
-            
+
             const deadlineDate = DateTime.fromISO(deadline)
             const isPast = deadlineDate < DateTime.now()
-            const isUpcoming = daysUntil !== undefined && daysUntil <= 3 && daysUntil > 0
-            
+            const isUpcoming =
+                daysUntil !== undefined && daysUntil <= 3 && daysUntil > 0
+
             return (
                 <TooltipProvider>
                     <Tooltip>
@@ -67,20 +85,28 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
                             <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <div className="space-y-1">
-                                    <div className={`text-sm ${isPast ? 'text-red-600' : isUpcoming ? 'text-yellow-600' : 'text-muted-foreground'}`}>
+                                    <div
+                                        className={`text-sm ${isPast ? 'text-red-600' : isUpcoming ? 'text-yellow-600' : 'text-muted-foreground'}`}
+                                    >
                                         {deadlineDate.toFormat('dd/MM/yyyy')}
                                     </div>
                                     <div className="text-xs text-muted-foreground">
                                         {deadlineDate.toFormat('HH:mm')}
                                     </div>
                                 </div>
-                                {isPast && <AlertTriangle className="h-4 w-4 text-red-500" />}
-                                {isUpcoming && <Clock className="h-4 w-4 text-yellow-500" />}
+                                {isPast && (
+                                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                                )}
+                                {isUpcoming && (
+                                    <Clock className="h-4 w-4 text-yellow-500" />
+                                )}
                             </div>
                         </TooltipTrigger>
                         <TooltipContent>
                             <p className="text-sm">
-                                {isPast ? 'Deadline passed' : `${daysUntil} days remaining`}
+                                {isPast
+                                    ? 'Deadline passed'
+                                    : `${daysUntil} days remaining`}
                             </p>
                         </TooltipContent>
                     </Tooltip>
@@ -94,18 +120,20 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
         cell: ({ row }) => {
             const createdAt: string | undefined = row.getValue('created_at')
             const isSubmitted = row.original.isSubmitted
-            
+
             if (!isSubmitted || !createdAt) {
                 return (
                     <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Not submitted</span>
+                        <span className="text-sm text-muted-foreground">
+                            Not submitted
+                        </span>
                     </div>
                 )
             }
-            
+
             const submissionDate = DateTime.fromISO(createdAt)
-            
+
             return (
                 <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-600" />
@@ -128,7 +156,7 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
             const url: string | undefined = row.getValue('link')
             const linkType: string | undefined = row.original.link_type
             const isSubmitted = row.original.isSubmitted
-            
+
             if (!isSubmitted || !url) {
                 return (
                     <Badge variant="outline" className="text-muted-foreground">
@@ -136,7 +164,7 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
                     </Badge>
                 )
             }
-            
+
             return (
                 <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-xs">
@@ -149,7 +177,13 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
                                     variant="ghost"
                                     size="sm"
                                     className="h-8 w-8 p-0"
-                                    onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
+                                    onClick={() =>
+                                        window.open(
+                                            url,
+                                            '_blank',
+                                            'noopener,noreferrer'
+                                        )
+                                    }
                                 >
                                     <ExternalLink className="h-4 w-4" />
                                 </Button>
@@ -170,7 +204,7 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
             const isLate = row.getValue('isLate')
             const isSubmitted = row.original.isSubmitted
             const daysUntil = row.original.daysUntilDeadline
-            
+
             if (!isSubmitted) {
                 if (daysUntil !== undefined) {
                     if (daysUntil < 0) {
@@ -203,7 +237,7 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
                     </Badge>
                 )
             }
-            
+
             if (isLate) {
                 return (
                     <Badge variant="destructive" className="gap-1">
@@ -212,7 +246,7 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
                     </Badge>
                 )
             }
-            
+
             return (
                 <Badge variant="default" className="gap-1">
                     <CheckCircle className="h-3 w-3" />
@@ -227,11 +261,11 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
         cell: ({ row }) => {
             const grade = row.original.submissionGrade
             const isSubmitted = row.original.isSubmitted
-            
+
             if (!isSubmitted) {
                 return <span className="text-muted-foreground text-sm">-</span>
             }
-            
+
             if (grade === undefined || grade === null) {
                 return (
                     <Badge variant="outline" className="text-xs">
@@ -239,13 +273,13 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
                     </Badge>
                 )
             }
-            
+
             const getGradeColor = (grade: number) => {
                 if (grade >= 80) return 'text-green-600'
                 if (grade >= 60) return 'text-yellow-600'
                 return 'text-red-600'
             }
-            
+
             return (
                 <div className="flex items-center gap-1">
                     <span className={`font-medium ${getGradeColor(grade)}`}>
@@ -285,8 +319,10 @@ export function StepsSubmissionDataTable({
             if (deadline) {
                 const deadlineDate = DateTime.fromISO(deadline)
                 const now = DateTime.now()
-                daysUntilDeadline = Math.ceil(deadlineDate.diff(now, 'days').days)
-                
+                daysUntilDeadline = Math.ceil(
+                    deadlineDate.diff(now, 'days').days
+                )
+
                 if (submittedAt) {
                     const submissionDate = DateTime.fromISO(submittedAt)
                     isLate = submissionDate > deadlineDate
@@ -311,28 +347,40 @@ export function StepsSubmissionDataTable({
 
     // Calculate summary statistics
     const totalSteps = rows.length
-    const submittedSteps = rows.filter(row => row.isSubmitted).length
-    const lateSubmissions = rows.filter(row => row.isLate).length
-    const overdueSteps = rows.filter(row => !row.isSubmitted && (row.daysUntilDeadline ?? 0) < 0).length
+    const submittedSteps = rows.filter((row) => row.isSubmitted).length
+    const lateSubmissions = rows.filter((row) => row.isLate).length
+    const overdueSteps = rows.filter(
+        (row) => !row.isSubmitted && (row.daysUntilDeadline ?? 0) < 0
+    ).length
 
     return (
         <div className="space-y-4">
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{submittedSteps}/{totalSteps}</div>
-                    <div className="text-xs text-muted-foreground">Submitted</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                        {submittedSteps}/{totalSteps}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                        Submitted
+                    </div>
                 </div>
                 <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{totalSteps - submittedSteps - overdueSteps}</div>
+                    <div className="text-2xl font-bold text-green-600">
+                        {totalSteps - submittedSteps - overdueSteps}
+                    </div>
                     <div className="text-xs text-muted-foreground">Pending</div>
                 </div>
                 <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-red-600">{lateSubmissions}</div>
+                    <div className="text-2xl font-bold text-red-600">
+                        {lateSubmissions}
+                    </div>
                     <div className="text-xs text-muted-foreground">Late</div>
                 </div>
                 <div className="text-center p-3 border rounded-lg">
-                    <div className="text-2xl font-bold text-orange-600">{overdueSteps}</div>
+                    <div className="text-2xl font-bold text-orange-600">
+                        {overdueSteps}
+                    </div>
                     <div className="text-xs text-muted-foreground">Overdue</div>
                 </div>
             </div>

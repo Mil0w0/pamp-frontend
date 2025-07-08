@@ -88,7 +88,8 @@ export function AppSidebar({
             currentProject.groups
                 ?.filter((group) =>
                     isStudent
-                        ? group.studentsIds?.includes(currentUser.user_id)
+                        ? group &&
+                          group.studentsIds?.includes(currentUser.user_id)
                         : true
                 )
                 .sort((a, b) => {
@@ -107,21 +108,64 @@ export function AppSidebar({
                 url: `/projects/${currentProject.id}/steps/${step.id}`,
             })) || []
 
+        // Check if student is in a group (for student group creation mode)
+        const studentGroup = currentProject.groups?.find(
+            (group) =>
+                group &&
+                group.studentsIds &&
+                group.studentsIds.split(',').includes(currentUser?.user_id)
+        )
+
         //Show the config page only if user is a teacher
         setNavLinks([
-            {
-                title: 'Groups settings',
-                url: `/projects/${currentProject.id}/groups`,
-                icon: UsersRound,
-                isActive: true,
-                items: [
-                    {
-                        title: 'Composition',
-                        url: `/projects/${currentProject.id}/groups`,
-                    },
-                    ...groupItems,
-                ],
-            },
+            // For students in student group creation mode, show different navigation
+            ...(isStudent
+                ? studentGroup
+                    ? [
+                          // Student is in a group - show both "My Group" and "View Groups"
+                          {
+                              title: 'Groups',
+                              url: `/projects/${currentProject.id}/groups`,
+                              icon: UsersRound,
+                              isActive: true,
+                              items: [
+                                  {
+                                      title: 'View Groups',
+                                      url: `/projects/${currentProject.id}/groups`,
+                                  },
+                                  {
+                                      title: 'My Group',
+                                      url: `/projects/${currentProject.id}/groups/${studentGroup.id}`,
+                                  },
+                              ],
+                          },
+                      ]
+                    : currentProject.groupsCreator === 'STUDENT'
+                      ? [
+                            // Student is not in a group - show "Join Groups"
+                            {
+                                title: 'Join Groups',
+                                url: `/projects/${currentProject.id}/groups`,
+                                icon: UsersRound,
+                                isActive: true,
+                            },
+                        ]
+                      : []
+                : [
+                      {
+                          title: 'Groups settings',
+                          url: `/projects/${currentProject.id}/groups`,
+                          icon: UsersRound,
+                          isActive: true,
+                          items: [
+                              {
+                                  title: 'Composition',
+                                  url: `/projects/${currentProject.id}/groups`,
+                              },
+                              ...groupItems,
+                          ],
+                      },
+                  ]),
             {
                 title: 'Project steps',
                 url: `/projects/${currentProject.id}/steps`,
@@ -155,7 +199,7 @@ export function AppSidebar({
                 : [
                       {
                           title: 'Go to report',
-                          url: `/student/report/${currentProject?.id}/${currentProject.groups.find((group) => group.studentsIds.split(',').includes(currentUser?.user_id))?.id}`,
+                          url: `/student/report/${currentProject?.id}/${currentProject.groups.find((group) => group && group.studentsIds && group.studentsIds.split(',').includes(currentUser?.user_id))?.id}`,
                           icon: BookOpen,
                       },
                   ]),
@@ -200,19 +244,21 @@ export function AppSidebar({
             <SidebarContent>
                 <NavMain items={navLinks} />
             </SidebarContent>
-            <SidebarFooter className={'items-center pb-5'}>
-                <Button
-                    onClick={() => publishProject()}
-                    className="w-fit"
-                    variant={
-                        currentProject?.isPublished ? 'outline' : 'default'
-                    }
-                >
-                    {currentProject?.isPublished
-                        ? 'Unpublish project'
-                        : 'Publish project'}
-                </Button>
-            </SidebarFooter>
+            {currentUser?.role !== 'STUDENT' && (
+                <SidebarFooter className={'items-center pb-5'}>
+                    <Button
+                        onClick={() => publishProject()}
+                        className="w-fit"
+                        variant={
+                            currentProject?.isPublished ? 'outline' : 'default'
+                        }
+                    >
+                        {currentProject?.isPublished
+                            ? 'Unpublish project'
+                            : 'Publish project'}
+                    </Button>
+                </SidebarFooter>
+            )}
             <SidebarRail />
         </Sidebar>
     )
