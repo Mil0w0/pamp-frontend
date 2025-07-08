@@ -7,6 +7,7 @@ import React, { ChangeEvent, FormEvent, useState } from 'react'
 import { TeacherRegisterDto } from '@/components/Register/types.ts'
 import { authService } from '@/services/UserService/auth-api-client.ts'
 import { toast } from 'sonner'
+import { useNavigate } from 'react-router'
 
 function TeacherRegister({ className, ...props }: React.ComponentProps<'div'>) {
     const [formData, setFormData] = useState<TeacherRegisterDto>({
@@ -17,6 +18,8 @@ function TeacherRegister({ className, ...props }: React.ComponentProps<'div'>) {
     })
 
     const [isLoading, setIsLoading] = useState(false)
+    const navigate = useNavigate()
+
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.currentTarget
         setFormData((prev) => ({ ...prev, [id]: value }))
@@ -28,7 +31,8 @@ function TeacherRegister({ className, ...props }: React.ComponentProps<'div'>) {
         try {
             const response = await authService.register(formData)
             if (response.success) {
-                window.location.href = '/login'
+                toast.success('Registration successful! Please log in.')
+                navigate('/login')
             } else {
                 toast.error(response.error)
             }
