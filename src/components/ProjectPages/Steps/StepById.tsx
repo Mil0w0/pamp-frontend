@@ -275,6 +275,26 @@ export function StepById() {
         try {
             const uploadToS3 = createS3UploadFunction({
                 maxFileSize: 300 * 1024 * 1024,
+                allowedFileTypes: [
+                    'application/pdf',
+                    'application/zip',
+                    'application/x-zip-compressed',
+                    'application/x-zip',
+                    '.zip',
+                    // word documents
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    // excel documents
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    // powerpoint documents
+                    'application/vnd.ms-powerpoint',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    // text files
+                    'text/plain',
+                    'text/csv',
+                    'text/tab-separated-values',
+                ],
                 bucketName: 'pamp-step-submission',
                 keyPrefix: `projects/${currentProject.id}/groups/${currentUserGroup.id}/steps/${stepId}/`,
             })
