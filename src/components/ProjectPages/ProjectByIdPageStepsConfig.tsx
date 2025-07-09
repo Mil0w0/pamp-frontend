@@ -19,7 +19,7 @@ import { projectService } from '@/services/ProjectService/project-api-client.ts'
 import { Step } from '@/components/ProjectPages/types.ts'
 import PampButton from '@/components/ui/pamp-button.tsx'
 import { StepBox } from '@/components/ProjectPages/Steps/StepBox.tsx'
-import {ConformityRules} from "@/components/ProjectPages/ConformityRules/types.ts";
+import { ConformityRules } from '@/components/ProjectPages/ConformityRules/types.ts'
 
 export default function ProjectByIdPageStepConfig() {
     const { projectId } = useParams()

@@ -26,7 +26,11 @@ export function StepSubmissionConformityRulesModal({
 }: {
     step: Partial<Step>
     stepIndex: number
-    handleStepChange: (index: number, field: keyof Step, value: any) => void
+    handleStepChange: (
+        index: number,
+        field: keyof Step,
+        value: string | boolean | ConformityRules[]
+    ) => void
 }) {
     const [openModal, setOpenModal] = useState(false)
     const [availableRules, setAvailableRules] = useState<AvailableRule[]>([])

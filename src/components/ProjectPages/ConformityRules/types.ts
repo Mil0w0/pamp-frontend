@@ -46,9 +46,9 @@ export type RuleParameter = {
     type: RuleParameterType
     description: string
     required?: boolean
-    examples?: any[]
+    examples?: (string | number | boolean)[]
     items?: { [key: string]: RuleParameter } // for array of objects
-    default?: any
+    default?: string | number | boolean
 }
 
 export type AvailableRule = {
