@@ -18,7 +18,7 @@ export interface AvailableRule {
 
 export interface ConformityRules {
     name: string
-    params: Record<string, any>
+    params: Record<string, RuleParameters>
 }
 
 // --- RuleForm.tsx
@@ -28,6 +28,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import RuleDescriptionTooltip from './RuleDescriptionTooltip'
+import { RuleParameters } from './types'
 
 interface RuleFormProps {
     rules: AvailableRule[]
@@ -40,15 +41,15 @@ export const RuleForm: React.FC<RuleFormProps> = ({
     defaultValues = [],
     onChange,
 }) => {
-    const [selectedRules, setSelectedRules] = useState<Record<string, any>>(
-        () => {
-            const map: Record<string, any> = {}
-            defaultValues.forEach((rule) => {
-                map[rule.name] = rule.params
-            })
-            return map
-        }
-    )
+    const [selectedRules, setSelectedRules] = useState<
+        Record<string, Record<string, unknown>>
+    >(() => {
+        const map: Record<string, Record<string, unknown>> = {}
+        defaultValues.forEach((rule) => {
+            map[rule.name] = rule.params
+        })
+        return map
+    })
 
     const [rawArrayInputs, setRawArrayInputs] = useState<
         Record<string, string>
@@ -56,7 +57,10 @@ export const RuleForm: React.FC<RuleFormProps> = ({
 
     useEffect(() => {
         const formatted: ConformityRules[] = Object.entries(selectedRules).map(
-            ([name, params]) => ({ name, params })
+            ([name, params]) => ({
+                name,
+                params: params as Record<string, RuleParameters>,
+            })
         )
         onChange(formatted)
         console.log(formatted)
@@ -71,16 +75,16 @@ export const RuleForm: React.FC<RuleFormProps> = ({
         })
     }
 
-    const handleParamChange = (rule: string, path: string, value: any) => {
+    const handleParamChange = (rule: string, path: string, value: unknown) => {
         setSelectedRules((prev) => {
             const updatedRule = { ...(prev[rule] || {}) }
             const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.')
-            let target = updatedRule
+            let target: Record<string, unknown> = updatedRule
             for (let i = 0; i < parts.length - 1; i++) {
                 const key = parts[i]
                 target[key] =
                     target[key] || (isNaN(Number(parts[i + 1])) ? {} : [])
-                target = target[key]
+                target = target[key] as Record<string, unknown>
             }
             target[parts.at(-1)!] = value
             return { ...prev, [rule]: updatedRule }
@@ -91,7 +95,7 @@ export const RuleForm: React.FC<RuleFormProps> = ({
         rule: string,
         name: string,
         param: RuleParameter,
-        value: any
+        value: unknown
     ) => {
         const rawKey = `${rule}.${name}`
         const rawVal =
@@ -105,7 +109,7 @@ export const RuleForm: React.FC<RuleFormProps> = ({
                 return (
                     <Input
                         type={param.type === 'string' ? 'text' : 'number'}
-                        value={value ?? ''}
+                        value={String(value ?? '')}
                         onChange={(e) =>
                             handleParamChange(
                                 rule,
@@ -161,7 +165,12 @@ export const RuleForm: React.FC<RuleFormProps> = ({
                                                         rule,
                                                         `${name}[${idx}].${key}`,
                                                         nested,
-                                                        item?.[key] ?? ''
+                                                        (
+                                                            item as Record<
+                                                                string,
+                                                                unknown
+                                                            >
+                                                        )?.[key]
                                                     )}
                                                     <p className="text-xs text-gray-400 my-2">
                                                         {nested.description}
@@ -175,7 +184,7 @@ export const RuleForm: React.FC<RuleFormProps> = ({
                         <p
                             onClick={() =>
                                 handleParamChange(rule, name, [
-                                    ...(value || [{}]),
+                                    ...(Array.isArray(value) ? value : []),
                                     {},
                                 ])
                             }
