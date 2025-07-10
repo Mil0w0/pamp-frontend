@@ -15,6 +15,7 @@ import {
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import {
+    Calendar,
     CheckIcon,
     ClockIcon,
     DownloadIcon,
@@ -35,6 +36,7 @@ import { DateTime } from 'luxon'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
 import GroupsSubmissionDataTable from '@/components/ProjectPages/Steps/GroupsSubmissionDataTable.tsx'
 import { ApiErrorMessage } from '@/services/ProjectService/types.ts'
+import { Badge } from '@/components/ui/badge.tsx'
 
 export function StepById() {
     const { stepId, projectId } = useParams()
@@ -58,6 +60,7 @@ export function StepById() {
     const [stepSubmissions, setStepSubmissions] = useState<
         SubmissionResponse[] | null
     >(null)
+    const [conformityLevel, setConformityLevel] = useState(0)
     const { currentUser } = useSelector((state: RootState) => state.user)
     const { currentProject } = useSelector((state: RootState) => state.project)
     const isStudent = currentUser?.role === 'STUDENT'
@@ -93,11 +96,34 @@ export function StepById() {
         }
     }
 
+    const calculateSubmissionConformity = () => {
+        if (!submission) return 0
+        const FULLY_CONFORM = 100
+        const rulesResults = submission.rule_results
+        if (!rulesResults) {
+            setConformityLevel(FULLY_CONFORM)
+            return
+        }
+
+        if (rulesResults?.every((rule) => rule.passed)) {
+            setConformityLevel(FULLY_CONFORM)
+        } else {
+            //calculate the conformity. Each rule not passed removes an equal percent of conformity
+            const passedCount = rulesResults.filter(
+                (rule) => rule.passed
+            ).length
+
+            setConformityLevel(
+                Math.ceil((passedCount / rulesResults.length) * 100)
+            )
+        }
+    }
+
     const loadSubmission = async () => {
         if (!stepId) return
         if (!projectId) return
         if (!currentUserGroup) return
-        console.log(stepId)
+
         try {
             const response = await sumbissionService.getOneByStepAndGroup(
                 stepId,
@@ -107,11 +133,18 @@ export function StepById() {
             console.log('Submission')
             console.log(response)
             if (response.success) {
-                if (response.data && response.data.length === 1) {
-                    setSubmission(response.data[0])
-                    console.log(response.data)
+                if (response.data && 'data' in response.data) {
+                    setSubmission({
+                        ...response.data.data,
+                        rule_results: response.data.rule_results,
+                    })
                 }
             } else {
+                if (response.error === '404') {
+                    console.log()
+                    //No submission for this trio
+                    return
+                }
                 toast.error(response.error)
             }
         } catch (error) {
@@ -318,6 +351,10 @@ export function StepById() {
         loadAllStepSubmissions()
     }, [currentProject, stepId, projectId, currentUser])
 
+    useEffect(() => {
+        calculateSubmissionConformity()
+    }, [submission])
+
     //Display Step Box
     if (isloading) {
         return <LoadingSpinner />
@@ -349,46 +386,76 @@ export function StepById() {
                         ))}
 
                     <TabsContent value="link">
-                        <div className="mt-4 space-y-2 shadow-sm bg-white dark:bg-muted p-6  rounded-xl border">
-                            <Label htmlFor="submission-link">Repo link</Label>
-                            <Input
-                                id="submission-link"
-                                type="text"
-                                className="w-fit"
-                                value={submissionLocal.link}
-                                onChange={handleLinkChange}
-                            />
-                            <p className="text-xs text-gray-500">
-                                Paste your github or gitlab repo link here. Make
-                                sure to make it public beforehand.
-                            </p>
-                            <Button onClick={() => checkConformity()}>
-                                Send
-                            </Button>
+                        <div className="mt-4 space-y-4 rounded-xl border bg-white p-6 shadow-sm dark:bg-muted">
+                            {/* Input Section */}
+                            <div className="space-y-2 w-full">
+                                <Label htmlFor="submission-link">
+                                    Repo link
+                                </Label>
+                                <Input
+                                    id="submission-link"
+                                    type="text"
+                                    value={submissionLocal.link}
+                                    onChange={handleLinkChange}
+                                    className="w-1/3"
+                                    placeholder="https://github.com/your-repo"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Paste your GitHub or GitLab repo link here.
+                                    Make sure it’s public before submitting.
+                                </p>
+                                <Button onClick={checkConformity}>Send</Button>
+                            </div>
 
-                            {submission &&
-                                submission.link_type === 'github' && (
-                                    <div className="flex mt-2 justify-start items-center gap-4 ">
-                                        <p> Current file: </p>
-                                        <GithubIcon />
-                                        <p
-                                            className="cursor-pointer"
+                            {/* Submitted GitHub Link */}
+                            {submission?.link_type === 'github' && (
+                                <div className="rounded-md border p-4 space-y-2 text-sm">
+                                    <div className="flex items-center gap-2 font-medium">
+                                        <GithubIcon className="h-4 w-4" />
+                                        <span>Current Submission</span>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-4">
+                                        {/* Link */}
+                                        <Button
+                                            variant="link"
+                                            className="p-0 h-auto text-blue-600"
                                             onClick={() =>
-                                                (window.location.href =
-                                                    submission?.link)
+                                                window.open(
+                                                    submission.link,
+                                                    '_blank'
+                                                )
                                             }
                                         >
-                                            Link: {submission.link}
-                                            <ExternalLink />
-                                        </p>
-                                        <p>
-                                            Created at:{' '}
+                                            <ExternalLink className="mr-1 h-4 w-4" />
+                                            Open Link
+                                        </Button>
+
+                                        {/* Created At */}
+                                        <div className="text-muted-foreground">
+                                            <span className="font-medium">
+                                                Created at:
+                                            </span>{' '}
                                             {DateTime.fromISO(
                                                 submission.created_at
                                             ).toFormat('dd/MM/yyyy HH:mm')}
-                                        </p>
-                                        <p className="flex items-center gap-1">
-                                            Status:
+                                        </div>
+
+                                        {/* Status Badge */}
+                                        <Badge
+                                            variant={
+                                                step.submissionDeadLine &&
+                                                DateTime.fromISO(
+                                                    submission.created_at
+                                                ) >
+                                                    DateTime.fromISO(
+                                                        step.submissionDeadLine
+                                                    )
+                                                    ? 'destructive'
+                                                    : 'default'
+                                            }
+                                            className="flex items-center gap-1"
+                                        >
                                             {step.submissionDeadLine &&
                                             DateTime.fromISO(
                                                 submission.created_at
@@ -396,26 +463,45 @@ export function StepById() {
                                                 DateTime.fromISO(
                                                     step.submissionDeadLine
                                                 ) ? (
-                                                <ClockIcon className="text-red-600" />
+                                                <>
+                                                    <ClockIcon className="h-3 w-3" />
+                                                    Late
+                                                </>
                                             ) : (
-                                                <CheckIcon className="text-green-600" />
+                                                <>
+                                                    <CheckIcon className="h-3 w-3" />
+                                                    On time
+                                                </>
                                             )}
-                                        </p>
-                                        <p className="text-green-600">
-                                            Conformity: {'100 %'}
-                                        </p>
+                                        </Badge>
+
+                                        {/* Conformity */}
+                                        <Badge
+                                            className={`font-medium ${
+                                                conformityLevel === 0
+                                                    ? 'bg-red-500'
+                                                    : conformityLevel === 100
+                                                      ? 'bg-green-500'
+                                                      : 'bg-yellow-500'
+                                            }`}
+                                        >
+                                            Conformity: {conformityLevel}%
+                                        </Badge>
+
                                         <TrashIcon
-                                            className="cursor-pointer"
-                                            onClick={() => deleteFromS3()}
+                                            className="h-5 w-5 text-red-500 cursor-pointer"
+                                            onClick={deleteFromS3}
                                         />
                                     </div>
-                                )}
+                                </div>
+                            )}
                         </div>
                     </TabsContent>
 
                     <TabsContent value="file">
-                        <div className=" mt-2 space-y-6 rounded-xl border p-6 shadow-sm bg-white dark:bg-muted w-full">
-                            <div className="mt-4 space-y-2 w-fit">
+                        <div className="mt-4 w-full space-y-6 rounded-xl border bg-white p-6 shadow-sm dark:bg-muted">
+                            {/* Upload Section */}
+                            <div className="space-y-2">
                                 <Label htmlFor="submission-file">
                                     Upload a file
                                 </Label>
@@ -423,55 +509,100 @@ export function StepById() {
                                     id="submission-file"
                                     type="file"
                                     onChange={handleFileChange}
+                                    className={'w-1/3'}
                                 />
-                                <p className="text-xs text-gray-500">
-                                    Size : 300MB max allowed.
+                                <p className="text-xs text-muted-foreground">
+                                    Max file size: 300MB
                                 </p>
-                                <Button onClick={() => checkConformity()}>
-                                    Send
-                                </Button>
+                                <Button onClick={checkConformity}>Send</Button>
                             </div>
-                            {submission && submission.link_type === 's3' && (
-                                <div>
-                                    <Label>Current file: </Label>
-                                    <div className="flex mt-2 justify-start gap-4">
-                                        <FileIcon />
-                                        <p>File name: {submission.id}</p>
-                                        <p>
-                                            Created at:{' '}
-                                            {DateTime.fromISO(
-                                                submission.created_at
-                                            ).toFormat('dd/MM/yyyy HH:mm')}
-                                        </p>
-                                        <p className="flex items-center gap-1">
-                                            Status:
-                                            {step.submissionDeadLine &&
-                                            DateTime.fromISO(
-                                                submission.created_at
-                                            ) >
+
+                            {/* Current File Info */}
+                            {submission?.link_type === 's3' && (
+                                <div className="rounded-md border p-4 space-y-3">
+                                    <Label className="text-sm font-semibold">
+                                        Current Submission
+                                    </Label>
+                                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <FileIcon className="h-4 w-4 text-muted-foreground" />
+                                            <span>
+                                                File ID: {submission.id}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                                            <span>
+                                                Uploaded:{' '}
+                                                {DateTime.fromISO(
+                                                    submission.created_at
+                                                ).toFormat('dd/MM/yyyy HH:mm')}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Badge
+                                                variant={
+                                                    step.submissionDeadLine &&
+                                                    DateTime.fromISO(
+                                                        submission.created_at
+                                                    ) >
+                                                        DateTime.fromISO(
+                                                            step.submissionDeadLine
+                                                        )
+                                                        ? 'destructive'
+                                                        : 'default'
+                                                }
+                                                className="gap-1"
+                                            >
+                                                {step.submissionDeadLine &&
                                                 DateTime.fromISO(
-                                                    step.submissionDeadLine
-                                                ) ? (
-                                                <ClockIcon className="text-red-600" />
-                                            ) : (
-                                                <CheckIcon className="text-green-600" />
-                                            )}
-                                        </p>
+                                                    submission.created_at
+                                                ) >
+                                                    DateTime.fromISO(
+                                                        step.submissionDeadLine
+                                                    ) ? (
+                                                    <>
+                                                        <ClockIcon className="h-3 w-3" />
+                                                        Late
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <CheckIcon className="h-3 w-3" />
+                                                        On time
+                                                    </>
+                                                )}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Badge
+                                                variant="outline"
+                                                className={
+                                                    conformityLevel === 0
+                                                        ? 'text-red-500 border-red-500'
+                                                        : conformityLevel ===
+                                                            100
+                                                          ? 'text-green-600 border-green-600'
+                                                          : 'text-yellow-500 border-yellow-500'
+                                                }
+                                            >
+                                                Conformity: {conformityLevel}%
+                                            </Badge>
+                                        </div>
+
                                         <TrashIcon
-                                            className="cursor-pointer"
-                                            onClick={() => deleteFromS3()}
+                                            className="h-5 w-5 text-muted-foreground hover:text-red-600 cursor-pointer"
+                                            onClick={deleteFromS3}
                                         />
+
                                         <DownloadIcon
-                                            className="cursor-pointer"
-                                            onClick={() => {
-                                                const link =
-                                                    document.createElement('a')
-                                                link.href = submission?.link
-                                                link.download = '' //set a name if we want to
-                                                document.body.appendChild(link)
-                                                link.click()
-                                                document.body.removeChild(link)
-                                            }}
+                                            className="h-5 w-5 text-muted-foreground hover:text-blue-600 cursor-pointer"
+                                            onClick={() =>
+                                                window.open(
+                                                    submission.link,
+                                                    '_blank',
+                                                    'noopener,noreferrer'
+                                                )
+                                            }
                                         />
                                     </div>
                                 </div>

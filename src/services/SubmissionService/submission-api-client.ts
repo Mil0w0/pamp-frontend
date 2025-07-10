@@ -77,23 +77,32 @@ export const sumbissionService = {
         stepId: string,
         projectId: string,
         groupId: string
-    ): Promise<MultipleSubmissionApiResponse> => {
-        const sumbissionsOfTheGroup = await sumbissionService.getAllByGroup(
-            groupId,
-            projectId
-        )
-        if (!sumbissionsOfTheGroup.success) {
-            return handleMultipleSubmissionApiError(
-                'Loading submissions for this group and step went wrong'
+    ): Promise<SubmissionApiResponse> => {
+        try {
+            const response = await fetch(
+                `${SUBMISSION_API_URL}/submissions/project/${projectId}/group/${groupId}/step/${stepId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
             )
-        }
-        const stepSubmissionsOfTheGroup = sumbissionsOfTheGroup.data?.filter(
-            (submission: SubmissionResponse) =>
-                submission.project_step_uuid === stepId
-        )
-        return {
-            success: true,
-            data: stepSubmissionsOfTheGroup,
+            if (!response.ok) {
+                if (response.status === 404) {
+                    return handleSubmissionApiError('404')
+                }
+                return handleSubmissionApiError(
+                    'Loading submission for this group and step went wrong'
+                )
+            }
+            const submission: CreatedSubmissionResponse = await response.json()
+            return {
+                success: true,
+                data: submission,
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleSubmissionApiError(err.message)
         }
     },
     getAllBySteps: async (
@@ -182,7 +191,7 @@ export const sumbissionService = {
     createOne: async (
         submissionDto: SubmissionDTO
     ): Promise<CreatedSubmissionResponse | SubmissionApiResponse> => {
-        console.log(submissionDto)
+        //Force creation and store unsucessful rules check
         try {
             const response = await fetch(`${SUBMISSION_API_URL}/submissions`, {
                 method: 'POST',
@@ -190,7 +199,10 @@ export const sumbissionService = {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
                 },
-                body: JSON.stringify(submissionDto),
+                body: JSON.stringify({
+                    ...submissionDto,
+                    force_rules: true,
+                }),
             })
             if (!response.ok) {
                 const error:

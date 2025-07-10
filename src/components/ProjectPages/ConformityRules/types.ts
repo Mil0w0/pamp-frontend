@@ -1,26 +1,3 @@
-export type RuleParameterDefinition =
-    | {
-          type: 'string' | 'number' | 'boolean' | 'integer'
-          description: string
-          required?: boolean
-          default?: string | number | boolean
-          examples?: (string | number | boolean)[]
-      }
-    | {
-          type: 'array of strings'
-          description: string
-          required?: boolean
-          examples?: string[]
-      }
-    | {
-          type: 'array of objects'
-          description: string
-          required?: boolean
-          items: {
-              [key: string]: RuleParameterDefinition
-          }
-      }
-
 export type RuleParameters =
     | string
     | number
@@ -32,6 +9,23 @@ export type RuleParameters =
 export type ConformityRules = {
     name: string
     params: Record<string, RuleParameters>
+}
+
+export type SubmissionErrorDetail = {
+    code: string
+    message: string
+    errors: {
+        code: string
+        check_index: number
+        file_pattern: string
+        total_files_checked: number
+        message: string
+        failed_files: {
+            file: string
+            reason: string
+            case_sensitive: boolean
+        }[]
+    }[]
 }
 
 export type RuleParameterType =
