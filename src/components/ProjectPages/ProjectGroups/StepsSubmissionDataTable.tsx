@@ -19,6 +19,12 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover.tsx'
+import { ConformityRules } from '@/components/ProjectPages/ConformityRules/types.ts'
 
 export type StepSubmissionRow = {
     stepName: string
@@ -32,6 +38,7 @@ export type StepSubmissionRow = {
     daysUntilDeadline?: number
     submissionGrade?: number
     submissionFeedback?: string
+    rules: ConformityRules[]
 }
 
 export const columns: ColumnDef<StepSubmissionRow>[] = [
@@ -86,7 +93,7 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 <div className="space-y-1">
                                     <div
-                                        className={`text-sm ${isPast ? 'text-red-600' : isUpcoming ? 'text-yellow-600' : 'text-muted-foreground'}`}
+                                        className={`text-sm ${isUpcoming ? 'text-yellow-600' : 'text-muted-foreground'}`}
                                     >
                                         {deadlineDate.toFormat('dd/MM/yyyy')}
                                     </div>
@@ -94,9 +101,6 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
                                         {deadlineDate.toFormat('HH:mm')}
                                     </div>
                                 </div>
-                                {isPast && (
-                                    <AlertTriangle className="h-4 w-4 text-red-500" />
-                                )}
                                 {isUpcoming && (
                                     <Clock className="h-4 w-4 text-yellow-500" />
                                 )}
@@ -289,6 +293,60 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
             )
         },
     },
+    {
+        accessorKey: 'rules',
+        header: 'Rules',
+        cell: ({ row }) => {
+            const rules: ConformityRules[] | undefined = row.getValue('rules')
+
+            if (!rules || rules.length === 0) {
+                return (
+                    <span className="text-muted-foreground italic">None</span>
+                )
+            }
+
+            return (
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm">
+                            View ({rules.length})
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 max-h-96 overflow-auto space-y-3">
+                        {rules.map((rule, index) => (
+                            <div
+                                key={index}
+                                className="border rounded p-2 space-y-1 bg-muted/30"
+                            >
+                                <div className="text-sm font-semibold">
+                                    {rule.name}
+                                </div>
+                                {Object.entries(rule.params).map(
+                                    ([key, val]) => {
+                                        const isPrimitive =
+                                            typeof val === 'string' ||
+                                            typeof val === 'number' ||
+                                            typeof val === 'boolean'
+                                        return isPrimitive ? (
+                                            <div
+                                                key={key}
+                                                className="text-sm flex justify-between"
+                                            >
+                                                <span className="text-muted-foreground">
+                                                    {key}
+                                                </span>
+                                                <span>{String(val)}</span>
+                                            </div>
+                                        ) : null
+                                    }
+                                )}
+                            </div>
+                        ))}
+                    </PopoverContent>
+                </Popover>
+            )
+        },
+    },
 ]
 
 export function StepsSubmissionDataTable({
@@ -342,6 +400,7 @@ export function StepsSubmissionDataTable({
                 // Note: Grade and feedback not available in current SubmissionResponse type
                 submissionGrade: undefined,
                 submissionFeedback: undefined,
+                rules: step?.submissionConformityRules || [],
             }
         })
 

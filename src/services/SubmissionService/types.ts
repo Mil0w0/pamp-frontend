@@ -1,6 +1,8 @@
 import {
     AvailableRule,
     ConformityRules,
+    RuleParameters,
+    SubmissionErrorDetail,
 } from '@/components/ProjectPages/ConformityRules/types.ts'
 
 export type SubmissionDTO = {
@@ -12,6 +14,7 @@ export type SubmissionDTO = {
     submitted_by_uuid?: string
     rules: ConformityRules[] | null
 }
+
 export type SubmissionResponse = {
     link: string
     link_type: string
@@ -20,12 +23,13 @@ export type SubmissionResponse = {
     project_step_uuid: string
     created_at: string
     id: string
-    status: SubmissionStatus
     submitted_by_uuid: string
     description?: number
     file_size_bytes?: number
     file_count?: number
     upload_date_time?: string
+    force_rules?: boolean
+    rule_results?: RuleResult[]
 }
 
 export type CreatedSubmissionResponse = {
@@ -49,16 +53,9 @@ export type RuleResult = {
     message: string
     passed: boolean
     rule_name: string
+    params?: Record<string, RuleParameters>
+    error_details?: SubmissionErrorDetail
 }
-
-export enum SubmissionStatus {
-    PENDING = 'pending',
-    PROCESSING = 'processing',
-    COMPLETED = 'completed',
-    FAILED = 'failed',
-    REJECTED = 'rejected',
-}
-
 export type RulesAPIAvailable = {
     available_rules: AvailableRule[]
 }
