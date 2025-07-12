@@ -32,6 +32,7 @@ import TeacherReviewReport from '@/components/TeacherPages/TeacherReviewReport.t
 import StudentDashboard from '@/components/StudentPages/StudentDashboard.tsx'
 import { StudentReport } from '@/components/StudentPages'
 import { StepById } from '@/components/ProjectPages/Steps/StepById.tsx'
+import ProjectByIdOralsPlanning from "@/components/ProjectPages/OralsPlanning/ProjectByIdOralsPlanning.tsx";
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -101,6 +102,10 @@ createRoot(document.getElementById('root')!).render(
                         <Route
                             path="report-definition"
                             element={<ProjectByIdPageReportDefinition />}
+                        />
+                        <Route
+                            path="orals"
+                            element={<ProjectByIdOralsPlanning />}
                         />
                         <Route path="*" element={<Error404 />} />
                     </Route>
