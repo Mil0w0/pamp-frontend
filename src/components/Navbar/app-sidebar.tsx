@@ -1,6 +1,12 @@
 import * as React from 'react'
 import { useEffect } from 'react'
-import { BookOpen, Footprints, Settings2, UsersRound } from 'lucide-react'
+import {
+    BookOpen,
+    Footprints,
+    Settings2,
+    SpeechIcon,
+    UsersRound,
+} from 'lucide-react'
 
 import { NavMain } from '@/components/Navbar/nav-main.tsx'
 import { ProjectSwitcher } from '@/components/Navbar/project-switcher.tsx'
@@ -164,6 +170,11 @@ export function AppSidebar({
                               },
                               ...groupItems,
                           ],
+                      },
+                      {
+                          title: 'Orals planning',
+                          url: `/projects/${currentProject.id}/orals`,
+                          icon: SpeechIcon,
                       },
                   ]),
             {
