@@ -840,10 +840,7 @@ export default function ProjectByIdPageGroupConfig() {
                         <Button variant="outline" onClick={handleCancelSave}>
                             Cancel
                         </Button>
-                        <Button
-                            onClick={handleConfirmSave}
-                            className="bg-orange-600 hover:bg-orange-700"
-                        >
+                        <Button onClick={handleConfirmSave}>
                             {isLoading ? (
                                 <LoadingSpinner />
                             ) : (

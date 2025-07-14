@@ -128,44 +128,266 @@
     min-height: 20vh;
 }
 
+/* ============= FULLCALENDAR STYLES ============= */
+
 /* General calendar wrapper */
 .fc {
-    @apply text-primary-foreground;
+    @apply text-foreground;
+}
+
+/* Calendar background */
+.fc .fc-view-harness {
+    @apply bg-background;
 }
 
 /* Header toolbar (title, nav buttons) */
+.fc .fc-toolbar {
+    @apply bg-card border-b border-border;
+}
+
 .fc .fc-toolbar-title {
-    @apply text-lg font-semibold;
+    @apply text-lg font-semibold text-foreground;
 }
 
 .fc .fc-button {
-    @apply bg-secondary text-secondary-foreground rounded-md px-3 py-1.5 text-sm shadow hover:bg-secondary/80;
+    @apply bg-secondary text-secondary-foreground rounded-md px-3 py-1.5 text-sm shadow hover:bg-secondary/80 transition-colors duration-200;
+    border: none !important;
 }
 
 .fc .fc-button-primary:not(:disabled).fc-button-active {
     @apply bg-primary text-primary-foreground;
 }
 
+/* Time grid styles */
+.fc .fc-timegrid-slot {
+    height: 4em;
+    @apply text-muted-foreground border-border;
+}
+
+.fc .fc-timegrid-slot-minor {
+    @apply border-border/50;
+}
+
+/* Time labels */
+.fc .fc-timegrid-axis-frame {
+    @apply text-muted-foreground;
+}
+
+.fc .fc-timegrid-slot-label {
+    @apply text-xs font-medium;
+}
+
+/* Day header */
+.fc .fc-col-header {
+    @apply bg-card border-b border-border;
+}
+
+.fc .fc-col-header-cell {
+    @apply text-foreground font-semibold;
+}
+
 /* Day cells */
 .fc .fc-daygrid-day-frame {
-    @apply bg-muted hover:bg-muted/70 transition-colors duration-150;
+    @apply bg-card hover:bg-muted/50 transition-colors duration-150;
 }
 
 /* Today highlight */
 .fc .fc-day-today {
-    @apply bg-ring text-accent-foreground border border-ring;
+    @apply bg-accent/20 border-l-2 border-l-ring;
+}
+
+/* Time grid columns */
+.fc .fc-timegrid-col {
+    @apply border-r border-border;
+}
+
+.fc .fc-timegrid-col.fc-day-today {
+    @apply bg-accent/10;
 }
 
 /* Events */
 .fc .fc-event {
-    @apply rounded-md shadow text-xs px-2 py-1 text-primary-foreground;
+    @apply rounded-md shadow-sm text-xs px-2 py-1 border-none;
     background: none !important;
-    border: none !important;
     box-shadow: none !important;
-
 }
 
-.fc .fc-timegrid-slot {
-    height: 4em;
-    @apply text-foreground
+/* Background events (other orals) */
+.fc .fc-event[data-display="background"] {
+    @apply bg-muted/60;
+}
+
+/* Grid lines */
+.fc .fc-scrollgrid-section table {
+    @apply border-border;
+}
+
+.fc .fc-scrollgrid-section tbody tr td {
+    @apply border-r border-border;
+}
+
+.fc .fc-scrollgrid-section tbody tr {
+    @apply border-b border-border;
+}
+
+/* Scrollbar styling for dark mode */
+.fc .fc-scroller {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--muted)) transparent;
+}
+
+.fc .fc-scroller::-webkit-scrollbar {
+    width: 8px;
+}
+
+.fc .fc-scroller::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.fc .fc-scroller::-webkit-scrollbar-thumb {
+    @apply bg-muted rounded-full;
+}
+
+.fc .fc-scroller::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+}
+
+/* ============= DARK MODE SPECIFIC STYLES ============= */
+
+.dark .fc {
+    /* Enhanced dark mode calendar background */
+    @apply bg-background;
+}
+
+.dark .fc .fc-view-harness {
+    @apply bg-card;
+}
+
+.dark .fc .fc-toolbar {
+    @apply bg-card/50 backdrop-blur-sm border-b border-border/20;
+}
+
+.dark .fc .fc-toolbar-title {
+    @apply text-foreground;
+}
+
+.dark .fc .fc-button {
+    @apply bg-secondary/80 text-secondary-foreground hover:bg-secondary shadow-lg;
+    backdrop-filter: blur(8px);
+}
+
+.dark .fc .fc-button-primary:not(:disabled).fc-button-active {
+    @apply bg-primary text-primary-foreground shadow-lg;
+}
+
+/* Enhanced time grid for dark mode */
+.dark .fc .fc-timegrid-slot {
+    @apply border-border/30;
+}
+
+.dark .fc .fc-timegrid-slot-minor {
+    @apply border-border/20;
+}
+
+.dark .fc .fc-timegrid-axis-frame {
+    @apply text-muted-foreground/80;
+}
+
+/* Dark mode day headers */
+.dark .fc .fc-col-header {
+    @apply bg-card/80 border-b border-border/30;
+}
+
+.dark .fc .fc-col-header-cell {
+    @apply text-foreground/90;
+}
+
+/* Dark mode today highlight */
+.dark .fc .fc-day-today {
+    @apply bg-ring/20 border-l-2 border-l-ring;
+}
+
+.dark .fc .fc-timegrid-col.fc-day-today {
+    @apply bg-ring/10;
+}
+
+/* Dark mode time grid columns */
+.dark .fc .fc-timegrid-col {
+    @apply border-r border-border/30;
+}
+
+/* Enhanced events for dark mode */
+.dark .fc .fc-event {
+    @apply shadow-md;
+}
+
+/* Dark mode background events */
+.dark .fc .fc-event[data-display="background"] {
+    @apply bg-muted/40;
+}
+
+/* Dark mode grid lines */
+.dark .fc .fc-scrollgrid-section tbody tr td {
+    @apply border-r border-border/20;
+}
+
+.dark .fc .fc-scrollgrid-section tbody tr {
+    @apply border-b border-border/20;
+}
+
+/* Enhanced scrollbar for dark mode */
+.dark .fc .fc-scroller::-webkit-scrollbar-thumb {
+    @apply bg-muted/80;
+}
+
+.dark .fc .fc-scroller::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/60;
+}
+
+/* Additional dark mode enhancements */
+.dark .fc .fc-more-link {
+    @apply text-primary hover:text-primary/80;
+}
+
+.dark .fc .fc-popover {
+    @apply bg-popover border border-border/30 shadow-xl;
+}
+
+.dark .fc .fc-popover-header {
+    @apply bg-card/80 border-b border-border/30;
+}
+
+.dark .fc .fc-popover-body {
+    @apply bg-popover;
+}
+
+/* Time slot hover effects */
+.dark .fc .fc-timegrid-slot:hover {
+    @apply bg-muted/20 transition-colors duration-200;
+}
+
+/* Event hover effects */
+.dark .fc .fc-event:hover {
+    @apply shadow-lg transform scale-[1.02] transition-all duration-200;
+}
+
+/* Glassmorphism effect for toolbar */
+.dark .fc .fc-toolbar {
+    background: rgba(var(--card), 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(var(--border), 0.2);
+}
+
+/* Subtle animations */
+.dark .fc .fc-event {
+    transition: all 0.2s ease-in-out;
+}
+
+.dark .fc .fc-button {
+    transition: all 0.2s ease-in-out;
+}
+
+.dark .fc .fc-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }

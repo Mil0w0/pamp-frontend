@@ -16,6 +16,9 @@ export type Project = {
     groups: ProjectGroup[]
     steps: Step[]
     creatorId: string
+    oralsConfigEndTime: string
+    oralsConfigStartTime: string
+    oralsConfigDuration: number
 }
 
 export type CreateProjectDto = {
@@ -33,4 +36,7 @@ export type EditProjectDto = {
     groupsCreator?: 'TEACHER' | 'STUDENT' | 'RANDOM'
     creationGroupDeadLineDate?: string
     studentBatchId?: string
+    oralsConfigEndTime?: string | null
+    oralsConfigStartTime?: string | null
+    oralsConfigDuration?: number | null
 }

@@ -10,92 +10,43 @@ import { Separator } from '@/components/ui/separator'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import { setCurrentProject, updateProjectInList } from '@/store/project.slice'
-import { ChangeEvent, useEffect, useState } from 'react'
-import { useParams } from 'react-router'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button.tsx'
-import { AlertTriangle, Settings, Users } from 'lucide-react'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
-import { DateTime } from 'luxon'
+import { Settings, Users } from 'lucide-react'
+
 import { toast } from 'sonner'
-import ProjectGroupsComposition from '@/components/ProjectPages/ProjectGroups/ProjectGroupsComposition.tsx'
 import { EditProjectDto } from '@/components/ManageProjects/types.ts'
-import {
-    groupService,
-    projectService,
-} from '@/services/ProjectService/project-api-client.ts'
+import { projectService } from '@/services/ProjectService/project-api-client.ts'
 import { ConfigurationSection } from '@/components/ProjectPages/ProjectGroups/ConfigurationSection.tsx'
-import { StatusIndicator } from '@/components/ProjectPages/ProjectGroups/StatusIndicator.tsx'
-import { Card, CardContent } from '@/components/ui/card'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
-import { ProjectGroup } from '@/components/ProjectPages/types.ts'
 import OralPlanningComposition from '@/components/ProjectPages/OralsPlanning/OralPlanningComposition.tsx'
+
+import { OralSettingsDialog } from '@/components/ProjectPages/OralsPlanning/OralSettingsUpdateModal.tsx'
 
 const initialData: EditProjectDto = {}
 export default function ProjectByIdOralsPlanning() {
     const { currentProject } = useSelector((state: RootState) => state.project)
     const { currentUser } = useSelector((state: RootState) => state.user)
     const dispatch = useDispatch()
-    const { projectId } = useParams<{ projectId: string }>()
-    const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-    const [deadLine, setDate] = useState<Date | undefined>(undefined)
-    const [deadLineTime, setDeadLineTime] = useState(
-        DateTime.now().toLocaleString(DateTime.TIME_24_WITH_SECONDS)
-    )
-    const [groupProjectData, setGroupProjectData] =
-        useState<EditProjectDto>(initialData)
-    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-    const [refreshTrigger, setRefreshTrigger] = useState(0)
-    const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-    const [, setHasStudentsInGroups] = useState(false)
+    const [project, setProject] = useState<EditProjectDto>(initialData)
+    const [showModal, setShowModal] = useState(false)
     const [fieldErrors, setFieldErrors] = useState<{
-        groupsCreator?: boolean
-        minPerGroup?: boolean
-        maxPerGroup?: boolean
-        creationGroupDeadLineDate?: boolean
+        oralsConfigEndTime?: boolean
+        oralsConfigStartTime?: boolean
+        oralsConfigDuration?: boolean
     }>({})
 
     useEffect(() => {
         // Initialize form data with current project data
         if (currentProject) {
-            setGroupProjectData({
-                groupsCreator: currentProject.groupsCreator,
-                maxPerGroup: currentProject.maxPerGroup,
-                minPerGroup: currentProject.minPerGroup,
-                creationGroupDeadLineDate:
-                    currentProject.creationGroupDeadLineDate,
+            setProject({
+                oralsConfigEndTime: currentProject.oralsConfigEndTime,
+                oralsConfigStartTime: currentProject.oralsConfigStartTime,
+                oralsConfigDuration: currentProject.oralsConfigDuration,
             })
-
-            if (currentProject.creationGroupDeadLineDate) {
-                const date = DateTime.fromISO(
-                    currentProject.creationGroupDeadLineDate
-                )
-                setDate(date.toJSDate())
-                setDeadLineTime(date.toFormat('HH:mm:ss'))
-            }
         }
     }, [currentProject])
-
-    useEffect(() => {
-        // Track if there are unsaved changes
-        if (currentProject) {
-            const hasChanges =
-                groupProjectData.groupsCreator !==
-                    currentProject.groupsCreator ||
-                groupProjectData.maxPerGroup !== currentProject.maxPerGroup ||
-                groupProjectData.minPerGroup !== currentProject.minPerGroup ||
-                groupProjectData.creationGroupDeadLineDate !==
-                    currentProject.creationGroupDeadLineDate
-            setHasUnsavedChanges(hasChanges)
-        }
-    }, [groupProjectData, currentProject])
 
     if (!currentProject) {
         return (
@@ -103,30 +54,6 @@ export default function ProjectByIdOralsPlanning() {
                 <LoadingSpinner />
             </div>
         )
-    }
-
-    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const { id, value } = e.currentTarget
-
-        // Handle numeric fields properly
-        let processedValue: string | number = value
-        if (id === 'minPerGroup' || id === 'maxPerGroup') {
-            const numValue = parseInt(value)
-            processedValue = isNaN(numValue) || value === '' ? '' : numValue
-        }
-
-        setGroupProjectData((prev) => ({
-            ...prev,
-            [id]: processedValue,
-        }))
-
-        // Clear field error when user starts typing
-        if (fieldErrors[id as keyof typeof fieldErrors]) {
-            setFieldErrors((prev) => ({
-                ...prev,
-                [id]: false,
-            }))
-        }
     }
 
     const clearFieldError = (fieldName: keyof typeof fieldErrors) => {
@@ -138,96 +65,52 @@ export default function ProjectByIdOralsPlanning() {
         }
     }
 
-    const validateConfiguration = () => {
+    const validateConfiguration = (dto: EditProjectDto) => {
         const errors: string[] = []
         const newFieldErrors: typeof fieldErrors = {}
+        console.log(dto)
+        const projectDTO = dto
 
-        // Check if Group Creation Method is selected
-        const groupsCreator =
-            groupProjectData.groupsCreator || currentProject.groupsCreator
-        if (!groupsCreator) {
-            errors.push('Group Creation Method must be selected')
-            newFieldErrors.groupsCreator = true
+        // required
+        const endTime =
+            projectDTO.oralsConfigEndTime || currentProject.oralsConfigEndTime
+        if (!endTime) {
+            errors.push('Orals end date time must be selected')
+            newFieldErrors.oralsConfigEndTime = true
         }
 
-        // Check if minimum students per group is set
-        const minPerGroup =
-            groupProjectData.minPerGroup || currentProject.minPerGroup
-        if (!minPerGroup || minPerGroup < 1) {
-            errors.push(
-                'Minimum students per group is required and must be at least 1'
-            )
-            newFieldErrors.minPerGroup = true
+        // REQUIREd
+        const oralsConfigStartTime =
+            projectDTO.oralsConfigStartTime ||
+            currentProject.oralsConfigStartTime
+        if (!oralsConfigStartTime) {
+            errors.push('Orals start date time must be selected')
+            newFieldErrors.oralsConfigStartTime = true
         }
 
-        // Check if maximum students per group is set
-        const maxPerGroup =
-            groupProjectData.maxPerGroup || currentProject.maxPerGroup
-        if (!maxPerGroup || maxPerGroup < 1) {
-            errors.push(
-                'Maximum students per group is required and must be at least 1'
-            )
-            newFieldErrors.maxPerGroup = true
-        }
-
-        // Check if min is not greater than max
-        if (minPerGroup && maxPerGroup && minPerGroup > maxPerGroup) {
-            errors.push(
-                'Minimum students per group cannot be greater than maximum'
-            )
-            newFieldErrors.minPerGroup = true
-            newFieldErrors.maxPerGroup = true
-        }
-
-        // Check if deadline is set when Group Creation Method is STUDENT
-        if (groupsCreator === 'STUDENT') {
-            const deadline =
-                groupProjectData.creationGroupDeadLineDate ||
-                currentProject.creationGroupDeadLineDate
-            if (!deadline) {
+        // optional but other fields required if this one is set
+        const duration =
+            projectDTO.oralsConfigDuration || currentProject.oralsConfigDuration
+        if (duration) {
+            if (!oralsConfigStartTime || !endTime) {
                 errors.push(
-                    'Group Creation Deadline is required when students create their own groups'
+                    'Start Time and Endtime are required field when setting up duration.'
                 )
-                newFieldErrors.creationGroupDeadLineDate = true
+                newFieldErrors.oralsConfigStartTime = true
+                newFieldErrors.oralsConfigEndTime = true
             }
         }
 
         return { errors, fieldErrors: newFieldErrors }
     }
 
-    // Check if there are students in existing groups
-    const checkForStudentsInGroups = async (): Promise<boolean> => {
-        try {
-            const response = await groupService.getAll(
-                projectId || currentProject.id
-            )
-            if (response.success && response.data) {
-                const groups = response.data as ProjectGroup[]
-                const hasStudents = groups.some((group) => {
-                    // Add null check for group object
-                    if (!group || !group.studentsIds) {
-                        return false
-                    }
-                    const studentIds = group.studentsIds
-                        .split(',')
-                        .filter(Boolean)
-                    return studentIds.length > 0
-                })
-                return hasStudents
-            }
-        } catch (error) {
-            console.error('Error checking for students in groups:', error)
-        }
-        return false
-    }
-
     // Perform the actual save operation
-    const performSave = async () => {
+    const performSave = async (dto: EditProjectDto) => {
         setIsLoading(true)
         try {
             const response = await projectService.editProject(
                 currentProject.id,
-                groupProjectData
+                dto
             )
             if (response.success) {
                 if (response.data && !(response.data instanceof Array)) {
@@ -237,9 +120,6 @@ export default function ProjectByIdOralsPlanning() {
                     dispatch(updateProjectInList(updatedProject))
 
                     toast.success('Configuration updated successfully')
-                    setHasUnsavedChanges(false)
-                    // Trigger group refresh
-                    setRefreshTrigger((prev) => prev + 1)
                 }
             } else {
                 toast.error(response.error)
@@ -252,9 +132,9 @@ export default function ProjectByIdOralsPlanning() {
         }
     }
 
-    const handleProjectEditSave = async () => {
+    const handleProjectEditSave = async (dto: EditProjectDto) => {
         // Validate configuration before saving
-        const validation = validateConfiguration()
+        const validation = validateConfiguration(dto)
         if (validation.errors.length > 0) {
             // Show all validation errors
             validation.errors.forEach((error: string) => toast.error(error))
@@ -265,63 +145,12 @@ export default function ProjectByIdOralsPlanning() {
 
         // Clear any existing field errors on successful validation
         setFieldErrors({})
-
-        // Check if there are students in groups
-        const hasStudents = await checkForStudentsInGroups()
-        setHasStudentsInGroups(hasStudents)
-
-        if (hasStudents) {
-            // Show confirmation dialog
-            setShowConfirmDialog(true)
-        } else {
-            // Proceed with save directly
-            await performSave()
-        }
-    }
-
-    // Handle confirmation dialog
-    const handleConfirmSave = async () => {
-        setShowConfirmDialog(false)
-        await performSave()
+        await performSave(dto)
     }
 
     const handleCancelSave = () => {
-        setShowConfirmDialog(false)
+        setShowModal(false)
     }
-
-    const getDeadlineStatus = () => {
-        if (!currentProject.creationGroupDeadLineDate) return null
-
-        const deadline = DateTime.fromISO(
-            currentProject.creationGroupDeadLineDate
-        )
-        const now = DateTime.now()
-        const timeUntil = deadline.diff(now)
-
-        if (timeUntil.milliseconds < 0) {
-            return {
-                type: 'error' as const,
-                text: 'Deadline passed',
-                description: deadline.toFormat('dd/MM/yyyy HH:mm'),
-            }
-        }
-
-        if (timeUntil.as('days') < 1) {
-            return {
-                type: 'warning' as const,
-                text: 'Due soon',
-                description: deadline.toFormat('dd/MM/yyyy HH:mm'),
-            }
-        }
-
-        return {
-            type: 'info' as const,
-            text: 'Active',
-            description: deadline.toFormat('dd/MM/yyyy HH:mm'),
-        }
-    }
-
-    const deadlineStatus = getDeadlineStatus()
 
     return (
         <div className="min-h-screen bg-background">
@@ -379,58 +208,23 @@ export default function ProjectByIdOralsPlanning() {
                 >
                     <OralPlanningComposition
                         currentProject={currentProject}
-                        refreshTrigger={refreshTrigger}
+                        toggleModalSettings={() => setShowModal(!showModal)}
                     />
                 </ConfigurationSection>
             </div>
 
-            {/* Confirmation Dialog */}
-            <Dialog
-                open={showConfirmDialog}
-                onOpenChange={setShowConfirmDialog}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <AlertTriangle className="h-5 w-5 text-orange-600" />
-                            Confirm Configuration Changes
-                        </DialogTitle>
-                        <DialogDescription className="space-y-2">
-                            <p>
-                                There are already students assigned to groups in
-                                this project. Changing the group configuration
-                                may affect existing group assignments.
-                            </p>
-                            <div className="bg-orange-50 dark:bg-orange-950 p-3 rounded-lg border border-orange-200 dark:border-orange-800">
-                                <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
-                                    ⚠️ Warning: Students may be removed from
-                                    groups if the new configuration doesn't
-                                    allow their current group size or structure.
-                                </p>
-                            </div>
-                            <p className="text-sm">
-                                Do you want to proceed with saving the
-                                configuration changes?
-                            </p>
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={handleCancelSave}>
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleConfirmSave}
-                            className="bg-orange-600 hover:bg-orange-700"
-                        >
-                            {isLoading ? (
-                                <LoadingSpinner />
-                            ) : (
-                                'Yes, Save Changes'
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Change project orals settings modal */}
+            <OralSettingsDialog
+                showConfirmDialog={showModal}
+                setShowConfirmDialog={setShowModal}
+                projectDTO={project}
+                setProject={setProject}
+                fieldErrors={fieldErrors}
+                clearFieldError={clearFieldError}
+                isLoading={isLoading}
+                handleCancelSave={handleCancelSave}
+                onSave={handleProjectEditSave}
+            />
         </div>
     )
 }
