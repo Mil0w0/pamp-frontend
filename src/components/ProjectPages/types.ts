@@ -8,6 +8,7 @@ export type ProjectGroup = {
     reportSubmittedDate: string
     studentsIds: string
     project: Project
+    oral: Oral | null
 }
 
 export type Step = {
@@ -18,4 +19,11 @@ export type Step = {
     hasMandatorySubmission: boolean
     allowSubmittingAfterDeadLine: boolean
     submissionConformityRules: ConformityRules[]
+}
+
+export type Oral = {
+    id: string
+    group: ProjectGroup
+    startTime: string
+    endTime: string
 }

@@ -7,6 +7,8 @@ import { ProjectGroup, Step } from '@/components/ProjectPages/types.ts'
 import {
     ApiErrorMessage,
     GroupApiResponse,
+    OralApiResponse,
+    OralDTO,
     ProjectApiResponse,
     ReportDefinition,
     ReportDefinitionApiResponse,
@@ -20,6 +22,10 @@ export const PROJECT_API_URL: string =
     'http://localhost:3001'
 
 const handleApiError = (error: string): ProjectApiResponse => {
+    console.error('API Erreur:', error)
+    return { success: false, error: error }
+}
+const handleApiOralError = (error: string): OralApiResponse => {
     console.error('API Erreur:', error)
     return { success: false, error: error }
 }
@@ -557,6 +563,103 @@ export const stepsService = {
         } catch (error) {
             const err = error as ApiErrorMessage
             return handleApiStepError(err.message)
+        }
+    },
+}
+export const planningService = {
+    create: async (dto: OralDTO) => {
+        console.log(dto)
+        try {
+            const response = await fetch(`${PROJECT_API_URL}/orals`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                },
+                body: JSON.stringify(dto),
+            })
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiError(error.message)
+            }
+            const oral: OralDTO = await response.json()
+            return { success: response.ok, data: oral }
+        } catch (error) {
+            const err = error as Error
+            return handleApiError(err.message)
+        }
+    },
+    update: async (oralId: string, dto: OralDTO) => {
+        console.log(dto)
+        try {
+            const response = await fetch(`${PROJECT_API_URL}/orals/${oralId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                },
+                body: JSON.stringify(dto),
+            })
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiError(error.message)
+            }
+            const oral: OralDTO = await response.json()
+            return { success: response.ok, data: oral }
+        } catch (error) {
+            const err = error as Error
+            return handleApiError(err.message)
+        }
+    },
+    //Get all teacher orals but exclude the current project ones
+    getAllTeacherOrals: async (projectID: string, userId: string) => {
+        try {
+            const token = localStorage.getItem('auth_token')
+
+            // Get all projects for the teacher
+            const response = await fetch(
+                `${PROJECT_API_URL}/projects?userId=${userId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            )
+
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiOralError(error.message)
+            }
+
+            const projects: Project[] = await response.json()
+            const otherProjects = projects.filter(
+                (project: Project) => project.id !== projectID
+            )
+
+            // For each project, fetch orals
+            const oralFetches = otherProjects.map(async (project) => {
+                const res = await fetch(
+                    `${PROJECT_API_URL}/orals/projects/${project.id}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                )
+
+                if (!res.ok) return []
+                const orals: OralDTO[] = await res.json()
+                return orals
+            })
+            const allOralsArrays = await Promise.all(oralFetches)
+
+            //Flatten the result
+            const allOrals: OralDTO[] = allOralsArrays.flat()
+
+            return { success: true, data: allOrals }
+        } catch (error) {
+            const err = error as Error
+            return handleApiOralError(err.message)
         }
     },
 }

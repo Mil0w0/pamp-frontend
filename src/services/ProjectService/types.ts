@@ -17,6 +17,11 @@ export type GroupApiResponse = {
     success: boolean
     data?: ProjectGroup | ProjectGroup[]
 }
+export type OralApiResponse = {
+    error?: string
+    success: boolean
+    data?: OralDTO[]
+}
 export type StepApiResponse = {
     error?: string
     success: boolean
@@ -51,4 +56,11 @@ export type ReportDefinitionApiResponse = {
     error?: string
     success: boolean
     data?: ReportDefinition
+}
+
+export type OralDTO = {
+    id?: string
+    startTime: string
+    endTime: string
+    groupId?: string
 }
