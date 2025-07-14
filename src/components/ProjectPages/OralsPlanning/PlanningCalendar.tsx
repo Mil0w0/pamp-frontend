@@ -16,17 +16,39 @@ import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import { Button } from '@/components/ui/button.tsx'
 import { DicesIcon } from 'lucide-react'
+import { User } from '@/services/UserService/types.ts'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu.tsx'
 
 export default function PlanningCalendar({
     projectConfig,
     groups,
     oralPlanning,
     setOralPlanning,
+    generatePlanning,
+    generateAttendanceSheet,
 }: {
     groups: ProjectGroup[]
     projectConfig: Project
     oralPlanning: OralDTO[]
     setOralPlanning: React.Dispatch<React.SetStateAction<OralDTO[]>>
+    generateAttendanceSheet: (
+        planning: OralDTO[],
+        project: Project,
+        groups: ProjectGroup[],
+        teacher: User | null,
+        sortedAlphabetically: boolean
+    ) => void
+    generatePlanning: (
+        planning: OralDTO[],
+        project: Project,
+        groups: ProjectGroup[],
+        teacher: User | null
+    ) => void
 }) {
     const { currentUser } = useSelector((state: RootState) => state.user)
     const [events, setEvents] = useState<EventInput[]>([])
@@ -253,7 +275,52 @@ export default function PlanningCalendar({
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="default">Attendance sheet</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem
+                            onClick={() =>
+                                generateAttendanceSheet(
+                                    oralPlanning,
+                                    projectConfig,
+                                    groups,
+                                    currentUser,
+                                    true
+                                )
+                            }
+                        >
+                            Sorted alphabetically
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() =>
+                                generateAttendanceSheet(
+                                    oralPlanning,
+                                    projectConfig,
+                                    groups,
+                                    currentUser,
+                                    false
+                                )
+                            }
+                        >
+                            Sorted By Groups
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                    onClick={() =>
+                        generatePlanning(
+                            oralPlanning,
+                            projectConfig,
+                            groups,
+                            currentUser
+                        )
+                    }
+                >
+                    Planning sheet
+                </Button>
                 <Button
                     onClick={handleRandomizeOrder}
                     disabled={oralPlanning.length === 0}

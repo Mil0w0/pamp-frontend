@@ -11,7 +11,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import { setCurrentProject, updateProjectInList } from '@/store/project.slice'
 import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button.tsx'
 import { Settings, Users } from 'lucide-react'
 
 import { toast } from 'sonner'
@@ -104,7 +103,6 @@ export default function ProjectByIdOralsPlanning() {
         return { errors, fieldErrors: newFieldErrors }
     }
 
-    // Perform the actual save operation
     const performSave = async (dto: EditProjectDto) => {
         setIsLoading(true)
         try {
@@ -136,14 +134,12 @@ export default function ProjectByIdOralsPlanning() {
         // Validate configuration before saving
         const validation = validateConfiguration(dto)
         if (validation.errors.length > 0) {
-            // Show all validation errors
             validation.errors.forEach((error: string) => toast.error(error))
-            // Set field errors to highlight problematic fields
             setFieldErrors(validation.fieldErrors)
             return
         }
 
-        // Clear any existing field errors on successful validation
+        // Clear any existing field errors
         setFieldErrors({})
         await performSave(dto)
     }
@@ -193,10 +189,6 @@ export default function ProjectByIdOralsPlanning() {
                                 Plan the orals for the groups
                             </p>
                         )}
-                    </div>
-                    <div className="space-x-1">
-                        <Button>Attendance sheet</Button>
-                        <Button>Planning sheet</Button>
                     </div>
                 </div>
 
