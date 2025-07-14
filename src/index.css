@@ -49,7 +49,7 @@
     --card-foreground: oklch(0.141 0.005 285.823);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.141 0.005 285.823);
-    --primary: #FEF2B1;
+    --primary: #efdc7b;
     --primary-foreground: oklch(0.241 0.006 285.966);
     --secondary: oklch(0.913 0.004 17.237);
     --secondary-foreground: oklch(0.21 0.006 285.885);
@@ -389,5 +389,4 @@
 
 .dark .fc .fc-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
