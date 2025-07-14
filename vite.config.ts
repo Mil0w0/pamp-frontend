@@ -9,19 +9,6 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    server: {
-        port: 5173,
-        cors: {
-            origin: '*',
-            methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-            allowedHeaders: [
-                'Content-Type',
-                'Authorization',
-                'X-Requested-With',
-            ],
-            credentials: true,
-        },
-    },
     test: {
         globals: true,
         environment: 'jsdom',

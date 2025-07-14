@@ -64,18 +64,20 @@ export const projectService = {
     },
     getAll: async (userId: string): Promise<ProjectApiResponse> => {
         try {
-            const url = `${PROJECT_API_URL}/projects?userId=${userId}`
-            console.log(url)
-            const response = await fetch(url, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-                },
-            })
+            const response = await fetch(
+                `${PROJECT_API_URL}/projects?userId=${userId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
+            )
             if (!response.ok) {
                 const error: ApiErrorMessage = await response.json()
                 return handleApiError(error.message)
             } else {
                 const projects: Project[] = await response.json()
+                console.log(projects)
 
                 return {
                     success: true,
