@@ -129,19 +129,20 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
 
         const handleScoreChange = useCallback(
             (criterion: GradingCriterion, score: number) => {
-                if (score < 0 || score > criterion.maxPoints || isNaN(score)) return;
+                if (score < 0 || score > criterion.maxPoints || isNaN(score))
+                    return
                 setResults((prev) => {
-                    const existingResult = prev[criterion.id];
-                    if (existingResult?.score === score) return prev;
+                    const existingResult = prev[criterion.id]
+                    if (existingResult?.score === score) return prev
                     const result: GradingResult = {
                         gradingCriterionId: criterion.id,
                         targetGroupId,
                         targetStudentId,
                         score,
                         comment: existingResult?.comment || '',
-                    };
-                    return { ...prev, [criterion.id]: result };
-                });
+                    }
+                    return { ...prev, [criterion.id]: result }
+                })
             },
             [targetGroupId, targetStudentId]
         )

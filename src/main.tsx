@@ -35,6 +35,7 @@ import { StudentReport } from '@/components/StudentPages'
 import { StepById } from '@/components/ProjectPages/Steps/StepById.tsx'
 import ProjectGradingPage from '@/components/ProjectPages/ProjectGradingPage.tsx'
 import ProjectByIdOralsPlanning from '@/components/ProjectPages/OralsPlanning/ProjectByIdOralsPlanning.tsx'
+import { GradingSystemDemo } from './components/GradingSystem/GradingSystemDemo.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -46,7 +47,10 @@ createRoot(document.getElementById('root')!).render(
                         {/* Auth & Main Entry */}
                         <Route element={<CenteredLayout />}>
                             <Route path="/login" element={<LogIn />} />
-                            <Route path="/register/teacher" element={<TeacherRegister />} />
+                            <Route
+                                path="/register/teacher"
+                                element={<TeacherRegister />}
+                            />
                             <Route path="/" element={<App />} />
                         </Route>
 
@@ -68,26 +72,63 @@ createRoot(document.getElementById('root')!).render(
                         <Route
                             path="/projects"
                             element={
-                                <ProtectedRoute allowedRoles={['TEACHER', 'STUDENT']}>
+                                <ProtectedRoute
+                                    allowedRoles={['TEACHER', 'STUDENT']}
+                                >
                                     <ProjectsPage />
                                 </ProtectedRoute>
                             }
                         />
 
                         {/* Auth callback, logout */}
-                        <Route path="/auth/callback" element={<AuthCallback />} />
+                        <Route
+                            path="/auth/callback"
+                            element={<AuthCallback />}
+                        />
                         <Route path="/logout" element={<Logout />} />
 
                         {/* Project detail routes with sidebar */}
-                        <Route path="/projects/:projectId/*" element={<SidebarLayout />}>
-                            <Route path="settings" element={<ProjectByIdPageGeneral />} />
-                            <Route path="groups" element={<ProjectByIdPageGroupConfig />} />
-                            <Route path="groups/:groupId" element={<ProjectGroupsById />} />
-                            <Route path="steps/config" element={<ProjectByIdPageStepConfig />} />
-                            <Route path="steps/:stepId" element={<StepById />} />
-                            <Route path="test/classic-review" element={<TeacherReviewReport />} />
-                            <Route path="report-definition" element={<ProjectByIdPageReportDefinition />} />
-                            <Route path="orals" element={<ProjectByIdOralsPlanning />} />
+                        <Route
+                            path="/projects/:projectId/*"
+                            element={<SidebarLayout />}
+                        >
+                            <Route
+                                path="settings"
+                                element={<ProjectByIdPageGeneral />}
+                            />
+                            <Route
+                                path="groups"
+                                element={<ProjectByIdPageGroupConfig />}
+                            />
+                            <Route
+                                path="groups/:groupId"
+                                element={<ProjectGroupsById />}
+                            />
+                            <Route
+                                path="steps/config"
+                                element={<ProjectByIdPageStepConfig />}
+                            />
+                            <Route
+                                path="steps/:stepId"
+                                element={<StepById />}
+                            />
+                            <Route
+                                path="test/classic-review"
+                                element={<TeacherReviewReport />}
+                            />
+                            <Route
+                                path="report-definition"
+                                element={<ProjectByIdPageReportDefinition />}
+                            />
+                            <Route
+                                path="orals"
+                                element={<ProjectByIdOralsPlanning />}
+                            />
+                            {/* AJOUT : Route pour la grille de notation */}
+                            <Route
+                                path="grading"
+                                element={<ProjectGradingPage />}
+                            />
                             <Route path="*" element={<Error404 />} />
                         </Route>
 
@@ -133,6 +174,16 @@ createRoot(document.getElementById('root')!).render(
                             element={
                                 <ProtectedRoute allowedRoles={['TEACHER']}>
                                     <TeacherReviewReport />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/projects/ProjectGradingPage"
+                            element={
+                                <ProtectedRoute allowedRoles={['TEACHER']}>
+                                    <GradingSystemDemo
+                                        projectId={'projectId'}
+                                    />
                                 </ProtectedRoute>
                             }
                         />

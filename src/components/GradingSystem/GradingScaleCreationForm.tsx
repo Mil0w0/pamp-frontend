@@ -384,12 +384,16 @@ export function GradingScaleCreationForm({
                                             min="1"
                                             value={criterion.maxPoints}
                                             onChange={(e) => {
-                                                const val = parseInt(e.target.value);
+                                                const val = parseInt(
+                                                    e.target.value
+                                                )
                                                 updateCriterion(
                                                     index,
                                                     'maxPoints',
-                                                    isNaN(val) ? 20 : Math.max(1, val)
-                                                );
+                                                    isNaN(val)
+                                                        ? 20
+                                                        : Math.max(1, val)
+                                                )
                                             }}
                                         />
                                     </div>

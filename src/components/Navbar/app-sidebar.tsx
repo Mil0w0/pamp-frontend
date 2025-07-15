@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useEffect } from 'react'
 import {
     BookOpen,
+    ClipboardList,
     Footprints,
     Settings2,
     SpeechIcon,

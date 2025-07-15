@@ -22,7 +22,10 @@ import {
 import { toast } from 'sonner'
 import { FixedSizeList as List } from 'react-window'
 import { memo } from 'react'
-import { calculateGradingStats, calculateFinalGrade } from '@/utils/gradingCalculations'
+import {
+    calculateGradingStats,
+    calculateFinalGrade,
+} from '@/utils/gradingCalculations'
 
 interface GradingInterfaceProps {
     gradingScale: GradingGrid
@@ -98,7 +101,13 @@ export function GradingInterface({
                                 result.gradingCriterionId === grade.criterionId
                         )
                         if (existingResult) {
-                            const clampedScore = Math.max(0, Math.min(grade.maxPoints, existingResult.score || 0));
+                            const clampedScore = Math.max(
+                                0,
+                                Math.min(
+                                    grade.maxPoints,
+                                    existingResult.score || 0
+                                )
+                            )
                             return {
                                 ...grade,
                                 score: clampedScore,
@@ -143,7 +152,10 @@ export function GradingInterface({
             )
             if (criterion) {
                 const weight = criterion.weight || 1
-                const clampedScore = Math.max(0, Math.min(grade.maxPoints, grade.score));
+                const clampedScore = Math.max(
+                    0,
+                    Math.min(grade.maxPoints, grade.score)
+                )
                 const normalizedScore = (clampedScore / grade.maxPoints) * 100
                 totalWeightedScore += normalizedScore * weight
                 totalWeight += weight
@@ -277,7 +289,7 @@ export function GradingInterface({
     ])
 
     const getScoreColor = useCallback((score: number, maxPoints: number) => {
-        const clampedScore = Math.max(0, Math.min(maxPoints, score));
+        const clampedScore = Math.max(0, Math.min(maxPoints, score))
         const percentage = (clampedScore / maxPoints) * 100
         if (percentage >= 80) return 'text-green-600'
         if (percentage >= 60) return 'text-yellow-600'
@@ -285,19 +297,28 @@ export function GradingInterface({
     }, [])
 
     const overallStats = useMemo(() => {
-      const stats = calculateGradingStats(gradingScale.criteria, existingResults)
-      const finalGrade = calculateFinalGrade(gradingScale.criteria, existingResults)
-      const completion = `${existingResults.length}/${gradingScale.criteria?.length || 1}`
-      const generalComment = grades.filter(g => g.comment).map(g => `${g.label}: ${g.comment}`).join('\n')
-      return {
-        progress: completion,
-        currentScore: `${stats.totalScore}/${stats.maxScore}`,
-        percentage: `${stats.percentage}%`,
-        gradeOutOf20: finalGrade,
-        status: 'Validated',
-        score: stats.totalScore,
-        generalComment
-      }
+        const stats = calculateGradingStats(
+            gradingScale.criteria,
+            existingResults
+        )
+        const finalGrade = calculateFinalGrade(
+            gradingScale.criteria,
+            existingResults
+        )
+        const completion = `${existingResults.length}/${gradingScale.criteria?.length || 1}`
+        const generalComment = grades
+            .filter((g) => g.comment)
+            .map((g) => `${g.label}: ${g.comment}`)
+            .join('\n')
+        return {
+            progress: completion,
+            currentScore: `${stats.totalScore}/${stats.maxScore}`,
+            percentage: `${stats.percentage}%`,
+            gradeOutOf20: finalGrade,
+            status: 'Validated',
+            score: stats.totalScore,
+            generalComment,
+        }
     }, [gradingScale, existingResults, grades])
 
     if (isValidated && existingResults.length > 0) {
@@ -342,7 +363,10 @@ export function GradingInterface({
                         </div>
                         <div className="mb-6">
                             <Label>General Comment</Label>
-                            <p className="p-2 bg-muted rounded text-sm">{overallStats.generalComment || 'No general comment'}</p>
+                            <p className="p-2 bg-muted rounded text-sm">
+                                {overallStats.generalComment ||
+                                    'No general comment'}
+                            </p>
                         </div>
                         <div className="flex gap-2 mb-4">
                             <Badge variant="default">Validated</Badge>
