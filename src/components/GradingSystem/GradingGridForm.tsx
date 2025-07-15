@@ -86,24 +86,24 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
             isGridComplete,
         } = useGradingGrid({ projectId, gridId, type, targetId })
 
-        const [formData, setFormData] = useState({
-            title: '',
-            notationMode: 'groupe' as NotationMode,
-            type: type || ('livrable' as GradingGridType),
-            targetId: targetId || '',
-            criteria: [] as GradingCriterion[],
-        })
+    const [formData, setFormData] = useState({
+        title: '',
+        notationMode: 'groupe' as NotationMode,
+        type: type || ('livrable' as GradingGridType),
+        targetId: targetId || '',
+        criteria: [] as GradingCriterion[],
+    })
 
-        const [newCriterion, setNewCriterion] = useState({
-            label: '',
-            maxPoints: 20,
-            weight: 1,
-            commentEnabled: false,
-        })
+    const [newCriterion, setNewCriterion] = useState({
+        label: '',
+        maxPoints: 20,
+        weight: 1,
+        commentEnabled: false,
+    })
 
-        const [students, setStudents] = useState<Student[]>([])
-        const [groups, setGroups] = useState<ProjectGroup[]>([])
-        const [loadingTargets, setLoadingTargets] = useState(false)
+    const [students, setStudents] = useState<Student[]>([])
+    const [groups, setGroups] = useState<ProjectGroup[]>([])
+    const [loadingTargets, setLoadingTargets] = useState(false)
 
         const { currentProject } = useSelector(
             (state: RootState) => state.project
@@ -160,18 +160,18 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
             }
         }, [projectId])
 
-        // Sync form data with loaded grid
-        useEffect(() => {
-            if (grid) {
-                setFormData({
-                    title: grid.title,
-                    notationMode: grid.notationMode,
-                    type: grid.type,
-                    targetId: grid.targetId,
-                    criteria: grid.criteria || [],
-                })
-            }
-        }, [grid])
+    // Sync form data with loaded grid
+    useEffect(() => {
+        if (grid) {
+            setFormData({
+                title: grid.title,
+                notationMode: grid.notationMode,
+                type: grid.type,
+                targetId: grid.targetId,
+                criteria: grid.criteria || [],
+            })
+        }
+    }, [grid])
 
         // Load students or groups based on notation mode
         useEffect(() => {
@@ -204,31 +204,31 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                         return
                     }
 
-                    if (onSave) {
-                        onSave({
-                            ...grid,
-                            title: formData.title,
-                            notationMode: formData.notationMode,
-                            criteria: updatedCriteria,
-                        })
-                    }
-                } else {
-                    const gridData: CreateGradingGridDto = {
-                        projectId,
+                if (onSave) {
+                    onSave({
+                        ...grid,
                         title: formData.title,
-                        type: formData.type,
-                        targetId: formData.targetId,
                         notationMode: formData.notationMode,
-                        criteria: formData.criteria.map(
-                            (criterion: GradingCriterion) => ({
-                                label: criterion.label,
-                                maxPoints: criterion.maxPoints,
-                                weight: criterion.weight,
-                                commentEnabled: criterion.commentEnabled,
-                            })
-                        ),
-                    }
-                    const newGrid = await createGrid(gridData)
+                        criteria: updatedCriteria,
+                    })
+                }
+            } else {
+                const gridData: CreateGradingGridDto = {
+                    projectId,
+                    title: formData.title,
+                    type: formData.type,
+                    targetId: formData.targetId,
+                    notationMode: formData.notationMode,
+                    criteria: formData.criteria.map(
+                        (criterion: GradingCriterion) => ({
+                            label: criterion.label,
+                            maxPoints: criterion.maxPoints,
+                            weight: criterion.weight,
+                            commentEnabled: criterion.commentEnabled,
+                        })
+                    ),
+                }
+                const newGrid = await createGrid(gridData)
 
                     // Vérifier si la création a échoué
                     if (!newGrid || error) {
@@ -316,28 +316,28 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
             [grid, removeCriterion]
         )
 
-        if (loading) {
-            return (
-                <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                            <span className="ml-2">Loading...</span>
-                        </div>
-                    </CardContent>
-                </Card>
-            )
-        }
-
+    if (loading) {
         return (
-            <div className="space-y-6">
-                {error && (
-                    <ErrorDisplay
-                        error={error}
-                        onRetry={() => window.location.reload()}
-                        onDismiss={clearError}
-                    />
-                )}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <span className="ml-2">Loading...</span>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    return (
+        <div className="space-y-6">
+            {error && (
+                <ErrorDisplay
+                    error={error}
+                    onRetry={() => window.location.reload()}
+                    onDismiss={clearError}
+                />
+            )}
 
                 <Card>
                     <CardHeader>

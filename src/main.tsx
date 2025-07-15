@@ -33,9 +33,9 @@ import TeacherReviewReport from '@/components/TeacherPages/TeacherReviewReport.t
 import StudentDashboard from '@/components/StudentPages/StudentDashboard.tsx'
 import { StudentReport } from '@/components/StudentPages'
 import { StepById } from '@/components/ProjectPages/Steps/StepById.tsx'
-import ProjectGradingPage from '@/components/ProjectPages/ProjectGradingPage.tsx'
 import ProjectByIdOralsPlanning from '@/components/ProjectPages/OralsPlanning/ProjectByIdOralsPlanning.tsx'
 import { GradingSystemDemo } from './components/GradingSystem/GradingSystemDemo.tsx'
+import ProjectGradingPage from '@/components/ProjectPages/ProjectGradingPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
