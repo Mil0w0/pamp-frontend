@@ -5,40 +5,83 @@ import {
     GradingGrid,
 } from '@/components/GradingSystem/type'
 
+// Cache for statistics calculations
+const statsCache = new Map<string, GradingStats>()
+
 /**
- * Calcule les statistiques de notation pour un ensemble de résultats
+ * Generate a cache key for statistics
+ */
+const getStatsCacheKey = (
+    criteria,
+    results
+): string => {
+    const criteriaKey = Array.isArray(criteria)
+        ? criteria.map((c) => `${c.id}:${c.maxPoints}:${c.weight}`).join('|')
+        : ''
+    const resultsKey = Array.isArray(results)
+        ? results.map((r) => `${r.gradingCriterionId}:${r.score}`).join('|')
+        : ''
+    return `${criteriaKey}#${resultsKey}`
+}
+
+/**
+ * Calculate grading statistics for a set of results
  */
 export const calculateGradingStats = (
     criteria: GradingCriterion[] = [],
     results: GradingResult[] = []
 ): GradingStats => {
+    // Vérifier le cache d'abord
+    const cacheKey = getStatsCacheKey(criteria, results)
+    const cached = statsCache.get(cacheKey)
+    if (cached) {
+        return cached
+    }
+
+    // Créer une Map pour un accès plus rapide aux résultats
+    const resultsMap = new Map<string, number>()
+    if (Array.isArray(results)) {
+        results.forEach((result) => {
+            resultsMap.set(result.gradingCriterionId, result.score || 0)
+        })
+    }
+
     let totalScore = 0
     let maxScore = 0
     let weightedScore = 0
     let totalWeight = 0
-    ;(criteria || []).forEach(
-        (criterion: { id: string; maxPoints: number; weight: number }) => {
-            const result = Array.isArray(results)
-                ? results.find((r) => r.gradingCriterionId === criterion.id)
-                : undefined
-            const score = result?.score || 0
 
-            totalScore += score
-            maxScore += criterion.maxPoints
-            weightedScore += (score / criterion.maxPoints) * criterion.weight
-            totalWeight += criterion.weight
-        }
-    )
+    const safeCriteria = Array.isArray(criteria) ? criteria : []
+    for (const criterion of safeCriteria) {
+        const rawScore = resultsMap.get(criterion.id) || 0
+        const clampedScore = Math.max(0, Math.min(criterion.maxPoints, rawScore))
+        totalScore += clampedScore
+        maxScore += criterion.maxPoints
+        const normalizedScore = criterion.maxPoints > 0 ? (clampedScore / criterion.maxPoints) : 0
+        weightedScore += normalizedScore * criterion.weight
+        totalWeight += criterion.weight
+    }
 
     const percentage = maxScore > 0 ? totalScore / maxScore : 0
     const finalWeightedScore = totalWeight > 0 ? weightedScore / totalWeight : 0
 
-    return {
+    const stats: GradingStats = {
         totalScore,
         maxScore,
         percentage: Math.round(percentage * 100),
         weightedScore: Math.round(finalWeightedScore * 100),
     }
+
+    // Mettre en cache le résultat (limiter la taille du cache)
+    if (statsCache.size >= 50) {
+        const firstKey = statsCache.keys().next().value
+        if (firstKey) {
+            statsCache.delete(firstKey)
+        }
+    }
+    statsCache.set(cacheKey, stats)
+
+    return stats
 }
 
 /**
@@ -89,14 +132,22 @@ export const validateResultsCompleteness = (
     missingCriteria: string[]
 } => {
     const missingCriteria: string[] = []
-    ;(criteria || []).forEach((criterion: GradingCriterion) => {
-        const result = Array.isArray(results)
-            ? results.find((r) => r.gradingCriterionId === criterion.id)
-            : undefined
-        if (!result || result.score === void 0 || result.score === null) {
+
+    // Créer une Map pour un accès plus rapide aux résultats
+    const resultsMap = new Map<string, GradingResult>()
+    if (Array.isArray(results)) {
+        results.forEach((result) => {
+            resultsMap.set(result.gradingCriterionId, result)
+        })
+    }
+
+    // Utiliser for...of pour de meilleures performances
+    for (const criterion of criteria || []) {
+        const result = resultsMap.get(criterion.id)
+        if (!result || result.score === undefined || result.score === null) {
             missingCriteria.push(criterion.label)
         }
-    })
+    }
 
     return {
         isComplete: missingCriteria.length === 0,
@@ -143,9 +194,20 @@ export const canValidateGrid = (grid: GradingGrid): boolean => {
     return gridValidation.isComplete && resultsValidation.isComplete
 }
 
+// Compteur pour générer des IDs uniques plus efficacement
+let criterionIdCounter = 0
+
 /**
  * Génère un ID unique pour un nouveau critère
  */
 export const generateCriterionId = (): string => {
-    return `criterion_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    criterionIdCounter += 1
+    return `criterion_${Date.now()}_${criterionIdCounter.toString(36)}`
+}
+
+/**
+ * Vide les caches pour libérer la mémoire
+ */
+export const clearCalculationCaches = (): void => {
+    statsCache.clear()
 }

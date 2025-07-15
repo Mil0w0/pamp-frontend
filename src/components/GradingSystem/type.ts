@@ -22,6 +22,7 @@ export interface GradingGrid {
     notationMode: 'groupe' | 'individuel'
     title: string
     isValidated: boolean
+    validatedAt?: string
     criteria: GradingCriterion[]
     results: GradingResult[]
     generalComment?: string

@@ -1,7 +1,4 @@
-/**
- * Utilitaires pour la gestion des erreurs dans l'application
- */
-
+// Utilities for error handling in the application
 export interface ErrorInfo {
     title: string
     message: string
@@ -10,21 +7,33 @@ export interface ErrorInfo {
     retryable?: boolean
 }
 
+// Cache to avoid re-analyzing the same errors
+const errorAnalysisCache = new Map<string, ErrorInfo>()
+
 /**
  * Analyse une erreur et retourne des informations structurées
  */
 export const analyzeError = (error: string | Error): ErrorInfo => {
     const errorMessage = typeof error === 'string' ? error : error.message
+
+    // Vérifier le cache d'abord
+    const cached = errorAnalysisCache.get(errorMessage)
+    if (cached) {
+        return cached
+    }
+
     const lowerError = errorMessage.toLowerCase()
+    let result: ErrorInfo
 
     // Erreurs réseau
     if (
         lowerError.includes('fetch') ||
         lowerError.includes('network') ||
         lowerError.includes('connection') ||
-        lowerError.includes('cannot get')
+        lowerError.includes('cannot get') ||
+        lowerError.includes('timeout')
     ) {
-        return {
+        result = {
             title: 'Problème de connexion',
             message:
                 'Impossible de se connecter au serveur. Vérifiez votre connexion internet et réessayez.',
@@ -35,12 +44,12 @@ export const analyzeError = (error: string | Error): ErrorInfo => {
     }
 
     // Erreurs d'authentification
-    if (
+    else if (
         lowerError.includes('unauthorized') ||
         lowerError.includes('401') ||
         lowerError.includes('authentication')
     ) {
-        return {
+        result = {
             title: 'Accès non autorisé',
             message: 'Votre session a expiré. Veuillez vous reconnecter.',
             type: 'permission',
@@ -50,12 +59,12 @@ export const analyzeError = (error: string | Error): ErrorInfo => {
     }
 
     // Erreurs de permissions
-    if (
+    else if (
         lowerError.includes('forbidden') ||
         lowerError.includes('403') ||
         lowerError.includes('permission')
     ) {
-        return {
+        result = {
             title: 'Accès refusé',
             message:
                 "Vous n'avez pas les permissions nécessaires pour effectuer cette action.",
@@ -66,13 +75,13 @@ export const analyzeError = (error: string | Error): ErrorInfo => {
     }
 
     // Erreurs de validation
-    if (
+    else if (
         lowerError.includes('validation') ||
         lowerError.includes('invalid') ||
         lowerError.includes('required') ||
         lowerError.includes('400')
     ) {
-        return {
+        result = {
             title: 'Données invalides',
             message:
                 'Les informations saisies ne sont pas valides. Veuillez vérifier et corriger.',
@@ -83,12 +92,12 @@ export const analyzeError = (error: string | Error): ErrorInfo => {
     }
 
     // Erreurs serveur
-    if (
+    else if (
         lowerError.includes('500') ||
         lowerError.includes('server error') ||
         lowerError.includes('internal')
     ) {
-        return {
+        result = {
             title: 'Erreur serveur',
             message:
                 "Une erreur s'est produite sur le serveur. Veuillez réessayer plus tard.",
@@ -99,8 +108,8 @@ export const analyzeError = (error: string | Error): ErrorInfo => {
     }
 
     // Erreurs de ressource non trouvée
-    if (lowerError.includes('404') || lowerError.includes('not found')) {
-        return {
+    else if (lowerError.includes('404') || lowerError.includes('not found')) {
+        result = {
             title: 'Ressource introuvable',
             message: "L'élément demandé n'existe pas ou a été supprimé.",
             type: 'server',
@@ -110,7 +119,7 @@ export const analyzeError = (error: string | Error): ErrorInfo => {
     }
 
     // Erreur générique
-    return {
+    result = {
         title: "Une erreur s'est produite",
         message:
             errorMessage ||
@@ -119,6 +128,17 @@ export const analyzeError = (error: string | Error): ErrorInfo => {
         actionable: true,
         retryable: true,
     }
+
+    // Mettre en cache le résultat (limiter la taille du cache)
+    if (errorAnalysisCache.size >= 100) {
+        const firstKey = errorAnalysisCache.keys().next().value
+        if (firstKey) {
+            errorAnalysisCache.delete(firstKey)
+        }
+    }
+    errorAnalysisCache.set(errorMessage, result)
+
+    return result
 }
 
 /**
@@ -135,13 +155,13 @@ export const getGradingErrorMessage = (
         case 'load_grids':
             return {
                 ...baseError,
-                title: 'Impossible de charger les grilles',
+                title: 'Unable to load grids',
                 message:
                     baseError.type === 'network'
-                        ? 'Impossible de récupérer les grilles de notation. Vérifiez votre connexion.'
-                        : 'Erreur lors du chargement des grilles de notation.',
+                        ? 'Unable to retrieve grading grids. Check your connection.'
+                        : 'Error loading grading grids.',
             }
-
+        // Add similar translations for other cases
         case 'create_grid':
             return {
                 ...baseError,

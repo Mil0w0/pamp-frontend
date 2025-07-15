@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,7 +31,11 @@ import {
     Minus,
 } from 'lucide-react'
 import { useGradingGrid } from '@/hooks/useGradingGrid'
-import { GradingGrid, GradingGridType, NotationMode } from '@/components/GradingSystem/type'
+import {
+    GradingGrid,
+    GradingGridType,
+    NotationMode,
+} from '@/components/GradingSystem/type'
 import {
     formatPercentage,
     calculateFinalGrade,
@@ -68,68 +72,81 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
     const [filterStatus, setFilterStatus] = useState<FilterStatus>('validated')
     const [sortBy, setSortBy] = useState<SortBy>('date')
 
-    // Calcul des statistiques pour chaque grille
-    const gridsWithStats: GridWithStats[] = grids.map((grid) => {
-        const stats = calculateGradingStats(grid.criteria, grid.results)
-        const totalPossibleResults = grid.criteria.length
-        const actualResults = (grid.results || []).length
+    // Calcul des statistiques pour chaque grille avec useMemo pour optimiser les performances
+    const gridsWithStats: GridWithStats[] = useMemo(() => {
+        return grids.map((grid) => {
+            const stats = calculateGradingStats(grid.criteria, grid.results)
+            const totalPossibleResults = grid.criteria.length
+            const actualResults = (grid.results || []).length
 
-        return {
-            ...grid,
-            averageScore: stats.weightedScore,
-            completionRate:
-                totalPossibleResults > 0
-                    ? (actualResults / totalPossibleResults) * 100
-                    : 0,
-            totalResults: actualResults,
-        }
-    })
-
-    // Filtrage et tri
-    const filteredAndSortedGrids = gridsWithStats
-        .filter((grid) => {
-            const matchesType = filterType === 'all' || grid.type === filterType
-            const matchesStatus =
-                filterStatus === 'all' ||
-                (filterStatus === 'validated' && grid.isValidated) ||
-                (filterStatus === 'draft' && !grid.isValidated)
-            return matchesType && matchesStatus
-        })
-        .sort((a, b) => {
-            switch (sortBy) {
-                case 'title':
-                    return a.title.localeCompare(b.title)
-                case 'type':
-                    return a.type.localeCompare(b.type)
-                case 'average':
-                    return b.averageScore - a.averageScore
-                case 'date':
-                    return (
-                        new Date(b.updatedAt || b.createdAt || '').getTime() -
-                        new Date(a.updatedAt || a.createdAt || '').getTime()
-                    )
-                default:
-                    return 0
+            return {
+                ...grid,
+                averageScore: stats.weightedScore,
+                completionRate:
+                    totalPossibleResults > 0
+                        ? (actualResults / totalPossibleResults) * 100
+                        : 0,
+                totalResults: actualResults,
             }
         })
+    }, [grids])
 
-    // Statistiques globales
-    const globalStats = {
-        totalGrids: grids.length,
-        validatedGrids: grids.filter((g) => g.isValidated).length,
-        averageCompletion:
-            grids.length > 0
-                ? gridsWithStats.reduce((sum, g) => sum + g.completionRate, 0) /
-                  grids.length
-                : 0,
-        overallAverage:
-            grids.length > 0
-                ? gridsWithStats.reduce((sum, g) => sum + g.averageScore, 0) /
-                  grids.length
-                : 0,
-    }
+    // Filtrage et tri avec useMemo pour éviter les recalculs inutiles
+    const filteredAndSortedGrids = useMemo(() => {
+        return gridsWithStats
+            .filter((grid) => {
+                const matchesType =
+                    filterType === 'all' || grid.type === filterType
+                const matchesStatus =
+                    filterStatus === 'all' ||
+                    (filterStatus === 'validated' && grid.isValidated) ||
+                    (filterStatus === 'draft' && !grid.isValidated)
+                return matchesType && matchesStatus
+            })
+            .sort((a, b) => {
+                switch (sortBy) {
+                    case 'title':
+                        return a.title.localeCompare(b.title)
+                    case 'type':
+                        return a.type.localeCompare(b.type)
+                    case 'average':
+                        return b.averageScore - a.averageScore
+                    case 'date':
+                        return (
+                            new Date(
+                                b.updatedAt || b.createdAt || ''
+                            ).getTime() -
+                            new Date(a.updatedAt || a.createdAt || '').getTime()
+                        )
+                    default:
+                        return 0
+                }
+            })
+    }, [gridsWithStats, filterType, filterStatus, sortBy])
 
-    const getTypeIcon = (type: GradingGridType) => {
+    // Statistiques globales avec useMemo pour optimiser les calculs
+    const globalStats = useMemo(() => {
+        return {
+            totalGrids: grids.length,
+            validatedGrids: grids.filter((g) => g.isValidated).length,
+            averageCompletion:
+                grids.length > 0
+                    ? gridsWithStats.reduce(
+                          (sum, g) => sum + g.completionRate,
+                          0
+                      ) / grids.length
+                    : 0,
+            overallAverage:
+                grids.length > 0
+                    ? gridsWithStats.reduce(
+                          (sum, g) => sum + g.averageScore,
+                          0
+                      ) / grids.length
+                    : 0,
+        }
+    }, [grids, gridsWithStats])
+
+    const getTypeIcon = useCallback((type: GradingGridType) => {
         switch (type) {
             case 'livrable':
                 return <FileText className="h-4 w-4" />
@@ -140,9 +157,9 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
             default:
                 return <FileText className="h-4 w-4" />
         }
-    }
+    }, [])
 
-    const getTypeLabel = (type: GradingGridType) => {
+    const getTypeLabel = useCallback((type: GradingGridType) => {
         switch (type) {
             case 'livrable':
                 return 'Livrable'
@@ -153,28 +170,28 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
             default:
                 return type
         }
-    }
+    }, [])
 
-    const getModeIcon = (mode: NotationMode) => {
+    const getModeIcon = useCallback((mode: NotationMode) => {
         return mode === 'groupe' ? (
             <Users className="h-4 w-4" />
         ) : (
             <User className="h-4 w-4" />
         )
-    }
+    }, [])
 
-    const getScoreTrend = (score: number) => {
+    const getScoreTrend = useCallback((score: number) => {
         if (score >= 80)
             return <TrendingUp className="h-4 w-4 text-green-500" />
         if (score >= 60) return <Minus className="h-4 w-4 text-yellow-500" />
         return <TrendingDown className="h-4 w-4 text-red-500" />
-    }
+    }, [])
 
-    const getScoreColor = (score: number) => {
+    const getScoreColor = useCallback((score: number) => {
         if (score >= 80) return 'text-green-600'
         if (score >= 60) return 'text-yellow-600'
         return 'text-red-600'
-    }
+    }, [])
 
     if (loading) {
         return (

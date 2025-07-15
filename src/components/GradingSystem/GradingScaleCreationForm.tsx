@@ -147,6 +147,10 @@ export function GradingScaleCreationForm({
             toast.error('Please add at least one criterion')
             return
         }
+        if (validCriteria.some((c) => c.maxPoints <= 0)) {
+            toast.error('Max points must be positive for all criteria')
+            return
+        }
 
         setIsLoading(true)
         try {
@@ -379,14 +383,14 @@ export function GradingScaleCreationForm({
                                             type="number"
                                             min="1"
                                             value={criterion.maxPoints}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                const val = parseInt(e.target.value);
                                                 updateCriterion(
                                                     index,
                                                     'maxPoints',
-                                                    parseInt(e.target.value) ||
-                                                        20
-                                                )
-                                            }
+                                                    isNaN(val) ? 20 : Math.max(1, val)
+                                                );
+                                            }}
                                         />
                                     </div>
                                 </div>

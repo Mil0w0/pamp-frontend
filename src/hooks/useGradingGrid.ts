@@ -1,4 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import {
+    //useState,
+    useEffect,
+    useCallback,
+    useMemo,
+    useRef,
+    useReducer,
+} from 'react'
 import { gradingService } from '@/services/GradingService/grading-api-client'
 import {
     GradingGrid,
@@ -7,6 +14,7 @@ import {
     GradingResult,
     GradingCriterion,
     GradingStats,
+    GradingApiResponse,
 } from '@/components/GradingSystem/type'
 import {
     calculateGradingStats,
@@ -15,6 +23,107 @@ import {
     canValidateGrid,
 } from '@/utils/gradingCalculations'
 import { ErrorInfo, getGradingErrorMessage } from '@/utils/errorHandling'
+import { toast } from 'sonner'
+
+type State = {
+    grid: GradingGrid | null
+    grids: GradingGrid[]
+    loading: boolean
+    saving: boolean
+    error: ErrorInfo | null
+}
+
+type Action =
+    | { type: 'SET_GRID'; payload: GradingGrid | null }
+    | { type: 'SET_GRIDS'; payload: GradingGrid[] }
+    | { type: 'SET_LOADING'; payload: boolean }
+    | { type: 'SET_SAVING'; payload: boolean }
+    | { type: 'SET_ERROR'; payload: ErrorInfo | null }
+    | { type: 'ADD_CRITERION'; payload: GradingCriterion }
+    | {
+          type: 'UPDATE_CRITERION'
+          payload: { id: string; updates: Partial<GradingCriterion> }
+      }
+    | { type: 'REMOVE_CRITERION'; payload: string }
+    | { type: 'UPDATE_RESULT'; payload: GradingResult }
+    | { type: 'UPDATE_GRID_IN_STATE'; payload: GradingGrid }
+
+function reducer(state: State, action: Action): State {
+    switch (action.type) {
+        case 'SET_GRID':
+            return { ...state, grid: action.payload }
+        case 'SET_GRIDS':
+            return { ...state, grids: action.payload }
+        case 'SET_LOADING':
+            return { ...state, loading: action.payload }
+        case 'SET_SAVING':
+            return { ...state, saving: action.payload }
+        case 'SET_ERROR':
+            return { ...state, error: action.payload }
+        case 'ADD_CRITERION':
+            if (!state.grid) return state
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    criteria: [...state.grid.criteria, action.payload],
+                },
+            }
+        case 'UPDATE_CRITERION':
+            if (!state.grid) return state
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    criteria: state.grid.criteria.map((c) =>
+                        c.id === action.payload.id
+                            ? { ...c, ...action.payload.updates }
+                            : c
+                    ),
+                },
+            }
+        case 'REMOVE_CRITERION':
+            if (!state.grid) return state
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    criteria: state.grid.criteria.filter(
+                        (c) => c.id !== action.payload
+                    ),
+                    results: state.grid.results.filter(
+                        (r) => r.gradingCriterionId !== action.payload
+                    ),
+                },
+            }
+        case 'UPDATE_RESULT':
+            if (!state.grid) return state
+            return {
+                ...state,
+                grid: {
+                    ...state.grid,
+                    results: [
+                        ...state.grid.results.filter(
+                            (r) =>
+                                r.gradingCriterionId !==
+                                action.payload.gradingCriterionId
+                        ),
+                        action.payload,
+                    ],
+                },
+            }
+        case 'UPDATE_GRID_IN_STATE':
+            return {
+                ...state,
+                grid: action.payload,
+                grids: state.grids.map((g) =>
+                    g.id === action.payload.id ? action.payload : g
+                ),
+            }
+        default:
+            return state
+    }
+}
 
 interface UseGradingGridProps {
     projectId?: string
@@ -24,21 +133,18 @@ interface UseGradingGridProps {
 }
 
 interface UseGradingGridReturn {
-    // État
     grid: GradingGrid | null
     grids: GradingGrid[]
     loading: boolean
     saving: boolean
     error: ErrorInfo | null
     stats: GradingStats | null
-
-    // Actions
     loadGrid: (gridId: string) => Promise<void>
     loadGridByTarget: (
         projectId: string,
         type: string,
         targetId: string
-    ) => Promise<void>
+    ) => Promise<GradingApiResponse>
     loadProjectGrids: (projectId: string) => Promise<void>
     createGrid: (gridData: CreateGradingGridDto) => Promise<GradingGrid | null>
     updateGrid: (
@@ -49,11 +155,9 @@ interface UseGradingGridReturn {
         gridId: string,
         results: GradingResult[],
         generalComment?: string
-    ) => Promise<void>
-    validateGrid: (gridId: string) => Promise<void>
+    ) => Promise<GradingApiResponse>
+    validateGrid: (gridId: string) => Promise<GradingApiResponse>
     deleteGrid: (gridId: string) => Promise<void>
-
-    // Utilitaires
     addCriterion: (criterion: Omit<GradingCriterion, 'id'>) => void
     updateCriterion: (
         criterionId: string,
@@ -62,8 +166,6 @@ interface UseGradingGridReturn {
     removeCriterion: (criterionId: string) => void
     updateResult: (result: GradingResult) => void
     clearError: () => void
-
-    // Validation
     isGridComplete: boolean
     isResultsComplete: boolean
     canValidate: boolean
@@ -77,115 +179,231 @@ export const useGradingGrid = ({
     type,
     targetId,
 }: UseGradingGridProps = {}): UseGradingGridReturn => {
-    const [grid, setGrid] = useState<GradingGrid | null>(null)
-    const [grids, setGrids] = useState<GradingGrid[]>([])
-    const [loading, setLoading] = useState(false)
-    const [saving, setSaving] = useState(false)
-    const [error, setError] = useState<ErrorInfo | null>(null)
+    const initialState: State = {
+        grid: null,
+        grids: [],
+        loading: false,
+        saving: false,
+        error: null,
+    }
+    const [state, dispatch] = useReducer(reducer, initialState)
+    const { grid, grids, loading, saving, error } = state
 
-    // Calcul des statistiques
-    const stats = grid
-        ? calculateGradingStats(grid.criteria, grid.results)
-        : null
+    const loadingRef = useRef(false)
+    const abortControllerRef = useRef<AbortController | null>(null)
 
-    // Validation
-    const gridValidation = grid
-        ? validateGridCompleteness(grid)
-        : { isComplete: false, missingFields: [] }
-    const resultsValidation = grid
-        ? validateResultsCompleteness(grid.criteria, grid.results)
-        : { isComplete: false, missingCriteria: [] }
+    const stats = useMemo<GradingStats | null>(() => {
+        return grid ? calculateGradingStats(grid.criteria, grid.results) : null
+    }, [grid])
 
-    const isGridComplete = gridValidation.isComplete
-    const isResultsComplete = resultsValidation.isComplete
-    const canValidate = grid ? canValidateGrid(grid) : false
-    const missingFields = gridValidation.missingFields
-    const missingCriteria = resultsValidation.missingCriteria
-
-    // Charger une grille spécifique
-    const loadGrid = useCallback(async (gridId: string) => {
-        setLoading(true)
-        setError(null)
-        try {
-            const response = await gradingService.getGrid(gridId)
-            if (response.success && response.data) {
-                setGrid(response.data as GradingGrid)
-            } else {
-                setError(
-                    getGradingErrorMessage(
-                        response.error ||
-                            'Erreur lors du chargement de la grille',
-                        'load_grids'
-                    )
-                )
+    const validation = useMemo(() => {
+        if (!grid) {
+            return {
+                isGridComplete: false,
+                isResultsComplete: false,
+                canValidate: false,
+                missingFields: [],
+                missingCriteria: [],
             }
-        } catch (err) {
-            setError(getGradingErrorMessage(err as Error, 'load_grids'))
-        } finally {
-            setLoading(false)
         }
+
+        const gridValidation = validateGridCompleteness(grid)
+        const resultsValidation = validateResultsCompleteness(
+            grid.criteria,
+            grid.results
+        )
+
+        return {
+            isGridComplete: gridValidation.isComplete,
+            isResultsComplete: resultsValidation.isComplete,
+            canValidate: canValidateGrid(grid),
+            missingFields: gridValidation.missingFields,
+            missingCriteria: resultsValidation.missingCriteria,
+        }
+    }, [grid])
+
+    const {
+        isGridComplete,
+        isResultsComplete,
+        canValidate,
+        missingFields,
+        missingCriteria,
+    } = validation
+
+    const handleError = useCallback((error: unknown, context: string) => {
+        console.error(`Error ${context}:`, error)
+        dispatch({
+            type: 'SET_ERROR',
+            payload: getGradingErrorMessage(
+                error instanceof Error ? error : String(error),
+                context
+            ),
+        })
     }, [])
 
-    // Charger une grille par type et target
+    const cancelPendingRequests = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+        }
+        abortControllerRef.current = new AbortController()
+        return abortControllerRef.current.signal
+    }, [])
+
+    const loadGrid = useCallback(
+        async (gridId: string) => {
+            if (loadingRef.current) return
+
+            console.log('📋 Loading grid:', gridId)
+            loadingRef.current = true
+            dispatch({ type: 'SET_LOADING', payload: true })
+            dispatch({ type: 'SET_ERROR', payload: null })
+
+            const signal = cancelPendingRequests()
+
+            try {
+                const response = await gradingService.getGrid(gridId)
+
+                if (signal.aborted) return
+
+                if (response.success && response.data) {
+                    const newGrid = response.data as GradingGrid
+                    console.log('✓ Grid loaded:', {
+                        id: newGrid.id,
+                        isValidated: newGrid.isValidated,
+                        validatedAt: newGrid.validatedAt,
+                    })
+                    dispatch({ type: 'SET_GRID', payload: newGrid })
+                } else {
+                    handleError(
+                        response.error || 'Error loading the grid',
+                        'load_grids'
+                    )
+                }
+            } catch (err: unknown) {
+                if (!signal.aborted) {
+                    handleError(err, 'load_grids')
+                }
+            } finally {
+                loadingRef.current = false
+                dispatch({ type: 'SET_LOADING', payload: false })
+            }
+        },
+        [handleError, cancelPendingRequests]
+    )
+
     const loadGridByTarget = useCallback(
-        async (projectId: string, type: string, targetId: string) => {
-            setLoading(true)
-            setError(null)
+        async (
+            projectId: string,
+            type: string,
+            targetId: string
+        ): Promise<GradingApiResponse> => {
+            if (loadingRef.current) {
+                return {
+                    success: false,
+                    error: 'Another request is in progress',
+                }
+            }
+
+            if (!projectId) {
+                const error = 'projectId is required'
+                handleError(error, 'load_grid_by_target')
+                return { success: false, error }
+            }
+
+            console.log('📋 Loading grid by target:', {
+                projectId,
+                type,
+                targetId,
+            })
+            loadingRef.current = true
+            dispatch({ type: 'SET_LOADING', payload: true })
+            dispatch({ type: 'SET_ERROR', payload: null })
+
+            const signal = cancelPendingRequests()
+
             try {
                 const response = await gradingService.getGridByTarget(
                     projectId,
                     type,
                     targetId
                 )
+
+                if (signal.aborted) {
+                    return { success: false, error: 'Request aborted' }
+                }
+
                 if (response.success) {
-                    setGrid((response.data as GradingGrid) || null)
+                    dispatch({
+                        type: 'SET_GRID',
+                        payload: (response.data as GradingGrid) || null,
+                    })
                 } else {
-                    setError(
-                        getGradingErrorMessage(
-                            response.error ||
-                                'Erreur lors du chargement de la grille',
-                            'load_grids'
-                        )
+                    handleError(
+                        response.error || 'Error loading the grid',
+                        'load_grid_by_target'
                     )
                 }
-            } catch (err) {
-                setError(getGradingErrorMessage(err as Error, 'load_grids'))
+                return response
+            } catch (err: unknown) {
+                if (!signal.aborted) {
+                    handleError(err, 'load_grid_by_target')
+                }
+                return { success: false, error: String(err) }
             } finally {
-                setLoading(false)
+                loadingRef.current = false
+                dispatch({ type: 'SET_LOADING', payload: false })
             }
         },
-        []
+        [handleError, cancelPendingRequests]
     )
 
-    // Charger toutes les grilles d'un projet
-    const loadProjectGrids = useCallback(async (projectId: string) => {
-        setLoading(true)
-        setError(null)
-        try {
-            const response = await gradingService.getProjectGrids(projectId)
-            if (response.success && response.data) {
-                setGrids(response.data as GradingGrid[])
-            } else {
-                setError(
-                    getGradingErrorMessage(
-                        response.error ||
-                            'Erreur lors du chargement des grilles',
+    const loadProjectGrids = useCallback(
+        async (projectId: string) => {
+            if (loadingRef.current) return
+
+            console.log('📋 Loading project grids:', projectId)
+            loadingRef.current = true
+            dispatch({ type: 'SET_LOADING', payload: true })
+            dispatch({ type: 'SET_ERROR', payload: null })
+
+            const signal = cancelPendingRequests()
+
+            try {
+                const response = await gradingService.getProjectGrids(projectId)
+                console.log('loadProjectGrids response:', response);
+                console.log('Number of grids received:', response.data?.length || 0);
+
+                if (signal.aborted) return
+
+                if (response.success && response.data) {
+                    dispatch({
+                        type: 'SET_GRIDS',
+                        payload: response.data as GradingGrid[],
+                    })
+                    console.log('Grids successfully set in state');
+                } else {
+                    handleError(
+                        response.error || 'Error loading grids',
                         'load_grids'
                     )
-                )
+                    console.log('Error in response:', response.error);
+                }
+            } catch (err: unknown) {
+                if (!signal.aborted) {
+                    handleError(err, 'load_grids')
+                }
+            } finally {
+                loadingRef.current = false
+                dispatch({ type: 'SET_LOADING', payload: false })
             }
-        } catch (err) {
-            setError(getGradingErrorMessage(err as Error, 'load_grids'))
-        } finally {
-            setLoading(false)
-        }
-    }, [])
+        },
+        [handleError, cancelPendingRequests]
+    )
 
-    // Créer une nouvelle grille
     const createGrid = useCallback(
         async (gridData: CreateGradingGridDto): Promise<GradingGrid | null> => {
-            setSaving(true)
-            setError(null)
+            dispatch({ type: 'SET_SAVING', payload: true })
+            dispatch({ type: 'SET_ERROR', payload: null })
             try {
                 const response = await gradingService.createGrid(
                     gridData.projectId,
@@ -193,34 +411,38 @@ export const useGradingGrid = ({
                 )
                 if (response.success && response.data) {
                     const newGrid = response.data as GradingGrid
-                    setGrid(newGrid)
-                    setGrids((prev) => [...prev, newGrid])
+                    dispatch({ type: 'SET_GRID', payload: newGrid })
+                    dispatch({
+                        type: 'SET_GRIDS',
+                        payload: [...grids, newGrid],
+                    })
+                    toast.success('New grading grid created successfully')
                     return newGrid
                 } else {
-                    setError(
-                        getGradingErrorMessage(
-                            response.error ||
-                                'An error occured while creating the grid',
-                            'create_grid'
-                        )
+                    handleError(
+                        response.error || 'Error creating the grid',
+                        'create_grid'
                     )
                     return null
                 }
-            } catch (err) {
-                setError(getGradingErrorMessage(err as Error, 'create_grid'))
+            } catch (err: unknown) {
+                handleError(err, 'create_grid')
                 return null
             } finally {
-                setSaving(false)
+                dispatch({ type: 'SET_SAVING', payload: false })
             }
         },
-        []
+        [handleError, grids]
     )
 
-    // Mettre à jour une grille
+    const updateGridInState = useCallback((updatedGrid: GradingGrid) => {
+        dispatch({ type: 'UPDATE_GRID_IN_STATE', payload: updatedGrid })
+    }, [])
+
     const updateGrid = useCallback(
         async (gridId: string, gridData: UpdateGradingGridDto) => {
-            setSaving(true)
-            setError(null)
+            dispatch({ type: 'SET_SAVING', payload: true })
+            dispatch({ type: 'SET_ERROR', payload: null })
             try {
                 const response = await gradingService.updateGrid(
                     gridId,
@@ -228,37 +450,30 @@ export const useGradingGrid = ({
                 )
                 if (response.success && response.data) {
                     const updatedGrid = response.data as GradingGrid
-                    setGrid(updatedGrid)
-                    setGrids((prev) =>
-                        prev.map((g) => (g.id === gridId ? updatedGrid : g))
-                    )
+                    updateGridInState(updatedGrid)
                 } else {
-                    setError(
-                        getGradingErrorMessage(
-                            response.error ||
-                                'An error occurred when updating the grid',
-                            'update_grid'
-                        )
+                    handleError(
+                        response.error || 'Error updating the grid',
+                        'update_grid'
                     )
                 }
-            } catch (err) {
-                setError(getGradingErrorMessage(err as Error, 'update_grid'))
+            } catch (err: unknown) {
+                handleError(err, 'update_grid')
             } finally {
-                setSaving(false)
+                dispatch({ type: 'SET_SAVING', payload: false })
             }
         },
-        []
+        [handleError, updateGridInState]
     )
 
-    // Sauvegarder les résultats
     const saveResults = useCallback(
         async (
             gridId: string,
             results: GradingResult[],
             generalComment?: string
-        ) => {
-            setSaving(true)
-            setError(null)
+        ): Promise<GradingApiResponse> => {
+            dispatch({ type: 'SET_SAVING', payload: true })
+            dispatch({ type: 'SET_ERROR', payload: null })
             try {
                 const response = await gradingService.saveResults(
                     gridId,
@@ -267,174 +482,130 @@ export const useGradingGrid = ({
                 )
                 if (response.success && response.data) {
                     const updatedGrid = response.data as GradingGrid
-                    setGrid(updatedGrid)
-                    setGrids((prev) =>
-                        prev.map((g) => (g.id === gridId ? updatedGrid : g))
-                    )
+                    updateGridInState(updatedGrid)
                 } else {
-                    setError(
-                        getGradingErrorMessage(
-                            response.error ||
-                                'An error occurred when saving the results',
-                            'save_results'
-                        )
+                    handleError(
+                        response.error || 'Error saving results',
+                        'save_results'
                     )
                 }
-            } catch (err) {
-                setError(getGradingErrorMessage(err as Error, 'save_results'))
+                return response
+            } catch (err: unknown) {
+                handleError(err, 'save_results')
+                return { success: false, error: String(err) }
             } finally {
-                setSaving(false)
+                dispatch({ type: 'SET_SAVING', payload: false })
             }
+        },
+        [handleError, updateGridInState]
+    )
+
+    const validateGrid = useCallback(
+        async (gridId: string): Promise<GradingApiResponse> => {
+            dispatch({ type: 'SET_SAVING', payload: true })
+            dispatch({ type: 'SET_ERROR', payload: null })
+            try {
+                const response = await gradingService.validateGrid(gridId)
+                if (response.success && response.data) {
+                    const validatedGrid = response.data as GradingGrid
+                    updateGridInState(validatedGrid)
+                    if (!validatedGrid.isValidated) {
+                        console.warn('⚠️ Grid not validated on server')
+                        handleError(
+                            'The grid could not be validated. Please ensure all criteria are scored.',
+                            'validate_grid'
+                        )
+                    } else {
+                        console.log('✅ Grid validated successfully')
+                        toast.success('Grading grid validated successfully')
+                    }
+                } else {
+                    handleError(
+                        response.error || 'Error validating the grid',
+                        'validate_grid'
+                    )
+                }
+                return response
+            } catch (err: unknown) {
+                handleError(err, 'validate_grid')
+                return { success: false, error: String(err) }
+            } finally {
+                dispatch({ type: 'SET_SAVING', payload: false })
+            }
+        },
+        [handleError, updateGridInState]
+    )
+
+    const deleteGrid = useCallback(
+        async (gridId: string) => {
+            dispatch({ type: 'SET_SAVING', payload: true })
+            dispatch({ type: 'SET_ERROR', payload: null })
+            try {
+                const response = await gradingService.deleteGrid(gridId)
+                if (response.success) {
+                    dispatch({ type: 'SET_GRID', payload: null })
+                    dispatch({
+                        type: 'SET_GRIDS',
+                        payload: grids.filter((g) => g.id !== gridId),
+                    })
+                } else {
+                    handleError(
+                        response.error || 'Error deleting the grid',
+                        'delete_grid'
+                    )
+                }
+            } catch (err: unknown) {
+                handleError(err, 'delete_grid')
+            } finally {
+                dispatch({ type: 'SET_SAVING', payload: false })
+            }
+        },
+        [handleError, grids]
+    )
+
+    const addCriterion = useCallback(
+        (criterion: Omit<GradingCriterion, 'id'>) => {
+            const newCriterion: GradingCriterion = {
+                ...criterion,
+                id: `criterion_${Date.now()}_${Math.random()
+                    .toString(36)
+                    .substr(2, 9)}`,
+            }
+            dispatch({ type: 'ADD_CRITERION', payload: newCriterion })
         },
         []
     )
 
-    // Valider une grille
-    const validateGrid = useCallback(async (gridId: string) => {
-        setSaving(true)
-        setError(null)
-        try {
-            const response = await gradingService.validateGrid(gridId)
-            if (response.success && response.data) {
-                const validatedGrid = response.data as GradingGrid
-                setGrid(validatedGrid)
-                setGrids((prev) =>
-                    prev.map((g) => (g.id === gridId ? validatedGrid : g))
-                )
-            } else {
-                setError(
-                    getGradingErrorMessage(
-                        response.error ||
-                            'An error occurred when validating the grid',
-                        'validate_grid'
-                    )
-                )
-            }
-        } catch (err) {
-            setError(getGradingErrorMessage(err as Error, 'validate_grid'))
-        } finally {
-            setSaving(false)
-        }
-    }, [])
-
-    // Supprimer une grille
-    const deleteGrid = useCallback(async (gridId: string) => {
-        setSaving(true)
-        setError(null)
-        try {
-            const response = await gradingService.deleteGrid(gridId)
-            if (response.success) {
-                setGrid(null)
-                setGrids((prev) => prev.filter((g) => g.id !== gridId))
-            } else {
-                setError(
-                    getGradingErrorMessage(
-                        response.error ||
-                            'An error occured when deleting the grid',
-                        'delete_grid'
-                    )
-                )
-            }
-        } catch (err) {
-            setError(getGradingErrorMessage(err as Error, 'delete_grid'))
-        } finally {
-            setSaving(false)
-        }
-    }, [])
-
-    // Ajouter un critère
-    const addCriterion = useCallback(
-        (criterion: Omit<GradingCriterion, 'id'>) => {
-            if (!grid) return
-
-            const newCriterion: GradingCriterion = {
-                ...criterion,
-                id: `criterion_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            }
-
-            setGrid((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          criteria: [...prev.criteria, newCriterion],
-                      }
-                    : null
-            )
-        },
-        [grid]
-    )
-
-    // Mettre à jour un critère
     const updateCriterion = useCallback(
         (criterionId: string, updates: Partial<GradingCriterion>) => {
-            if (!grid) return
-
-            setGrid((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          criteria: prev.criteria.map((c) =>
-                              c.id === criterionId ? { ...c, ...updates } : c
-                          ),
-                      }
-                    : null
-            )
+            dispatch({
+                type: 'UPDATE_CRITERION',
+                payload: { id: criterionId, updates },
+            })
         },
-        [grid]
+        []
     )
 
-    // Supprimer un critère
-    const removeCriterion = useCallback(
-        (criterionId: string) => {
-            if (!grid) return
-
-            setGrid((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          criteria: prev.criteria.filter(
-                              (c) => c.id !== criterionId
-                          ),
-                          results: prev.results.filter(
-                              (r) => r.gradingCriterionId !== criterionId
-                          ),
-                      }
-                    : null
-            )
-        },
-        [grid]
-    )
-
-    // Mettre à jour un résultat
-    const updateResult = useCallback(
-        (result: GradingResult) => {
-            if (!grid) return
-
-            setGrid((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          results: [
-                              ...prev.results.filter(
-                                  (r) =>
-                                      r.gradingCriterionId !==
-                                      result.gradingCriterionId
-                              ),
-                              result,
-                          ],
-                      }
-                    : null
-            )
-        },
-        [grid]
-    )
-
-    // Effacer l'erreur
-    const clearError = useCallback(() => {
-        setError(null)
+    const removeCriterion = useCallback((criterionId: string) => {
+        dispatch({ type: 'REMOVE_CRITERION', payload: criterionId })
     }, [])
 
-    // Chargement initial
+    const updateResult = useCallback((result: GradingResult) => {
+        dispatch({ type: 'UPDATE_RESULT', payload: result })
+    }, [])
+
+    const clearError = useCallback(() => {
+        dispatch({ type: 'SET_ERROR', payload: null })
+    }, [])
+
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort()
+            }
+        }
+    }, [])
+
     useEffect(() => {
         if (gridId) {
             loadGrid(gridId)
@@ -453,16 +624,40 @@ export const useGradingGrid = ({
         loadProjectGrids,
     ])
 
+    const handleGridUpdate = useCallback(() => {
+        console.log('🔄 Reloading grid after update')
+        if (gridId) {
+            loadGrid(gridId)
+        } else if (projectId && type && targetId) {
+            loadGridByTarget(projectId, type, targetId)
+        }
+        if (projectId) {
+            loadProjectGrids(projectId)
+        }
+    }, [
+        gridId,
+        projectId,
+        type,
+        targetId,
+        loadGrid,
+        loadGridByTarget,
+        loadProjectGrids,
+    ])
+
+    useEffect(() => {
+        window.addEventListener('grading-grid-updated', handleGridUpdate)
+        return () => {
+            window.removeEventListener('grading-grid-updated', handleGridUpdate)
+        }
+    }, [handleGridUpdate])
+
     return {
-        // État
         grid,
         grids,
         loading,
         saving,
         error,
         stats,
-
-        // Actions
         loadGrid,
         loadGridByTarget,
         loadProjectGrids,
@@ -471,15 +666,11 @@ export const useGradingGrid = ({
         saveResults,
         validateGrid,
         deleteGrid,
-
-        // Utilitaires
         addCriterion,
         updateCriterion,
         removeCriterion,
         updateResult,
         clearError,
-
-        // Validation
         isGridComplete,
         isResultsComplete,
         canValidate,

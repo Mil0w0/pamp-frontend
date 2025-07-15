@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { gradingService } from '@/services/GradingService/grading-api-client'
 import { GradingGrid, GradingResult } from '@/components/GradingSystem/type'
-//import { calculateGradingStats } from '@/utils/gradingCalculations'
+import { calculateGradingStats } from '@/utils/gradingCalculations'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { CheckCircle2 } from 'lucide-react'
 
@@ -94,30 +94,11 @@ export function GradingConsultation({
         )
     }
 
-    // Calculate total score and weighted score using proper typing
-    const totalMaxScore = gradingGrid.criteria.reduce(
-        (sum: number, criterion) => sum + criterion.maxPoints,
-        0
-    )
-    const totalWeightedMaxScore = gradingGrid.criteria.reduce(
-        (sum: number, criterion) =>
-            sum + criterion.maxPoints * criterion.weight,
-        0
-    )
-
+    // Calculate stats using utility
     const studentResults = gradingResults.filter(
         (result) => result.targetStudentId === studentId
     )
-    const totalScore = studentResults.reduce(
-        (sum: number, result) => sum + result.score,
-        0
-    )
-    const totalWeightedScore = studentResults.reduce((sum: number, result) => {
-        const criterion = gradingGrid.criteria.find(
-            (c) => c.id === result.gradingCriterionId
-        )
-        return sum + result.score * (criterion?.weight || 1)
-    }, 0)
+    const stats = calculateGradingStats(gradingGrid.criteria, studentResults)
 
     return (
         <div className="space-y-6">
@@ -144,8 +125,7 @@ export function GradingConsultation({
                         </div>
                         <div className="text-right">
                             <div className="text-2xl font-bold">
-                                {totalWeightedScore.toFixed(1)} /{' '}
-                                {totalWeightedMaxScore.toFixed(1)}
+                                {stats.weightedScore}%
                             </div>
                             <div className="text-sm text-muted-foreground">
                                 Weighted Score
@@ -158,16 +138,11 @@ export function GradingConsultation({
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <span className="font-medium">Raw Score:</span>{' '}
-                                {totalScore} / {totalMaxScore}
+                                {stats.totalScore} / {stats.maxScore}
                             </div>
                             <div>
                                 <span className="font-medium">Percentage:</span>{' '}
-                                {(
-                                    (totalWeightedScore /
-                                        totalWeightedMaxScore) *
-                                    100
-                                ).toFixed(1)}
-                                %
+                                {stats.percentage}%
                             </div>
                         </div>
 
@@ -179,9 +154,8 @@ export function GradingConsultation({
                                 const result = studentResults.find(
                                     (r) => r.gradingCriterionId === criterion.id
                                 )
-                                const weightedScore = result
-                                    ? result.score * criterion.weight
-                                    : 0
+                                const score = result ? result.score : 0
+                                const weightedScore = score * criterion.weight
                                 const maxWeightedScore =
                                     criterion.maxPoints * criterion.weight
 
@@ -203,7 +177,7 @@ export function GradingConsultation({
                                             </div>
                                             <div className="text-right">
                                                 <div className="font-medium">
-                                                    {result?.score || 0} /{' '}
+                                                    {score} /{' '}
                                                     {criterion.maxPoints}
                                                 </div>
                                                 <div className="text-sm text-muted-foreground">
