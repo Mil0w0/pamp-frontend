@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,9 +27,14 @@ import {
     FileText,
     Users,
     User,
+    RefreshCw,
 } from 'lucide-react'
 import { useGradingGrid } from '@/hooks/useGradingGrid'
-import { GradingGrid, GradingGridType, NotationMode } from '@/components/GradingSystem/type'
+import {
+    GradingGrid,
+    GradingGridType,
+    NotationMode,
+} from '@/components/GradingSystem/type'
 import { formatPercentage } from '@/utils/gradingCalculations'
 import { ErrorDisplay } from '@/components/ui/error-display'
 
@@ -52,14 +57,33 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
     onViewGrid,
     onDeleteGrid,
 }) => {
-    const { grids, loading, error, deleteGrid, clearError } = useGradingGrid({
-        projectId,
-    })
+    const { grids, loading, error, deleteGrid, clearError, loadProjectGrids } =
+        useGradingGrid({
+            projectId,
+        })
 
     const [searchTerm, setSearchTerm] = useState('')
     const [filterType, setFilterType] = useState<FilterType>('all')
     const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
     const [filterMode, setFilterMode] = useState<FilterMode>('all')
+    const intervalRef = useRef<NodeJS.Timeout | null>(null)
+
+    // Auto-refresh functionality
+    useEffect(() => {
+        if (!projectId) return
+
+        // Set up auto-refresh every 30 seconds
+        intervalRef.current = setInterval(() => {
+            loadProjectGrids(projectId)
+        }, 30000)
+
+        // Cleanup interval on unmount
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current)
+            }
+        }
+    }, [projectId, loadProjectGrids])
 
     // Filtrage des grilles
     const safeGrids = Array.isArray(grids) ? grids : []
@@ -77,14 +101,14 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
 
         return matchesSearch && matchesType && matchesStatus && matchesMode
     })
-    
+
     // Tri des grilles par date de création (plus récent en premier)
     const sortedGrids = filteredGrids.sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
         return dateB - dateA // Tri décroissant (plus récent en premier)
     })
-    
+
     const safeFilteredGrids = Array.isArray(sortedGrids) ? sortedGrids : []
 
     const handleDelete = async (grid: GradingGrid) => {
@@ -95,12 +119,21 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
         ) {
             try {
                 await deleteGrid(grid.id)
+                // Refresh the grid list immediately after deletion
+                await loadProjectGrids(projectId)
                 if (onDeleteGrid) {
                     onDeleteGrid(grid)
                 }
             } catch (err) {
                 console.error('Erreur lors de la suppression:', err)
             }
+        }
+    }
+
+    // Manual refresh function
+    const handleRefresh = async () => {
+        if (projectId) {
+            await loadProjectGrids(projectId)
         }
     }
 
@@ -168,15 +201,29 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
                 <div>
                     <h2 className="text-2xl font-bold">Grading Grids</h2>
                     <p className="text-muted-foreground">
-                        Manage grading grids for this project
+                        Manage grading grids for this project • Auto-refreshes
+                        every 30s
                     </p>
                 </div>
-                {onCreateGrid && (
-                    <Button onClick={onCreateGrid}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Grid
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefresh}
+                        disabled={loading}
+                    >
+                        <RefreshCw
+                            className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
+                        />
+                        Refresh
                     </Button>
-                )}
+                    {onCreateGrid && (
+                        <Button onClick={onCreateGrid}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Grid
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {/* Filtres et recherche */}

@@ -15,16 +15,14 @@ import { Slider } from '@/components/ui/slider'
 import { CheckCircle2, Save } from 'lucide-react'
 import { gradingService } from '@/services/GradingService/grading-api-client'
 import {
-    GradingScale,
-    GradingCriterion,
-    CreateGradingResultDto,
-    GradingResultItemDto,
+    GradingGrid,
     GradingResult,
+    GradingCriterion,
 } from '@/components/GradingSystem/type'
 import { toast } from 'sonner'
 
 interface GradingInterfaceProps {
-    gradingScale: GradingScale
+    gradingScale: GradingGrid
     targetGroupId?: string
     targetStudentId?: string
     onGradingComplete?: () => void
@@ -55,14 +53,16 @@ export function GradingInterface({
     useEffect(() => {
         // Initialize grades from criteria
         if (gradingScale.criteria) {
-            const initialGrades = gradingScale.criteria.map((criterion) => ({
-                criterionId: criterion.id,
-                score: 0,
-                comment: '',
-                maxPoints: criterion.maxPoints,
-                label: criterion.label,
-                commentEnabled: criterion.commentEnabled,
-            }))
+            const initialGrades = gradingScale.criteria.map(
+                (criterion: GradingCriterion) => ({
+                    criterionId: criterion.id,
+                    score: 0,
+                    comment: '',
+                    maxPoints: criterion.maxPoints,
+                    label: criterion.label,
+                    commentEnabled: criterion.commentEnabled,
+                })
+            )
             setGrades(initialGrades)
         }
 
@@ -73,23 +73,28 @@ export function GradingInterface({
 
     const loadExistingResults = async () => {
         try {
-            const results = await gradingService.getGradingResults(
-                gradingScale.id
-            )
-            const filteredResults = results.filter(
-                (result) =>
-                    (targetGroupId && result.targetGroupId === targetGroupId) ||
-                    (targetStudentId &&
-                        result.targetStudentId === targetStudentId)
-            )
+            const targetId = targetStudentId || targetGroupId
+            if (!targetId) return
 
-            if (filteredResults.length > 0) {
-                setExistingResults(filteredResults)
+            const response = await gradingService.getGrid(gradingScale.id)
+            if (
+                response.success &&
+                response.data &&
+                !Array.isArray(response.data) &&
+                response.data.results
+            ) {
+                const gridResults = response.data.results.filter(
+                    (result: GradingResult) =>
+                        result.targetStudentId === targetStudentId ||
+                        result.targetGroupId === targetGroupId
+                )
+                setExistingResults(gridResults)
                 // Update grades with existing results
                 setGrades((prevGrades) =>
                     prevGrades.map((grade) => {
-                        const existingResult = filteredResults.find(
-                            (r) => r.gradingCriterionId === grade.criterionId
+                        const existingResult = gridResults.find(
+                            (result: GradingResult) =>
+                                result.gradingCriterionId === grade.criterionId
                         )
                         if (existingResult) {
                             return {
@@ -129,7 +134,7 @@ export function GradingInterface({
 
         grades.forEach((grade) => {
             const criterion = gradingScale.criteria?.find(
-                (c) => c.id === grade.criterionId
+                (c: { id: string }) => c.id === grade.criterionId
             )
             if (criterion) {
                 const weight = criterion.weight || 1
@@ -147,7 +152,7 @@ export function GradingInterface({
     const isGradingComplete = () => {
         return grades.every((grade) => {
             const criterion = gradingScale.criteria?.find(
-                (c) => c.id === grade.criterionId
+                (c: { id: string }) => c.id === grade.criterionId
             )
             const hasScore = grade.score >= 0 && grade.score <= grade.maxPoints
             const hasRequiredComment =
@@ -164,21 +169,24 @@ export function GradingInterface({
 
         setIsLoading(true)
         try {
-            const results: GradingResultItemDto[] = grades.map((grade) => ({
+            const results = grades.map((grade) => ({
                 gradingCriterionId: grade.criterionId,
+                targetStudentId,
+                targetGroupId,
                 score: grade.score,
-                comment: grade.comment.trim() || undefined,
+                comment: grade.comment,
             }))
 
-            const dto: CreateGradingResultDto = {
-                targetGroupId,
-                targetStudentId,
-                results,
+            const response = await gradingService.saveResults(
+                gradingScale.id,
+                results
+            )
+            if (response.success) {
+                toast.success('Grades saved successfully')
+                onGradingComplete?.()
+            } else {
+                throw new Error(response.error || 'Failed to save grades')
             }
-
-            await gradingService.createResults(gradingScale.id, dto)
-            toast.success('Grades saved successfully')
-            onGradingComplete?.()
         } catch (error) {
             console.error('Error saving grades:', error)
             toast.error('Failed to save grades')
@@ -195,10 +203,16 @@ export function GradingInterface({
 
         setIsLoading(true)
         try {
-            await gradingService.validateGradingScale(gradingScale.id)
-            setIsValidated(true)
-            toast.success('Grading scale validated successfully')
-            onGradingComplete?.()
+            const response = await gradingService.validateGrid(gradingScale.id)
+            if (response.success) {
+                setIsValidated(true)
+                toast.success('Grading scale validated successfully')
+                onGradingComplete?.()
+            } else {
+                throw new Error(
+                    response.error || 'Failed to validate grading scale'
+                )
+            }
         } catch (error) {
             console.error('Error validating grading scale:', error)
             toast.error('Failed to validate grading scale')
@@ -235,34 +249,29 @@ export function GradingInterface({
                             </Badge>
                         </div>
 
-                        {grades.map((grade) => {
-                            const criterion = gradingScale.criteria?.find(
-                                (c) => c.id === grade.criterionId
-                            )
-                            return (
-                                <div
-                                    key={grade.criterionId}
-                                    className="border rounded-lg p-4"
-                                >
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h4 className="font-medium">
-                                            {grade.label}
-                                        </h4>
-                                        <span
-                                            className={`font-bold ${getScoreColor(grade.score, grade.maxPoints)}`}
-                                        >
-                                            {grade.score}/{grade.maxPoints}
-                                        </span>
-                                    </div>
-                                    {grade.comment && (
-                                        <div className="mt-2 p-2 bg-muted rounded text-sm">
-                                            <strong>Comment:</strong>{' '}
-                                            {grade.comment}
-                                        </div>
-                                    )}
+                        {grades.map((grade) => (
+                            <div
+                                key={grade.criterionId}
+                                className="border rounded-lg p-4"
+                            >
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="font-medium">
+                                        {grade.label}
+                                    </h4>
+                                    <span
+                                        className={`font-bold ${getScoreColor(grade.score, grade.maxPoints)}`}
+                                    >
+                                        {grade.score}/{grade.maxPoints}
+                                    </span>
                                 </div>
-                            )
-                        })}
+                                {grade.comment && (
+                                    <div className="mt-2 p-2 bg-muted rounded text-sm">
+                                        <strong>Comment:</strong>{' '}
+                                        {grade.comment}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
 
                         {onCancel && (
                             <Button onClick={onCancel} variant="outline">
@@ -288,7 +297,7 @@ export function GradingInterface({
                 <div className="space-y-6">
                     {grades.map((grade) => {
                         const criterion = gradingScale.criteria?.find(
-                            (c) => c.id === grade.criterionId
+                            (c: { id: string }) => c.id === grade.criterionId
                         )
                         return (
                             <div
@@ -326,7 +335,9 @@ export function GradingInterface({
                                         </div>
                                         <Slider
                                             value={[grade.score]}
-                                            onValueChange={(value) =>
+                                            onValueChange={(
+                                                value: (string | number)[]
+                                            ) =>
                                                 updateGrade(
                                                     grade.criterionId,
                                                     'score',

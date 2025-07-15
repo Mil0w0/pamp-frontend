@@ -9,7 +9,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Save, CheckCircle, AlertCircle, Eye } from 'lucide-react'
 import { useGradingGrid } from '@/hooks/useGradingGrid'
-import { GradingResult, GradingCriterion } from '@/components/GradingSystem/type'
+import {
+    GradingResult,
+    GradingCriterion,
+} from '@/components/GradingSystem/type'
 import { PROJECT_API_URL } from '../../services/ProjectService/project-api-client'
 import {
     formatScore,
@@ -128,9 +131,9 @@ export const GradingForm: React.FC<GradingFormProps> = ({
                 typeof c.weight === 'number' &&
                 typeof c.commentEnabled === 'boolean'
         )
-        
+
         console.log('Critères valides:', validCriteria)
-        
+
         if (validCriteria.length !== grid.criteria.length) {
             alert('Erreur : certains critères sont invalides ou incomplets.')
             return
@@ -145,24 +148,27 @@ export const GradingForm: React.FC<GradingFormProps> = ({
         try {
             // Vérifier la structure des résultats selon le DTO attendu
             // Chaque résultat doit contenir les informations de target
-            const formattedResults = resultsList.map(result => ({
+            const formattedResults = resultsList.map((result) => ({
                 gradingCriterionId: result.gradingCriterionId,
                 targetGroupId: targetGroupId || undefined,
                 targetStudentId: targetStudentId || undefined,
                 score: result.score,
-                comment: result.comment || ''
+                comment: result.comment || '',
             }))
 
-            console.log('Résultats formatés pour l\'API:', formattedResults)
+            console.log("Résultats formatés pour l'API:", formattedResults)
 
             // Préparer le payload - seulement results et generalComment
             const payload = {
                 results: formattedResults,
-                generalComment: generalComment || undefined
+                generalComment: generalComment || undefined,
             }
 
             console.log('Payload final à envoyer:', payload)
-            console.log('Endpoint utilisé:', `grading-scales/${grid.id}/results`)
+            console.log(
+                'Endpoint utilisé:',
+                `grading-scales/${grid.id}/results`
+            )
 
             // Met à jour la grille dans la BDD (exemple: titre, critères, etc.)
             await updateGrid(grid.id, {
@@ -173,7 +179,10 @@ export const GradingForm: React.FC<GradingFormProps> = ({
 
             // Vérifier si la mise à jour de la grille a échoué
             if (error) {
-                console.error('Erreur lors de la mise à jour de la grille:', error)
+                console.error(
+                    'Erreur lors de la mise à jour de la grille:',
+                    error
+                )
                 alert(
                     'Erreur lors de la mise à jour de la grille: ' +
                         error.message
@@ -181,15 +190,20 @@ export const GradingForm: React.FC<GradingFormProps> = ({
                 return
             }
 
-            console.log('Grille mise à jour avec succès, sauvegarde des résultats...')
+            console.log(
+                'Grille mise à jour avec succès, sauvegarde des résultats...'
+            )
 
             // Sauvegarder les résultats
             await saveResults(grid.id, formattedResults, generalComment)
 
             // Vérifier si la sauvegarde a échoué
             if (error) {
-                console.error('Erreur lors de la sauvegarde des résultats:', error)
-                alert('Erreur lors de la sauvegarde des résultats: ' + error.message)
+                console.error(
+                    'Erreur lors de la sauvegarde des résultats:',
+                    error
+                )
+                alert('Erreur lors de la sauvegarde des résultats: ' + error)
                 return
             }
 

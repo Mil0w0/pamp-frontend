@@ -9,7 +9,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { gradingService } from '@/services/GradingService/grading-api-client'
-import { GradingScale, GradingResult } from '@/components/GradingSystem/type'
+import { GradingGrid, GradingResult } from '@/components/GradingSystem/type'
+//import { calculateGradingStats } from '@/utils/gradingCalculations'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { CheckCircle2 } from 'lucide-react'
 
@@ -22,7 +23,7 @@ export function GradingConsultation({
     stepId,
     studentId,
 }: GradingConsultationProps) {
-    const [gradingScale, setGradingScale] = useState<GradingScale | null>(null)
+    const [gradingGrid, setGradingGrid] = useState<GradingGrid | null>(null)
     const [gradingResults, setGradingResults] = useState<GradingResult[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -33,29 +34,29 @@ export function GradingConsultation({
                 setLoading(true)
                 setError(null)
 
-                // Fetch grading scale for this step
-                const scale =
-                    await gradingService.getGradingScaleByTarget(stepId)
-
-                if (!scale) {
-                    setError('No grading scale found for this step')
-                    return
-                }
-
-                // Only show if the scale is validated
-                if (!scale.isValidated) {
-                    setError('Grading scale is not yet validated')
-                    return
-                }
-
-                setGradingScale(scale)
-
-                // Fetch grading results for this student
-                const results = await gradingService.getGradingResults(
-                    scale.id,
-                    studentId
+                // Fetch grading grid for this step
+                const response = await gradingService.getGridByTarget(
+                    stepId, // assuming stepId is projectId
+                    'livrable', // or determine type based on context
+                    stepId
                 )
-                setGradingResults(results)
+
+                if (!response.success || !response.data) {
+                    setError('No grading grid found for this step')
+                    return
+                }
+
+                const grid = response.data as GradingGrid
+
+                // Only show if the grid is validated
+                if (!grid.isValidated) {
+                    setError('Grading grid is not yet validated')
+                    return
+                }
+
+                setGradingGrid(grid)
+                // Results are already included in the grid
+                setGradingResults(grid.results || [])
             } catch (err) {
                 console.error('Error fetching grading data:', err)
                 setError('Failed to load grading information')
@@ -81,7 +82,7 @@ export function GradingConsultation({
         )
     }
 
-    if (!gradingScale) {
+    if (!gradingGrid) {
         return (
             <Card>
                 <CardContent className="pt-6">
@@ -93,26 +94,27 @@ export function GradingConsultation({
         )
     }
 
-    // Calculate total score and weighted score
-    const totalMaxScore = gradingScale.criteria.reduce(
-        (sum, criterion) => sum + criterion.maxScore,
+    // Calculate total score and weighted score using proper typing
+    const totalMaxScore = gradingGrid.criteria.reduce(
+        (sum: number, criterion) => sum + criterion.maxPoints,
         0
     )
-    const totalWeightedMaxScore = gradingScale.criteria.reduce(
-        (sum, criterion) => sum + criterion.maxScore * criterion.weight,
+    const totalWeightedMaxScore = gradingGrid.criteria.reduce(
+        (sum: number, criterion) =>
+            sum + criterion.maxPoints * criterion.weight,
         0
     )
 
     const studentResults = gradingResults.filter(
-        (result) => result.targetId === studentId
+        (result) => result.targetStudentId === studentId
     )
     const totalScore = studentResults.reduce(
-        (sum, result) => sum + result.score,
+        (sum: number, result) => sum + result.score,
         0
     )
-    const totalWeightedScore = studentResults.reduce((sum, result) => {
-        const criterion = gradingScale.criteria.find(
-            (c) => c.id === result.criterionId
+    const totalWeightedScore = studentResults.reduce((sum: number, result) => {
+        const criterion = gradingGrid.criteria.find(
+            (c) => c.id === result.gradingCriterionId
         )
         return sum + result.score * (criterion?.weight || 1)
     }, 0)
@@ -124,7 +126,7 @@ export function GradingConsultation({
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle className="flex items-center gap-2">
-                                {gradingScale.title}
+                                {gradingGrid.title}
                                 <Badge
                                     variant="secondary"
                                     className="flex items-center gap-1"
@@ -135,7 +137,7 @@ export function GradingConsultation({
                             </CardTitle>
                             <CardDescription>
                                 Grading Mode:{' '}
-                                {gradingScale.notationMode === 'GROUP'
+                                {gradingGrid.notationMode === 'groupe'
                                     ? 'Group'
                                     : 'Individual'}
                             </CardDescription>
@@ -173,15 +175,15 @@ export function GradingConsultation({
 
                         <div className="space-y-4">
                             <h4 className="font-medium">Detailed Results</h4>
-                            {gradingScale.criteria.map((criterion) => {
+                            {gradingGrid.criteria.map((criterion) => {
                                 const result = studentResults.find(
-                                    (r) => r.criterionId === criterion.id
+                                    (r) => r.gradingCriterionId === criterion.id
                                 )
                                 const weightedScore = result
                                     ? result.score * criterion.weight
                                     : 0
                                 const maxWeightedScore =
-                                    criterion.maxScore * criterion.weight
+                                    criterion.maxPoints * criterion.weight
 
                                 return (
                                     <div
@@ -196,13 +198,13 @@ export function GradingConsultation({
                                                 <div className="text-sm text-muted-foreground">
                                                     Weight: {criterion.weight}x
                                                     | Max Score:{' '}
-                                                    {criterion.maxScore}
+                                                    {criterion.maxPoints}
                                                 </div>
                                             </div>
                                             <div className="text-right">
                                                 <div className="font-medium">
                                                     {result?.score || 0} /{' '}
-                                                    {criterion.maxScore}
+                                                    {criterion.maxPoints}
                                                 </div>
                                                 <div className="text-sm text-muted-foreground">
                                                     Weighted:{' '}
@@ -225,18 +227,15 @@ export function GradingConsultation({
                             })}
                         </div>
 
-                        {gradingResults.some((r) => r.globalComment) && (
+                        {gradingResults.some((r) => r.comment) && (
                             <div className="mt-4">
                                 <Separator className="mb-4" />
                                 <h4 className="font-medium mb-2">
                                     Global Comment
                                 </h4>
                                 <div className="p-3 bg-muted rounded">
-                                    {
-                                        gradingResults.find(
-                                            (r) => r.globalComment
-                                        )?.globalComment
-                                    }
+                                    {gradingResults.find((r) => r.comment)
+                                        ?.comment || ''}
                                 </div>
                             </div>
                         )}
