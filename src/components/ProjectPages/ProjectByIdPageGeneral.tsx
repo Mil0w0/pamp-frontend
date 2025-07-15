@@ -105,11 +105,15 @@ export default function ProjectByIdPageGeneral() {
                         <h2 className="text-lg font-semibold">
                             From student batch
                         </h2>
-                        <p className="text-sm">
-                            {currentProject.studentBatch
-                                ? currentProject.studentBatch.name
-                                : 'UNASSIGNED'}
-                        </p>
+                        <StudentBatchAssignementSelector
+                            project={currentProject}
+                            userIsStudent={currentUser?.role === 'STUDENT'}
+                            onSuccess={() => {
+                                if (projectId) {
+                                    dispatch(fetchProjectById(projectId))
+                                }
+                            }}
+                        />
                     </div>
 
                     <div className="grid w-full max-w-sm justify-end">
@@ -122,27 +126,6 @@ export default function ProjectByIdPageGeneral() {
 
                 <Separator className="my-4" />
                 <div className="flex flex-col gap-4">
-                    <div>
-                        <h2 className="text-lg font-semibold mb-2">
-                            Assign Promotion
-                        </h2>
-                        <StudentBatchAssignementSelector
-                            project={currentProject}
-                            userIsStudent={currentUser?.role === 'STUDENT'}
-                            onSuccess={() => {
-                                if (projectId) {
-                                    dispatch(fetchProjectById(projectId))
-                                }
-                            }}
-                        />
-                    </div>
-
-                    {/*separator with a section title "Publishing the project"*/}
-                    <Separator className="my-4" />
-                    <h2 className="text-lg font-semibold">
-                        Publishing the project
-                    </h2>
-
                     <Button
                         onClick={() => publishProject()}
                         className="w-fit"

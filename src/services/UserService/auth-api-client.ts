@@ -290,12 +290,39 @@ export const authService = {
             return handleUserApiError(err.message)
         }
     },
+    getStudentsById: async (ids: string): Promise<GetMultipleUserResponse> => {
+        try {
+            const response = await fetch(`${AUTH_API_URL}/users?ids=${ids}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                },
+            })
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleApiError(error.message)
+            } else {
+                const users: Student[] = await response.json()
+                return {
+                    success: true,
+                    data: users as Student[],
+                }
+            }
+        } catch (error) {
+            const err = error as ApiErrorMessage
+            return handleUserApiError(err.message)
+        }
+    },
 }
 
 export type GetUserResponse = {
     success: boolean
     message?: string
     data?: User
+}
+export type GetMultipleUserResponse = {
+    success: boolean
+    message?: string
+    data?: Student[]
 }
 
 const handleUserApiError = (message: string) => {

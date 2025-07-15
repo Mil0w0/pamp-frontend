@@ -4,8 +4,8 @@ import {
     BookOpen,
     Footprints,
     Settings2,
+    SpeechIcon,
     UsersRound,
-    ClipboardList,
 } from 'lucide-react'
 
 import { NavMain } from '@/components/Navbar/nav-main.tsx'
@@ -170,6 +170,11 @@ export function AppSidebar({
                               },
                               ...groupItems,
                           ],
+                      },
+                      {
+                          title: 'Orals planning',
+                          url: `/projects/${currentProject.id}/orals`,
+                          icon: SpeechIcon,
                       },
                   ]),
             {

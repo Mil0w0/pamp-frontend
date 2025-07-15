@@ -10,7 +10,7 @@ import { BrowserRouter, Route, Routes } from 'react-router'
 import LogIn from '@/components/LogIn/LogIn.tsx'
 import TeacherRegister from '@/components/Register/TeacherRegister.tsx'
 import CenteredLayout from '@/components/layout/CenteredLayout.tsx'
-import CustomHeader from '@/components/CustomHeader.tsx'
+import CustomHeader from '@/components/Header/CustomHeader.tsx'
 import StudentBatchesPage from '@/components/ManageStudentBatches/StudentBatchesPage.tsx'
 import { Error404 } from '@/components/Error/Error404.tsx'
 import { Toaster } from 'sonner'
@@ -34,6 +34,7 @@ import StudentDashboard from '@/components/StudentPages/StudentDashboard.tsx'
 import { StudentReport } from '@/components/StudentPages'
 import { StepById } from '@/components/ProjectPages/Steps/StepById.tsx'
 import ProjectGradingPage from '@/components/ProjectPages/ProjectGradingPage.tsx'
+import ProjectByIdOralsPlanning from '@/components/ProjectPages/OralsPlanning/ProjectByIdOralsPlanning.tsx'
 
 createRoot(document.getElementById('root')!).render(
     <Provider store={store}>
@@ -42,29 +43,19 @@ createRoot(document.getElementById('root')!).render(
                 <BrowserRouter>
                     <CustomHeader />
                     <Routes>
+                        {/* Auth & Main Entry */}
                         <Route element={<CenteredLayout />}>
                             <Route path="/login" element={<LogIn />} />
-                            <Route
-                                path="/register/teacher"
-                                element={<TeacherRegister />}
-                            />
+                            <Route path="/register/teacher" element={<TeacherRegister />} />
                             <Route path="/" element={<App />} />
                         </Route>
+
+                        {/* Student batches (list & detail) */}
                         <Route
-                            path="/student-batches/"
+                            path="/student-batches"
                             element={
                                 <ProtectedRoute allowedRoles={['TEACHER']}>
                                     <StudentBatchesPage />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/projects/"
-                            element={
-                                <ProtectedRoute
-                                    allowedRoles={['TEACHER', 'STUDENT']}
-                                >
-                                    <ProjectsPage />
                                 </ProtectedRoute>
                             }
                         />
@@ -73,54 +64,44 @@ createRoot(document.getElementById('root')!).render(
                             element={<StudentBatchById />}
                         />
 
+                        {/* Projects list */}
                         <Route
-                            path="/auth/callback"
-                            element={<AuthCallback />}
+                            path="/projects"
+                            element={
+                                <ProtectedRoute allowedRoles={['TEACHER', 'STUDENT']}>
+                                    <ProjectsPage />
+                                </ProtectedRoute>
+                            }
                         />
+
+                        {/* Auth callback, logout */}
+                        <Route path="/auth/callback" element={<AuthCallback />} />
                         <Route path="/logout" element={<Logout />} />
 
-                        <Route
-                            path="/projects/:projectId/*"
-                            element={<SidebarLayout />}
-                        >
-                            <Route
-                                path="settings"
-                                element={<ProjectByIdPageGeneral />}
-                            />
-                            <Route
-                                path="groups"
-                                element={<ProjectByIdPageGroupConfig />}
-                            />
-                            <Route
-                                path="groups/:groupId"
-                                element={<ProjectGroupsById />}
-                            />
-                            <Route
-                                path="steps/config"
-                                element={<ProjectByIdPageStepConfig />}
-                            />
-                            <Route
-                                path="steps/:stepId/"
-                                element={<StepById />}
-                            />
-                            <Route
-                                path="test/classic-review"
-                                element={<TeacherReviewReport />}
-                            />
-                            <Route
-                                path="report-definition"
-                                element={<ProjectByIdPageReportDefinition />}
-                            />
-                            <Route
-                                path="grading"
-                                element={
-                                    <ProtectedRoute allowedRoles={['TEACHER']}>
-                                        <ProjectGradingPage />
-                                    </ProtectedRoute>
-                                }
-                            />
+                        {/* Project detail routes with sidebar */}
+                        <Route path="/projects/:projectId/*" element={<SidebarLayout />}>
+                            <Route path="settings" element={<ProjectByIdPageGeneral />} />
+                            <Route path="groups" element={<ProjectByIdPageGroupConfig />} />
+                            <Route path="groups/:groupId" element={<ProjectGroupsById />} />
+                            <Route path="steps/config" element={<ProjectByIdPageStepConfig />} />
+                            <Route path="steps/:stepId" element={<StepById />} />
+                            <Route path="test/classic-review" element={<TeacherReviewReport />} />
+                            <Route path="report-definition" element={<ProjectByIdPageReportDefinition />} />
+                            <Route path="orals" element={<ProjectByIdOralsPlanning />} />
                             <Route path="*" element={<Error404 />} />
                         </Route>
+
+                        {/* Grading page (global) */}
+                        <Route
+                            path="/grading"
+                            element={
+                                <ProtectedRoute allowedRoles={['TEACHER']}>
+                                    <ProjectGradingPage />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* Student dashboard & report */}
                         <Route
                             path="/test/student-dashboard"
                             element={
@@ -145,6 +126,8 @@ createRoot(document.getElementById('root')!).render(
                                 </ProtectedRoute>
                             }
                         />
+
+                        {/* Teacher review page */}
                         <Route
                             path="/teacher/review/:projectId/:groupId"
                             element={
@@ -153,6 +136,8 @@ createRoot(document.getElementById('root')!).render(
                                 </ProtectedRoute>
                             }
                         />
+
+                        {/* 404 fallback */}
                         <Route path="*" element={<Error404 />} />
                     </Routes>
                     <Toaster richColors position={'top-right'} />

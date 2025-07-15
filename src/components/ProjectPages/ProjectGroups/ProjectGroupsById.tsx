@@ -40,6 +40,7 @@ import { StatusIndicator } from './StatusIndicator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { DateTime } from 'luxon'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { formatToShortDateAndTime } from '@/utils/dateFormatter.ts'
 
 export default function ProjectGroupsById() {
     const { projectId, groupId } = useParams()
@@ -376,6 +377,63 @@ export default function ProjectGroupsById() {
                                         </Button>
                                     </div>
                                 </div>
+                            </CardContent>
+                        </Card>
+
+                        {/*Group oral planning*/}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Calendar className="h-5 w-5" />
+                                    Oral presentation
+                                    <Badge>
+                                        {currentGroup.oral
+                                            ? (() => {
+                                                  const start =
+                                                      DateTime.fromISO(
+                                                          currentGroup.oral
+                                                              .startTime
+                                                      )
+                                                  const end = DateTime.fromISO(
+                                                      currentGroup.oral.endTime
+                                                  )
+                                                  const duration = end.diff(
+                                                      start,
+                                                      ['hours', 'minutes']
+                                                  )
+
+                                                  const hours = duration.hours
+                                                  const minutes =
+                                                      duration.minutes
+
+                                                  const durationText =
+                                                      hours > 0
+                                                          ? `${Math.floor(hours)}h ${Math.round(minutes)}min`
+                                                          : `${Math.round(minutes)}min`
+
+                                                  return (
+                                                      <span>
+                                                          {durationText}
+                                                      </span>
+                                                  )
+                                              })()
+                                            : 'TBD'}
+                                    </Badge>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {currentGroup.oral ? (
+                                    <p className="text-sm">
+                                        Start time :{' '}
+                                        {formatToShortDateAndTime(
+                                            currentGroup.oral.startTime
+                                        )}
+                                    </p>
+                                ) : (
+                                    <p className="text-sm">
+                                        No oral planned yet
+                                    </p>
+                                )}
                             </CardContent>
                         </Card>
 
