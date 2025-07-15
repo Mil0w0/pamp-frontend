@@ -126,20 +126,3 @@
 .question-blocknote .bn-editor {
   min-height: 20vh;
 }
-.animate-swipe-left {
-  animation: swipeLeft 0.4s cubic-bezier(0.4,0,0.2,1);
-}
-.animate-swipe-right {
-  animation: swipeRight 0.4s cubic-bezier(0.4,0,0.2,1);
-}
-@keyframes swipeLeft {
-  0% { transform: translateX(0); }
-  80% { transform: translateX(-40px) scale(0.98); }
-  100% { transform: translateX(0); }
-}
-@keyframes swipeRight {
-  0% { transform: translateX(0); }
-  80% { transform: translateX(40px) scale(0.98); }
-  100% { transform: translateX(0); }
-}
-/* ... existing code ... */
