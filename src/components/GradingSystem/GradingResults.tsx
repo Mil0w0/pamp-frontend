@@ -31,7 +31,7 @@ import {
     Minus,
 } from 'lucide-react'
 import { useGradingGrid } from '@/hooks/useGradingGrid'
-import { GradingGrid, GradingGridType, NotationMode } from '@/types/grading'
+import { GradingGrid, GradingGridType, NotationMode } from '@/components/GradingSystem/type'
 import {
     formatPercentage,
     calculateFinalGrade,

@@ -5,7 +5,7 @@ import {
     UpdateGradingGridDto,
     GradingResult,
     GradingApiResponse,
-} from '@/types/grading'
+} from '@/components/GradingSystem/type'
 import { ApiErrorMessage } from '../ProjectService/types'
 
 const handleApiError = (error: string): GradingApiResponse => {

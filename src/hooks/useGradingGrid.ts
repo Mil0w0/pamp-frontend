@@ -7,7 +7,7 @@ import {
     GradingResult,
     GradingCriterion,
     GradingStats,
-} from '@/types/grading'
+} from '@/components/GradingSystem/type'
 import {
     calculateGradingStats,
     validateGridCompleteness,

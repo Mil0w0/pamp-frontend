@@ -17,7 +17,7 @@ export type {
     GradingTarget,
     GradingGridType,
     NotationMode,
-} from '@/types/grading'
+} from '@/components/GradingSystem/type'
 
 // Services
 export { gradingService } from '@/services/GradingService/grading-api-client'

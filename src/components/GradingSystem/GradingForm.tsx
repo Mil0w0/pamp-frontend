@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Save, CheckCircle, AlertCircle, Eye } from 'lucide-react'
 import { useGradingGrid } from '@/hooks/useGradingGrid'
-import { GradingResult, GradingCriterion } from '@/types/grading'
+import { GradingResult, GradingCriterion } from '@/components/GradingSystem/type'
 import { PROJECT_API_URL } from '../../services/ProjectService/project-api-client'
 import {
     formatScore,

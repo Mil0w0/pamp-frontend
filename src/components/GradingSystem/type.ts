@@ -36,6 +36,7 @@ export interface CreateGradingGridDto {
     notationMode: 'groupe' | 'individuel'
     title: string
     criteria: Omit<GradingCriterion, 'id'>[]
+    generalComment?: string
 }
 
 export interface UpdateGradingGridDto {

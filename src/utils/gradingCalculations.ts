@@ -3,7 +3,7 @@ import {
     GradingResult,
     GradingStats,
     GradingGrid,
-} from '@/types/grading'
+} from '@/components/GradingSystem/type'
 
 /**
  * Calcule les statistiques de notation pour un ensemble de résultats

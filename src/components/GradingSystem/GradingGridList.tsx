@@ -29,7 +29,7 @@ import {
     User,
 } from 'lucide-react'
 import { useGradingGrid } from '@/hooks/useGradingGrid'
-import { GradingGrid, GradingGridType, NotationMode } from '@/types/grading'
+import { GradingGrid, GradingGridType, NotationMode } from '@/components/GradingSystem/type'
 import { formatPercentage } from '@/utils/gradingCalculations'
 import { ErrorDisplay } from '@/components/ui/error-display'
 
@@ -77,7 +77,15 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
 
         return matchesSearch && matchesType && matchesStatus && matchesMode
     })
-    const safeFilteredGrids = Array.isArray(filteredGrids) ? filteredGrids : []
+    
+    // Tri des grilles par date de création (plus récent en premier)
+    const sortedGrids = filteredGrids.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        return dateB - dateA // Tri décroissant (plus récent en premier)
+    })
+    
+    const safeFilteredGrids = Array.isArray(sortedGrids) ? sortedGrids : []
 
     const handleDelete = async (grid: GradingGrid) => {
         if (

@@ -21,7 +21,7 @@ import {
     CreateGradingGridDto,
     GradingGridType,
     NotationMode,
-} from '@/types/grading'
+} from '@/components/GradingSystem/type'
 import { formatScore, formatPercentage } from '@/utils/gradingCalculations'
 import { Student } from '@/components/ManageStudentBatches/types'
 import { ProjectGroup } from '@/components/ProjectPages/types'

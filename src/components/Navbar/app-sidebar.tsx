@@ -191,7 +191,7 @@ export function AppSidebar({
             ...(!isStudent
                 ? [
                       {
-                          title: 'Grilles de notation',
+                          title: 'Grading Grid',
                           url: `/projects/${currentProject.id}/grading`,
                           icon: ClipboardList,
                       },
