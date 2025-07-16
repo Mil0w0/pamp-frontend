@@ -64,6 +64,7 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({
     )
 }
 
+export { ProjectContext }
 export const useProject = (): ProjectContextType => {
     const context = useContext(ProjectContext)
     if (context === undefined) {

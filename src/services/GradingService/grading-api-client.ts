@@ -62,7 +62,7 @@ const invalidateCache = (pattern?: string): void => {
 // Utilitaires pour la gestion des erreurs
 const handleApiError = (error: string): GradingApiResponse => {
     console.error('Grading API Error:', error)
-    return { success: false, error: error }
+    return { success: false, error }
 }
 
 // Utilitaire pour créer les headers d'authentification avec optimisations
@@ -74,7 +74,7 @@ const getAuthHeaders = (): HeadersInit => {
 
     return {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token || ''}`,
         'Cache-Control': 'no-cache',
         Pragma: 'no-cache',
     }
@@ -110,7 +110,7 @@ const handleApiResponse = async (
     }
 }
 
-// Utilitaire pour faire des requêtes avec timeout et retry optimisé
+// Utilitaire pour faire des requêtes avec timeout
 const fetchWithTimeout = async (
     url: string,
     options: RequestInit = {},
@@ -131,7 +131,7 @@ const fetchWithTimeout = async (
         return response
     } catch (error: unknown) {
         clearTimeout(timeoutId)
-        if ((error as { name?: string }).name === 'AbortError') {
+        if ((error as Error).name === 'AbortError') {
             throw new Error(`Timeout de ${timeout}ms dépassé pour ${url}`)
         }
         throw error
@@ -154,10 +154,10 @@ const fetchWithRetry = async (
 
             // Ne pas retry sur certaines erreurs
             if (
-                (error as { name?: string }).name === 'AbortError' ||
-                ((error as { status?: number }).status &&
-                    ((error as { status?: number }).status ?? 0) >= 400 &&
-                    ((error as { status?: number }).status ?? 0) < 500)
+                (error as Error).name === 'AbortError' ||
+                ('status' in (error as Error) &&
+                    (error as { status: number }).status >= 400 &&
+                    (error as { status: number }).status < 500)
             ) {
                 throw error
             }
@@ -204,7 +204,7 @@ export const gradingService = {
             return result
         } catch (error: unknown) {
             return handleApiError(
-                'Erreur lors du chargement des grilles' + error
+                `Erreur lors du chargement des grilles: ${String(error)}`
             )
         }
     },
@@ -229,7 +229,7 @@ export const gradingService = {
             return await handleApiResponse(response)
         } catch (error: unknown) {
             return handleApiError(
-                'Erreur lors du chargement de la grille' + error
+                `Erreur lors du chargement de la grille: ${String(error)}`
             )
         }
     },
@@ -268,7 +268,7 @@ export const gradingService = {
         } catch (error: unknown) {
             console.error('❌ Erreur chargement grille:', error)
             return handleApiError(
-                'Erreur lors du chargement de la grille' + error
+                `Erreur lors du chargement de la grille: ${String(error)}`
             )
         }
     },
@@ -296,7 +296,7 @@ export const gradingService = {
             return result
         } catch (error: unknown) {
             return handleApiError(
-                'Erreur lors de la création de la grille' + error
+                `Erreur lors de la création de la grille: ${String(error)}`
             )
         }
     },
@@ -325,7 +325,7 @@ export const gradingService = {
             return result
         } catch (error: unknown) {
             return handleApiError(
-                'Erreur lors de la mise à jour de la grille' + error
+                `Erreur lors de la mise à jour de la grille: ${String(error)}`
             )
         }
     },
@@ -389,7 +389,7 @@ export const gradingService = {
         } catch (error: unknown) {
             console.error('❌ Erreur sauvegarde résultats:', error)
             return handleApiError(
-                'Erreur lors de la sauvegarde des résultats' + error
+                `Erreur lors de la sauvegarde des résultats: ${String(error)}`
             )
         }
     },
@@ -397,32 +397,40 @@ export const gradingService = {
     // Valider une grille
     validateGrid: async (gridId: string): Promise<GradingApiResponse> => {
         try {
-            const url = `${PROJECT_API_URL}/grading-scales/${gridId}/validate`;
-            console.log('🔍 Validation grille:', { gridId, url });
+            const url = `${PROJECT_API_URL}/grading-scales/${gridId}/validate`
+            console.log('🔍 Validation grille:', { gridId, url })
             const response = await fetchWithRetry(url, {
                 method: 'POST',
                 headers: getAuthHeaders(),
-            });
-            const result = await handleApiResponse(response);
+            })
+            const result = await handleApiResponse(response)
             if (result.success && result.data) {
-                const grid = result.data as GradingGrid;
+                const grid = result.data as GradingGrid
                 console.log('📥 Réponse reçue:', {
                     id: grid.id,
                     isValidated: grid.isValidated,
                     validatedAt: grid.validatedAt,
-                });
+                })
                 if (grid.isValidated) {
-                    console.log('✅ Grille validée avec succès');
-                    invalidateCache();
+                    console.log('✅ Grille validée avec succès')
+                    // Invalidate only the specific grid and project grids
+                    invalidateCache(`getGrid:${gridId}`)
+                    invalidateCache('getProjectGrids')
                 } else {
-                    console.warn("⚠️ La grille n'a pas été validée côté serveur");
-                    return handleApiError('La validation a échoué côté serveur. Vérifiez que tous les critères sont notés.');
+                    console.warn(
+                        "⚠️ La grille n'a pas été validée côté serveur"
+                    )
+                    return handleApiError(
+                        'La validation a échoué côté serveur. Vérifiez que tous les critères sont notés.'
+                    )
                 }
             }
-            return result;
+            return result
         } catch (error: unknown) {
-            console.error('❌ Erreur validation grille:', error);
-            return handleApiError('Erreur lors de la validation de la grille' + error);
+            console.error('❌ Erreur validation grille:', error)
+            return handleApiError(
+                `Erreur lors de la validation de la grille: ${String(error)}`
+            )
         }
     },
 
@@ -481,9 +489,10 @@ export const gradingService = {
 
             return validateResponse
         } catch (error: unknown) {
-            const err = error as Error
-            console.error('Erreur dans le workflow de validation:', err)
-            return handleApiError(err.message)
+            console.error('Erreur dans le workflow de validation:', error)
+            return handleApiError(
+                `Erreur dans le workflow de validation: ${String(error)}`
+            )
         }
     },
 
@@ -507,7 +516,22 @@ export const gradingService = {
             return result
         } catch (error: unknown) {
             return handleApiError(
-                'Erreur lors de la suppression de la grille' + error
+                `Erreur lors de la suppression de la grille: ${String(error)}`
+            )
+        }
+    },
+
+    // Récupérer les résultats d'une grille
+    getGridResults: async (gridId: string): Promise<GradingApiResponse> => {
+        try {
+            const url = `${PROJECT_API_URL}/grading-scales/${gridId}/results`
+            const response = await fetchWithRetry(url, {
+                headers: getAuthHeaders(),
+            })
+            return await handleApiResponse(response)
+        } catch (error: unknown) {
+            return handleApiError(
+                `Erreur lors du chargement des résultats de la grille: ${String(error)}`
             )
         }
     },

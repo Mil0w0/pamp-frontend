@@ -16,7 +16,7 @@ export async function makeStudentsFromFile(
 
                 const studentsParsed: Student[] = utils.sheet_to_json(sheet)
                 const students: Student[] = []
-                console.log(students)
+                // Ligne 19 supprimée : console.log(students)
                 let index = 0
                 for (const student of studentsParsed) {
                     students.push({

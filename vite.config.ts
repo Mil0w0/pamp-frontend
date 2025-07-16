@@ -10,35 +10,35 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vitejs.dev/config/
 export default defineConfig({
     server: {
-    port: 5173,
-    cors: {
-        origin: '*',
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-        allowedHeaders: [
-            'Content-Type',
-            'Authorization',
-            'X-Requested-With',
-        ],
-        credentials: true,
+        port: 5173,
+        cors: {
+            origin: '*',
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+            allowedHeaders: [
+                'Content-Type',
+                'Authorization',
+                'X-Requested-With',
+            ],
+            credentials: true,
+        },
+        proxy: {
+            '/api/auth': {
+                target: 'http://localhost:3000',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api\/auth/, ''),
+            },
+            '/api/project': {
+                target: 'http://localhost:3001',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api\/project/, ''),
+            },
+            '/api/submission': {
+                target: 'http://localhost:3002',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api\/submission/, ''),
+            },
+        },
     },
-    proxy: {
-      '/api/auth': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/auth/, ''),
-      },
-      '/api/project': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/project/, ''),
-      },
-      '/api/submission': {
-        target: 'http://localhost:3002',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/submission/, ''),
-      },
-    },
-},
     test: {
         globals: true,
         environment: 'jsdom',

@@ -267,6 +267,16 @@ export const useGradingGrid = ({
 
                 if (response.success && response.data) {
                     const newGrid = response.data as GradingGrid
+                    // Charger les résultats réels depuis l'API
+                    const resultsResponse =
+                        await gradingService.getGridResults(gridId)
+                    if (
+                        resultsResponse.success &&
+                        Array.isArray(resultsResponse.data)
+                    ) {
+                        newGrid.results =
+                            resultsResponse.data as unknown as GradingResult[]
+                    }
                     console.log('✓ Grid loaded:', {
                         id: newGrid.id,
                         isValidated: newGrid.isValidated,
@@ -370,23 +380,52 @@ export const useGradingGrid = ({
 
             try {
                 const response = await gradingService.getProjectGrids(projectId)
-                console.log('loadProjectGrids response:', response);
-                console.log('Number of grids received:', response.data?.length || 0);
+                console.log('loadProjectGrids response:', response)
+                console.log(
+                    'Number of grids received:',
+                    Array.isArray(response.data) ? response.data.length : 0
+                )
 
                 if (signal.aborted) return
 
                 if (response.success && response.data) {
+                    // Charger les résultats pour chaque grille
+                    const gridsWithResults = await Promise.all(
+                        (response.data as GradingGrid[]).map(async (grid) => {
+                            try {
+                                const resultsResponse =
+                                    await gradingService.getGridResults(grid.id)
+                                if (
+                                    resultsResponse.success &&
+                                    Array.isArray(resultsResponse.data)
+                                ) {
+                                    return {
+                                        ...grid,
+                                        results:
+                                            resultsResponse.data as unknown as GradingResult[],
+                                    }
+                                }
+                            } catch (e: unknown) {
+                                // Ignore error, fallback to grid without results
+                                console.error(
+                                    'Error loading results for grid:',
+                                    grid.id,
+                                    e
+                                )
+                            }
+                            return { ...grid, results: [] }
+                        })
+                    )
                     dispatch({
                         type: 'SET_GRIDS',
-                        payload: response.data as GradingGrid[],
+                        payload: gridsWithResults,
                     })
-                    console.log('Grids successfully set in state');
+                    console.log('Grids with results successfully set in state')
                 } else {
                     handleError(
                         response.error || 'Error loading grids',
                         'load_grids'
                     )
-                    console.log('Error in response:', response.error);
                 }
             } catch (err: unknown) {
                 if (!signal.aborted) {

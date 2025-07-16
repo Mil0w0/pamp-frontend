@@ -151,6 +151,7 @@ export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
                         <h2 className="text-xl font-semibold">
                             Grid Management
                         </h2>
+                        {/* Le bouton 'New Grid' n'est affiché qu'ici */}
                         {isTeacher && (
                             <Button onClick={handleCreateGrid}>
                                 <Plus className="h-4 w-4 mr-2" />
@@ -158,10 +159,9 @@ export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
                             </Button>
                         )}
                     </div>
-
                     <GradingGridList
                         projectId={projectId}
-                        onCreateGrid={isTeacher ? handleCreateGrid : undefined}
+                        // onCreateGrid retiré pour éviter le double affichage
                         onEditGrid={isTeacher ? handleEditGrid : undefined}
                         onViewGrid={handleViewGrid}
                         onDeleteGrid={

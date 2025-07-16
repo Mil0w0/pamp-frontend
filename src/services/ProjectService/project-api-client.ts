@@ -71,7 +71,7 @@ export const projectService = {
     getAll: async (userId: string): Promise<ProjectApiResponse> => {
         try {
             const url = `${PROJECT_API_URL}/projects?userId=${userId}`
-            console.log(url)
+            // Ligne 74 supprimée : console.log(url)
             const response = await fetch(url, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('auth_token')}`,

@@ -1,4 +1,5 @@
-import React, { createContext, useReducer, ReactNode } from 'react'
+import React, { useReducer, ReactNode } from 'react'
+import { GradingContext } from './GradingContext'
 import { GradingGrid, GradingResult } from '@/components/GradingSystem/type'
 
 type State = {
@@ -56,10 +57,6 @@ function reducer(state: State, action: Action): State {
     }
 }
 
-const GradingContext = createContext<
-    { state: State; dispatch: React.Dispatch<Action> } | undefined
->(undefined)
-
 export const GradingProvider: React.FC<{ children: ReactNode }> = ({
     children,
 }) => {
@@ -73,5 +70,3 @@ export const GradingProvider: React.FC<{ children: ReactNode }> = ({
         </GradingContext.Provider>
     )
 }
-
-export { GradingContext }

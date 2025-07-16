@@ -11,10 +11,7 @@ const statsCache = new Map<string, GradingStats>()
 /**
  * Generate a cache key for statistics
  */
-const getStatsCacheKey = (
-    criteria,
-    results
-): string => {
+const getStatsCacheKey = (criteria, results): string => {
     const criteriaKey = Array.isArray(criteria)
         ? criteria.map((c) => `${c.id}:${c.maxPoints}:${c.weight}`).join('|')
         : ''
@@ -54,10 +51,14 @@ export const calculateGradingStats = (
     const safeCriteria = Array.isArray(criteria) ? criteria : []
     for (const criterion of safeCriteria) {
         const rawScore = resultsMap.get(criterion.id) || 0
-        const clampedScore = Math.max(0, Math.min(criterion.maxPoints, rawScore))
+        const clampedScore = Math.max(
+            0,
+            Math.min(criterion.maxPoints, rawScore)
+        )
         totalScore += clampedScore
         maxScore += criterion.maxPoints
-        const normalizedScore = criterion.maxPoints > 0 ? (clampedScore / criterion.maxPoints) : 0
+        const normalizedScore =
+            criterion.maxPoints > 0 ? clampedScore / criterion.maxPoints : 0
         weightedScore += normalizedScore * criterion.weight
         totalWeight += criterion.weight
     }

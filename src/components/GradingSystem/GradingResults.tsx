@@ -79,13 +79,17 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
             const totalPossibleResults = grid.criteria.length
             const actualResults = (grid.results || []).length
 
+            // Clamp la progression à 100 max
+            const rawCompletion =
+                totalPossibleResults > 0
+                    ? (actualResults / totalPossibleResults) * 100
+                    : 0
+            const completionRate = Math.min(rawCompletion, 100)
+
             return {
                 ...grid,
                 averageScore: stats.weightedScore,
-                completionRate:
-                    totalPossibleResults > 0
-                        ? (actualResults / totalPossibleResults) * 100
-                        : 0,
+                completionRate,
                 totalResults: actualResults,
             }
         })
@@ -193,6 +197,7 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
         return 'text-red-600'
     }, [])
 
+    // ====== UI Render ======
     if (loading) {
         return (
             <Card>
@@ -402,6 +407,12 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
                             </TableHeader>
                             <TableBody>
                                 {filteredAndSortedGrids.map((grid) => {
+                                    // Couleur dynamique pour la barre de progression (rouge à vert)
+                                    const percent = grid.completionRate / 100
+                                    const r = Math.round(255 * (1 - percent))
+                                    const g = Math.round(255 * percent)
+                                    const b = 0
+                                    const progressColor = `rgb(${r},${g},${b})`
                                     const finalGrade = calculateFinalGrade(
                                         grid.criteria,
                                         grid.results
@@ -485,7 +496,11 @@ export const GradingResults: React.FC<GradingResultsProps> = ({
                                                         value={
                                                             grid.completionRate
                                                         }
-                                                        className="h-2"
+                                                        indicatorStyle={{
+                                                            backgroundColor:
+                                                                progressColor,
+                                                        }}
+                                                        className="progress-gradient-bar h-2"
                                                     />
                                                 </div>
                                             </TableCell>

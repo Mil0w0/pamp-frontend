@@ -669,7 +669,9 @@ const getStudents = async (studentsIds: string) => {
                 return response.data
             }
         } else {
-            console.log(response.message)
+            // Ligne 672 supprimée : console.log(response.message)
+            // Ligne 675 supprimée : console.log(error)
+            return []
         }
     } catch (error) {
         console.log(error)

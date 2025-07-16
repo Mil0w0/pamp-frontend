@@ -45,7 +45,7 @@ export function StepSubmissionConformityRulesModal({
                 if (response.success) {
                     if (response.data) {
                         setAvailableRules(response.data.available_rules)
-                        console.log(response.data)
+                        // Ligne 48 supprimée : console.log(response.data)
                     }
                 } else {
                     toast.error(response.error)
