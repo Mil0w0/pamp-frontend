@@ -11,7 +11,7 @@ const statsCache = new Map<string, GradingStats>()
 /**
  * Generate a cache key for statistics
  */
-const getStatsCacheKey = (criteria, results): string => {
+const getStatsCacheKey = (criteria: GradingCriterion[], results: GradingResult[]): string => {
     const criteriaKey = Array.isArray(criteria)
         ? criteria.map((c) => `${c.id}:${c.maxPoints}:${c.weight}`).join('|')
         : ''
