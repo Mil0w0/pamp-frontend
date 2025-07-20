@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { Node, Edge } from 'reactflow'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Edge, Node } from 'reactflow'
 import { FilePair, LayoutState } from '../types'
 
 interface UseFilePairNavigationProps {
@@ -9,6 +9,7 @@ interface UseFilePairNavigationProps {
     onNodesChange: (nodes: Node[]) => void
     onEdgesChange: (edges: Edge[]) => void
     setLayoutState: (updater: (prev: LayoutState) => LayoutState) => void
+    currentSimilarityId?: string | null
 }
 
 export const useFilePairNavigation = ({
@@ -18,6 +19,7 @@ export const useFilePairNavigation = ({
     onNodesChange,
     onEdgesChange,
     setLayoutState,
+    currentSimilarityId,
 }: UseFilePairNavigationProps) => {
     const [selectedPairIndex, setSelectedPairIndex] = useState<number>(0)
 
@@ -48,8 +50,9 @@ export const useFilePairNavigation = ({
                 const selectedPair = filePairs[index]
 
                 console.log('Selected pair info:', {
-                    calculator_file: selectedPair.file_pair?.calculator_file,
-                    game_file: selectedPair.file_pair?.game_file,
+                    calculator_file:
+                        selectedPair.file_pair?.file_from_submission1,
+                    game_file: selectedPair.file_pair?.file_from_submission2,
                     nodes_count: selectedPair.react_flow?.nodes?.length,
                     edges_count: selectedPair.react_flow?.edges?.length,
                 })
@@ -96,34 +99,15 @@ export const useFilePairNavigation = ({
         }
     }, [filePairs, selectedPairIndex, handlePairChange])
 
-    // Keyboard navigation
+    // Keyboard navigation removed - now handled by useKeyboardNavigation hook
+
+    // Reset to first file pair when similarity changes
     useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            // Only handle if not focused on input elements
-            if (
-                event.target instanceof HTMLInputElement ||
-                event.target instanceof HTMLSelectElement
-            ) {
-                return
-            }
-
-            switch (event.key) {
-                case 'ArrowLeft':
-                case 'ArrowUp':
-                    event.preventDefault()
-                    goToPreviousPair()
-                    break
-                case 'ArrowRight':
-                case 'ArrowDown':
-                    event.preventDefault()
-                    goToNextPair()
-                    break
-            }
+        if (currentSimilarityId !== undefined) {
+            console.log('Similarity changed, resetting to first file pair')
+            setSelectedPairIndex(0)
         }
-
-        window.addEventListener('keydown', handleKeyDown)
-        return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [goToPreviousPair, goToNextPair])
+    }, [currentSimilarityId])
 
     return {
         selectedPairIndex,

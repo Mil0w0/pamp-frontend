@@ -30,7 +30,7 @@ import {
     SubmissionResponse,
     ValidationError,
 } from '@/services/SubmissionService/types.ts'
-import { sumbissionService } from '@/services/SubmissionService/submission-api-client.ts'
+import { submissionService } from '@/services/SubmissionService/submission-api-client.ts'
 import { createS3UploadFunction } from '@/utils/fileUpload.ts'
 import { DateTime } from 'luxon'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
@@ -67,16 +67,32 @@ export function StepById() {
     const [currentUserGroup, setCurrentUserGroup] =
         useState<ProjectGroup | null>(null)
 
-    const deleteFromS3 = async () => {
-        //todo: implement
-        toast.info('Submission deletion isnt available yet')
-        //then remove submission in the microservice linked
+    const deleteSubmission = async () => {
+        if (!submission) {
+            toast.error('No submission to delete')
+            return
+        }
+        try {
+            const response = await submissionService.deleteOne(submission.id)
+
+            if (response.success) {
+                toast.success('Submission deleted successfully')
+                setSubmission(null)
+                setConformityLevel(0)
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error('Error while deleting submission')
+            console.error(error)
+        }
     }
+
     const loadAllStepSubmissions = async () => {
         if (!stepId) return
         if (!projectId) return
         try {
-            const response = await sumbissionService.getAllBySteps(
+            const response = await submissionService.getAllBySteps(
                 stepId,
                 projectId
             )
@@ -125,7 +141,7 @@ export function StepById() {
         if (!currentUserGroup) return
 
         try {
-            const response = await sumbissionService.getOneByStepAndGroup(
+            const response = await submissionService.getOneByStepAndGroup(
                 stepId,
                 projectId,
                 currentUserGroup?.id
@@ -193,7 +209,7 @@ export function StepById() {
                 (submissionLocal.link && submissionLocal.link.length > 0)
             ) {
                 //Save submission on the service
-                const response = await sumbissionService.createOne({
+                const response = await submissionService.createOne({
                     ...submissionLocal,
                     link: s3UrlUploaded ? s3UrlUploaded : submissionLocal.link,
                 })
@@ -490,7 +506,7 @@ export function StepById() {
 
                                         <TrashIcon
                                             className="h-5 w-5 text-red-500 cursor-pointer"
-                                            onClick={deleteFromS3}
+                                            onClick={deleteSubmission}
                                         />
                                     </div>
                                 </div>
@@ -591,7 +607,7 @@ export function StepById() {
 
                                         <TrashIcon
                                             className="h-5 w-5 text-muted-foreground hover:text-red-600 cursor-pointer"
-                                            onClick={deleteFromS3}
+                                            onClick={deleteSubmission}
                                         />
 
                                         <DownloadIcon

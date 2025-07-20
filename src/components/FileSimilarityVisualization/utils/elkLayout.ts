@@ -1,6 +1,13 @@
-import { Node, Edge } from 'reactflow'
+import { Edge, Node } from 'reactflow'
 import ELK from 'elkjs/lib/elk.bundled.js'
-import { BoundaryInfo } from '../types'
+
+// Local interface for boundary calculations
+interface BoundaryInfo {
+    width: number
+    height: number
+    minX: number
+    minY: number
+}
 
 // Helper function to find a node in the ELK result
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,11 +151,11 @@ export const applyELKLayout = async (
     // ELK Layered layout options
     const layoutOptions = {
         'elk.padding': '[top=50,left=50,bottom=50,right=50]',
-        'elk.spacing.nodeNode': '100',
-        'elk.spacing.componentComponent': '80',
+        'elk.spacing.nodeNode': '120',
+        'elk.spacing.componentComponent': '150',
         'elk.algorithm': 'layered',
-        'elk.direction': 'DOWN',
-        'elk.layered.spacing.nodeNodeBetweenLayers': '150',
+        'elk.direction': 'RIGHT',
+        'elk.layered.spacing.nodeNodeBetweenLayers': '200',
         'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
         'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
     }

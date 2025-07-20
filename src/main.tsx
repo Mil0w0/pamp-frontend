@@ -143,6 +143,10 @@ createRoot(document.getElementById('root')!).render(
                         }
                     />
                     <Route
+                        path="/similarity/submission/:submissionId"
+                        element={<FileSimilarityVisualizationPage />}
+                    />
+                    <Route
                         path="/similarity/test/refactoring"
                         element={<FileSimilarityVisualizationPage />}
                     />

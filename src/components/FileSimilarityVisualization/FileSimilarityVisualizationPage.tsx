@@ -14,12 +14,23 @@ import {
     useNodesState,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
+import { useParams } from 'react-router'
 import { useTheme } from '@/components/ui/theme-provider'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 
 import {
+    useComparisonContext,
     useFilePairNavigation,
+    useKeyboardNavigation,
     useReactFlowLayout,
     useSimilarityData,
 } from './hooks'
@@ -28,6 +39,7 @@ import { SidebarPanel } from './components/SidebarPanel'
 import { VisualizationArea } from './components/VisualizationArea'
 
 const FileSimilarityVisualizationPage: React.FC = () => {
+    const { submissionId } = useParams<{ submissionId: string }>()
     const { theme } = useTheme()
 
     // State management
@@ -51,7 +63,81 @@ const FileSimilarityVisualizationPage: React.FC = () => {
     const processEdgesRef = useRef<((edges: Edge[]) => Edge[]) | null>(null)
 
     // Custom hooks
-    const { data, loading, error } = useSimilarityData()
+    const {
+        data,
+        loading,
+        error,
+        similarities,
+        currentSimilarityId,
+        switchToSimilarity,
+    } = useSimilarityData({
+        submissionId,
+    })
+
+    // Get current detailed similarity data for context
+    const currentDetailedSimilarity = React.useMemo(() => {
+        if (!data || !currentSimilarityId) return null
+
+        // Create a detailed similarity object from available data
+        const currentSimilarity = similarities?.find(
+            (s) => s.similarity_id === currentSimilarityId
+        )
+        if (!currentSimilarity) return null
+
+        return {
+            similarity_id: currentSimilarityId,
+            submissions: {
+                submission1: {
+                    id: submissionId || '',
+                    link: '',
+                    description: null,
+                    submitted_by_uuid: null,
+                    upload_date_time: '',
+                },
+                submission2: {
+                    id: currentSimilarity.compared_submission_id,
+                    link: currentSimilarity.compared_submission_link,
+                    description: null,
+                    submitted_by_uuid: null,
+                    upload_date_time: '',
+                },
+            },
+            similarity_metrics: {
+                overall_similarity: currentSimilarity.overall_similarity,
+                jaccard_similarity: currentSimilarity.jaccard_similarity,
+                type_similarity: currentSimilarity.type_similarity,
+                shared_blocks_count: currentSimilarity.shared_blocks_count,
+                average_shared_similarity:
+                    currentSimilarity.average_shared_similarity,
+            },
+            analysis_metadata: {
+                detection_algorithm: '',
+                detection_version: '',
+                status: currentSimilarity.status,
+                created_at: currentSimilarity.created_at,
+                updated_at: '',
+                processing_time_seconds:
+                    currentSimilarity.processing_time_seconds,
+                error_message: currentSimilarity.error_message,
+            },
+            detailed_results: {
+                similarity_details: {
+                    algorithm: '',
+                    common_elements: 0,
+                    total_unique_elements: 0,
+                    tokens_count: { submission1: 0, submission2: 0 },
+                    files_count: { submission1: 0, submission2: 0 },
+                },
+                shared_blocks: null,
+                visualization_data: data.file_pairs,
+            },
+        }
+    }, [data, currentSimilarityId, similarities, submissionId])
+
+    // Get comparison context for meaningful display
+    const { comparisonContext } = useComparisonContext({
+        detailedSimilarity: currentDetailedSimilarity,
+    })
 
     const {
         reactFlowInstance,
@@ -80,6 +166,18 @@ const FileSimilarityVisualizationPage: React.FC = () => {
         onNodesChange: setNodes,
         onEdgesChange: setEdges,
         setLayoutState,
+        currentSimilarityId,
+    })
+
+    // Keyboard navigation
+    const navigationInfo = useKeyboardNavigation({
+        similarities: similarities || [],
+        currentSimilarityId,
+        selectedPairIndex,
+        totalFilePairs: data?.file_pairs?.length || 0,
+        onSimilarityChange: switchToSimilarity,
+        onPairChange: handlePairChange,
+        isEnabled: !loading && !!data,
     })
 
     // ReactFlow event handlers
@@ -137,8 +235,8 @@ const FileSimilarityVisualizationPage: React.FC = () => {
             const firstPair = data.file_pairs[0]
 
             console.log('First pair info:', {
-                calculator_file: firstPair.file_pair?.calculator_file,
-                game_file: firstPair.file_pair?.game_file,
+                calculator_file: firstPair.file_pair?.file_from_submission1,
+                game_file: firstPair.file_pair?.file_from_submission2,
                 nodes_count: firstPair.react_flow?.nodes?.length,
                 edges_count: firstPair.react_flow?.edges?.length,
                 has_similarity: firstPair.react_flow?.has_similarity,
@@ -246,9 +344,9 @@ const FileSimilarityVisualizationPage: React.FC = () => {
         )
     }
 
-    // No data state
-    if (!data || !data.file_pairs || data.file_pairs.length === 0) {
-        console.log('Rendering empty data state')
+    // No data state - distinguish between no similarities vs no visualization data
+    if (!data) {
+        console.log('Rendering no data state')
         return (
             <div className="h-screen flex items-center justify-center bg-background">
                 <Card className="w-96 p-8">
@@ -262,6 +360,199 @@ const FileSimilarityVisualizationPage: React.FC = () => {
                         </div>
                     </CardContent>
                 </Card>
+            </div>
+        )
+    }
+
+    // No file pairs for current similarity but we have similarities available
+    if (!data.file_pairs || data.file_pairs.length === 0) {
+        console.log(
+            'Rendering no visualization data state but similarities exist'
+        )
+        return (
+            <div className="h-screen flex bg-background">
+                {/* Sidebar with similarity selector */}
+                <div className="w-80 bg-sidebar border-r border-sidebar-border flex flex-col shadow-sm">
+                    <div className="border-b border-sidebar-border p-4">
+                        <h1 className="text-xl font-bold text-sidebar-foreground">
+                            Similarity Analysis
+                        </h1>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto bg-sidebar p-4">
+                        {/* Submission Info & Similarity Selector */}
+                        {data.submission_info && (
+                            <div className="space-y-4">
+                                <div>
+                                    <h2 className="text-sm font-semibold text-sidebar-foreground flex items-center mb-2">
+                                        📊 Submission Analysis
+                                    </h2>
+                                    <div className="text-xs text-muted-foreground">
+                                        ID:{' '}
+                                        {data.submission_info.submission_id.slice(
+                                            0,
+                                            8
+                                        )}
+                                        ...
+                                    </div>
+                                </div>
+
+                                {similarities && similarities.length > 0 && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-xs font-medium text-sidebar-foreground">
+                                                Similarities Found
+                                            </span>
+                                            <Badge
+                                                variant="outline"
+                                                className="text-xs"
+                                            >
+                                                {similarities.length}
+                                            </Badge>
+                                        </div>
+
+                                        <Select
+                                            value={currentSimilarityId || ''}
+                                            onValueChange={switchToSimilarity}
+                                        >
+                                            <SelectTrigger className="w-full h-8 text-xs">
+                                                <SelectValue placeholder="Select similarity..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {similarities.map(
+                                                    (sim, index) => (
+                                                        <SelectItem
+                                                            key={
+                                                                sim.similarity_id
+                                                            }
+                                                            value={
+                                                                sim.similarity_id
+                                                            }
+                                                            className="text-xs"
+                                                        >
+                                                            <div className="flex items-center justify-between w-full">
+                                                                <span>
+                                                                    Comparison{' '}
+                                                                    {index + 1}
+                                                                </span>
+                                                                <Badge
+                                                                    variant={
+                                                                        sim.overall_similarity >
+                                                                        0.7
+                                                                            ? 'destructive'
+                                                                            : sim.overall_similarity >
+                                                                                0.3
+                                                                              ? 'secondary'
+                                                                              : 'outline'
+                                                                    }
+                                                                    className="text-xs ml-2"
+                                                                >
+                                                                    {(
+                                                                        sim.overall_similarity *
+                                                                        100
+                                                                    ).toFixed(
+                                                                        1
+                                                                    )}
+                                                                    %
+                                                                </Badge>
+                                                            </div>
+                                                        </SelectItem>
+                                                    )
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+
+                                        {currentSimilarityId && (
+                                            <div className="mt-2 p-2 bg-muted rounded text-xs">
+                                                <div className="grid grid-cols-2 gap-1">
+                                                    {(() => {
+                                                        const currentSim =
+                                                            similarities.find(
+                                                                (s) =>
+                                                                    s.similarity_id ===
+                                                                    currentSimilarityId
+                                                            )
+                                                        return currentSim ? (
+                                                            <>
+                                                                <div>
+                                                                    Overall:{' '}
+                                                                    {(
+                                                                        currentSim.overall_similarity *
+                                                                        100
+                                                                    ).toFixed(
+                                                                        1
+                                                                    )}
+                                                                    %
+                                                                </div>
+                                                                <div>
+                                                                    Jaccard:{' '}
+                                                                    {(
+                                                                        currentSim.jaccard_similarity *
+                                                                        100
+                                                                    ).toFixed(
+                                                                        1
+                                                                    )}
+                                                                    %
+                                                                </div>
+                                                                <div>
+                                                                    Type:{' '}
+                                                                    {(
+                                                                        currentSim.type_similarity *
+                                                                        100
+                                                                    ).toFixed(
+                                                                        1
+                                                                    )}
+                                                                    %
+                                                                </div>
+                                                                <div>
+                                                                    Blocks:{' '}
+                                                                    {
+                                                                        currentSim.shared_blocks_count
+                                                                    }
+                                                                </div>
+                                                            </>
+                                                        ) : null
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Main Content Area */}
+                <div className="flex-1 flex items-center justify-center">
+                    <Card className="w-96 p-8">
+                        <CardContent className="text-center space-y-4">
+                            <div className="text-muted-foreground text-6xl">
+                                🔍
+                            </div>
+                            <div className="text-xl font-semibold text-foreground">
+                                No Visualization Data
+                            </div>
+                            <div className="text-muted-foreground">
+                                This similarity has no visual code structure
+                                data.
+                                {similarities && similarities.length > 1 && (
+                                    <>
+                                        <br />
+                                        Try selecting a different similarity
+                                        from the sidebar.
+                                    </>
+                                )}
+                            </div>
+                            {similarities && similarities.length > 1 && (
+                                <div className="text-xs text-muted-foreground mt-2">
+                                    {similarities.length} similarities available
+                                    - switch using the dropdown above
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         )
     }
@@ -322,6 +613,10 @@ const FileSimilarityVisualizationPage: React.FC = () => {
                     onPreviousPair={goToPreviousPair}
                     onNextPair={goToNextPair}
                     onApplyZoom={handleZoomButtonClick}
+                    similarities={similarities}
+                    currentSimilarityId={currentSimilarityId}
+                    onSimilarityChange={switchToSimilarity}
+                    comparisonContext={comparisonContext}
                 />
 
                 {/* Main Content Area */}
@@ -331,6 +626,9 @@ const FileSimilarityVisualizationPage: React.FC = () => {
                         <VisualizationArea.TopBar
                             currentPair={currentPair}
                             layoutState={layoutState}
+                            data={data}
+                            similarities={similarities}
+                            currentSimilarityId={currentSimilarityId}
                         />
                     </div>
 

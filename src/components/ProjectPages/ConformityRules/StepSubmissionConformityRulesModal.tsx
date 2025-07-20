@@ -9,7 +9,7 @@ import {
 import { useEffect, useState } from 'react'
 import { Separator } from '@/components/ui/separator.tsx'
 import { RuleForm } from '@/components/ProjectPages/ConformityRules/RulesInputList.tsx'
-import { sumbissionService } from '@/services/SubmissionService/submission-api-client.ts'
+import { submissionService } from '@/services/SubmissionService/submission-api-client.ts'
 import { toast } from 'sonner'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
 import {
@@ -41,7 +41,7 @@ export function StepSubmissionConformityRulesModal({
         const loadAvailableRules = async () => {
             setIsLoading(true)
             try {
-                const response = await sumbissionService.getAvailableRules()
+                const response = await submissionService.getAvailableRules()
                 if (response.success) {
                     if (response.data) {
                         setAvailableRules(response.data.available_rules)
