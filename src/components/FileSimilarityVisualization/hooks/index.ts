@@ -1,3 +1,5 @@
 export { useSimilarityData } from './useSimilarityData'
 export { useReactFlowLayout } from './useReactFlowLayout'
 export { useFilePairNavigation } from './useFilePairNavigation'
+export { useComparisonContext } from './useComparisonContext'
+export { useKeyboardNavigation } from './useKeyboardNavigation'

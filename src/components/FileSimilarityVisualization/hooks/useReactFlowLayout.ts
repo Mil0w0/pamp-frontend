@@ -1,12 +1,13 @@
-import { useState, useCallback, useEffect } from 'react'
-import { Node, Edge, ReactFlowInstance, NodeChange } from 'reactflow'
+import { useCallback, useEffect, useState } from 'react'
+import { Edge, Node, NodeChange, ReactFlowInstance } from 'reactflow'
 import { useTheme } from '@/components/ui/theme-provider'
 import {
+    adjustChildPositions,
     applyELKLayout,
     calculateSubflowBoundaries,
-    adjustChildPositions,
-    processEdges,
+    formatNodeLabel,
     getNodeStyling,
+    processEdges,
 } from '../utils'
 import { LayoutState } from '../types'
 
@@ -22,7 +23,6 @@ export const useReactFlowLayout = ({
         useState<ReactFlowInstance | null>(null)
     const [layoutState, setLayoutState] = useState<LayoutState>({
         isApplyingLayout: false,
-        isApplyingZoom: false,
         isTransitioning: false,
     })
 
@@ -64,9 +64,14 @@ export const useReactFlowLayout = ({
             // Apply proper styling based on node types
             const styledNodes = rawNodes.map((node) => {
                 const styling = getNodeStyling(node, theme)
+                const formattedLabel = formatNodeLabel(node)
 
                 return {
                     ...node,
+                    data: {
+                        ...node.data,
+                        label: formattedLabel,
+                    },
                     style: styling,
                     // Ensure draggable and selectable properties
                     draggable: true,

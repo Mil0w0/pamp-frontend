@@ -1,5 +1,5 @@
-import { Node, Edge } from 'reactflow'
-import { NodeStats, FilePair } from '../types'
+import { Edge, Node } from 'reactflow'
+import { FilePair, NodeStats } from '../types'
 
 // Process edges to fix duplicate keys and invalid types
 export const processEdges = (rawEdges: Edge[], theme: string): Edge[] => {
@@ -129,6 +129,9 @@ export const getNodeStyling = (node: Node, theme: string) => {
                     : '0 6px 16px rgba(25,118,210,0.3)',
                 color: isDark ? '#f1f5f9' : '#1e293b',
                 textAlign: 'center' as const,
+                whiteSpace: 'nowrap' as const,
+                overflow: 'hidden' as const,
+                textOverflow: 'ellipsis' as const,
                 opacity: 0.95,
                 zIndex: -1,
             }
@@ -146,7 +149,12 @@ export const getNodeStyling = (node: Node, theme: string) => {
                     ? '0 2px 6px rgba(34,197,94,0.2)'
                     : '0 2px 6px rgba(76,175,80,0.2)',
                 color: isDark ? '#dcfce7' : '#1b5e20',
-                minWidth: '160px',
+                minWidth: '180px',
+                maxWidth: '180px',
+                width: '180px',
+                whiteSpace: 'nowrap' as const,
+                overflow: 'hidden' as const,
+                textOverflow: 'ellipsis' as const,
                 zIndex: 1,
             }
 
@@ -165,7 +173,13 @@ export const getNodeStyling = (node: Node, theme: string) => {
                         ? '0 4px 12px rgba(239,68,68,0.4)'
                         : '0 4px 12px rgba(244,67,54,0.4)',
                     color: isDark ? '#fecaca' : '#b71c1c',
-                    minWidth: '200px',
+                    minWidth: '220px',
+                    maxWidth: '220px',
+                    width: '220px',
+                    whiteSpace: 'nowrap' as const,
+                    overflow: 'hidden' as const,
+                    textOverflow: 'ellipsis' as const,
+                    fontSize: '13px',
                     zIndex: 1,
                 }
             } else {
@@ -181,7 +195,13 @@ export const getNodeStyling = (node: Node, theme: string) => {
                         ? '0 3px 8px rgba(245,158,11,0.2)'
                         : '0 3px 8px rgba(255,152,0,0.2)',
                     color: isDark ? '#fef3c7' : '#e65100',
-                    minWidth: '180px',
+                    minWidth: '220px',
+                    maxWidth: '220px',
+                    width: '220px',
+                    whiteSpace: 'nowrap' as const,
+                    overflow: 'hidden' as const,
+                    textOverflow: 'ellipsis' as const,
+                    fontSize: '13px',
                     zIndex: 1,
                 }
             }
@@ -194,12 +214,16 @@ export const getNodeStyling = (node: Node, theme: string) => {
                 border: isDark ? '2px dashed #a855f7' : '2px dashed #9c27b0',
                 borderRadius: '10px',
                 padding: '10px',
-                fontSize: '10px',
+                fontSize: '11px',
+                minWidth: '200px',
                 maxWidth: '280px',
                 boxShadow: isDark
                     ? '0 3px 10px rgba(168,85,247,0.3)'
                     : '0 3px 10px rgba(156,39,176,0.3)',
                 color: isDark ? '#e9d5ff' : '#4a148c',
+                whiteSpace: 'nowrap' as const,
+                overflow: 'hidden' as const,
+                textOverflow: 'ellipsis' as const,
                 opacity: 0.9,
                 zIndex: 1,
             }
@@ -295,4 +319,50 @@ export const getSimilarityBadgeVariant = (
     if (score >= 0.6) return 'secondary'
     if (score >= 0.4) return 'outline'
     return 'default'
+}
+
+// Truncate text with ellipsis if too long
+export const truncateText = (text: string, maxLength: number): string => {
+    if (!text) return ''
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength - 3) + '...'
+}
+
+// Format node label to prevent text wrapping and show similarity percentage first
+export const formatNodeLabel = (node: Node): string => {
+    const originalLabel = node.data?.label || node.id
+    const maxLength = 25 // Maximum characters before truncation
+
+    // For function nodes with similarity, show percentage first
+    if (node.data?.type === 'function' && node.data?.has_similarity) {
+        const percentage = ((node.data?.similarity_score || 0) * 100).toFixed(0)
+        const functionName = originalLabel
+            .replace(/^⚡\s*/, '')
+            .replace(/\s*\(\d+\.\d+%\)$/, '')
+        const truncatedName = truncateText(functionName, maxLength - 8) // Reserve space for percentage
+        return `${percentage}% - ${truncatedName}`
+    }
+
+    // For regular function nodes, keep emoji but truncate name
+    if (node.data?.type === 'function') {
+        const truncatedName = truncateText(originalLabel, maxLength - 2) // Reserve space for emoji
+        return `${truncatedName}`
+    }
+
+    // For import groups
+    if (node.data?.type === 'import_group') {
+        const importText = originalLabel.replace(/^📦\s*/, '')
+        const truncatedText = truncateText(importText, maxLength - 2)
+        return `📦 ${truncatedText}`
+    }
+
+    // For file subflows
+    if (node.data?.type === 'file_subflow') {
+        const fileName = originalLabel.replace(/^📁\s*/, '')
+        const truncatedName = truncateText(fileName, maxLength - 2)
+        return `📁 ${truncatedName}`
+    }
+
+    // For all other node types, truncate normally
+    return truncateText(originalLabel, maxLength)
 }

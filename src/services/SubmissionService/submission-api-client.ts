@@ -7,6 +7,10 @@ import {
     ValidationFailedSubmissionResponse,
 } from '@/services/SubmissionService/types.ts'
 import { ApiErrorMessage } from '@/services/ProjectService/types.ts'
+import {
+    DetailedSimilarityResponse,
+    SubmissionSimilarityResponse,
+} from '@/components/FileSimilarityVisualization/types'
 
 export const SUBMISSION_API_URL: string =
     window.RUNTIME_CONFIG?.SUBMISSION_API_URL ||
@@ -30,6 +34,18 @@ const handleRulesApiError = (error: string): RulesAPIResponse => {
     return { success: false, error: error }
 }
 
+const handleSimilarityApiError = (error: string): SimilarityApiResponse => {
+    console.error('Similarity API Error:', error)
+    return { success: false, error: error }
+}
+
+const handleDetailedSimilarityApiError = (
+    error: string
+): DetailedSimilarityApiResponse => {
+    console.error('Detailed Similarity API Error:', error)
+    return { success: false, error: error }
+}
+
 export type SubmissionApiResponse = {
     error?: string
     success: boolean
@@ -46,7 +62,19 @@ export type RulesAPIResponse = {
     success: boolean
     data?: RulesAPIAvailable
 }
-export const sumbissionService = {
+
+export type SimilarityApiResponse = {
+    error?: string
+    success: boolean
+    data?: SubmissionSimilarityResponse
+}
+
+export type DetailedSimilarityApiResponse = {
+    error?: string
+    success: boolean
+    data?: DetailedSimilarityResponse
+}
+export const submissionService = {
     getOneById: async (id: string): Promise<SubmissionApiResponse> => {
         try {
             const response = await fetch(
@@ -189,7 +217,8 @@ export const sumbissionService = {
         }
     },
     createOne: async (
-        submissionDto: SubmissionDTO
+        submissionDto: SubmissionDTO,
+        forceRules: boolean = false
     ): Promise<CreatedSubmissionResponse | SubmissionApiResponse> => {
         //Force creation and store unsucessful rules check
         try {
@@ -201,7 +230,7 @@ export const sumbissionService = {
                 },
                 body: JSON.stringify({
                     ...submissionDto,
-                    force_rules: true,
+                    force_rules: forceRules,
                 }),
             })
             if (!response.ok) {
@@ -231,6 +260,110 @@ export const sumbissionService = {
         } catch (error) {
             const err = error as Error
             return handleSubmissionApiError(err.message)
+        }
+    },
+
+    deleteOne: async (submissionId: string): Promise<SubmissionApiResponse> => {
+        try {
+            const response = await fetch(
+                `${SUBMISSION_API_URL}/submissions/${submissionId}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                    },
+                }
+            )
+            if (!response.ok) {
+                const error: ApiErrorMessage = await response.json()
+                return handleSubmissionApiError(error.message)
+            } else {
+                return { success: true }
+            }
+        } catch (error) {
+            const err = error as Error
+            return handleSubmissionApiError(err.message)
+        }
+    },
+
+    // Get similarities for a submission
+    getSimilarities: async (
+        submissionId: string
+    ): Promise<SimilarityApiResponse> => {
+        try {
+            console.log('Fetching similarities for submission:', submissionId)
+
+            const response = await fetch(
+                `${SUBMISSION_API_URL}/submissions/${submissionId}/similarities`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        accept: 'application/json',
+                    },
+                }
+            )
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+
+            const data: SubmissionSimilarityResponse = await response.json()
+
+            console.log('Similarities fetched successfully:', {
+                submission_id: data.submission_id,
+                total_comparisons: data.total_comparisons,
+                similarities_count: data.similarities.length,
+            })
+
+            return {
+                success: true,
+                data,
+            }
+        } catch (error) {
+            const err = error as Error
+            return handleSimilarityApiError(err.message)
+        }
+    },
+
+    // Get detailed similarity data for visualization
+    getDetailedSimilarity: async (
+        similarityId: string
+    ): Promise<DetailedSimilarityApiResponse> => {
+        try {
+            console.log('Fetching detailed similarity data for:', similarityId)
+
+            const response = await fetch(
+                `${SUBMISSION_API_URL}/submissions/similarities/${similarityId}/detailed`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        accept: 'application/json',
+                    },
+                }
+            )
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+
+            const data: DetailedSimilarityResponse = await response.json()
+
+            console.log('Detailed similarity fetched successfully:', {
+                similarity_id: data.similarity_id,
+                visualization_data_count:
+                    data.detailed_results.visualization_data.length,
+                status: data.analysis_metadata.status,
+            })
+
+            return {
+                success: true,
+                data,
+            }
+        } catch (error) {
+            const err = error as Error
+            return handleDetailedSimilarityApiError(err.message)
         }
     },
 }

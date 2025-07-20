@@ -9,8 +9,7 @@ import {
     ChevronUp,
     Files,
     Loader2,
-    Target,
-    Zap,
+    Users,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,9 +19,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { FilePair, LayoutState, SimilarityResponse } from '../types'
+import {
+    FilePair,
+    LayoutState,
+    SimilarityResponse,
+    SubmissionSimilarity,
+} from '../types'
+import { ComparisonContext } from '../hooks/useComparisonContext'
 import { getNodeStats, getSimilarityBadgeVariant } from '../utils'
 
 interface SidebarPanelProps {
@@ -38,6 +43,11 @@ interface SidebarPanelProps {
     onPreviousPair: () => void
     onNextPair: () => void
     onApplyZoom: () => void
+    similarities?: SubmissionSimilarity[]
+    currentSimilarityId?: string | null
+    onSimilarityChange?: (similarityId: string) => void
+    // Comparison context for meaningful display
+    comparisonContext?: ComparisonContext | null
 }
 
 export const SidebarPanel: React.FC<SidebarPanelProps> = ({
@@ -47,12 +57,13 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
     currentPair,
     selectedPairIndex,
     layoutState,
-    reactFlowInstance,
-    nodes,
     onPairChange,
     onPreviousPair,
     onNextPair,
-    onApplyZoom,
+    similarities,
+    currentSimilarityId,
+    onSimilarityChange,
+    comparisonContext,
 }) => {
     const nodeStats = getNodeStats(currentPair.react_flow?.nodes || [])
 
@@ -88,6 +99,277 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
 
             {!collapsed && (
                 <div className="flex-1 overflow-y-auto bg-sidebar">
+                    {/* Submission Info & Similarity Selector */}
+                    {data.submission_info && (
+                        <div className="p-4 border-b border-sidebar-border">
+                            <div className="space-y-3">
+                                <div>
+                                    <h2 className="text-sm font-semibold text-sidebar-foreground flex items-center mb-2">
+                                        <BarChart3 className="h-4 w-4 mr-2" />
+                                        Submission Analysis
+                                    </h2>
+                                </div>
+
+                                {similarities && similarities.length > 0 && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-xs font-medium text-sidebar-foreground">
+                                                Similarities Found
+                                            </span>
+                                            <Badge
+                                                variant="outline"
+                                                className="text-xs"
+                                            >
+                                                {similarities.length}
+                                            </Badge>
+                                        </div>
+
+                                        {similarities.length > 1 &&
+                                            onSimilarityChange && (
+                                                <Select
+                                                    value={
+                                                        currentSimilarityId ||
+                                                        ''
+                                                    }
+                                                    onValueChange={
+                                                        onSimilarityChange
+                                                    }
+                                                >
+                                                    <SelectTrigger className="w-full h-8 text-xs">
+                                                        <SelectValue placeholder="Select similarity..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {similarities.map(
+                                                            (sim, index) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        sim.similarity_id
+                                                                    }
+                                                                    value={
+                                                                        sim.similarity_id
+                                                                    }
+                                                                    className="text-xs"
+                                                                >
+                                                                    <div className="flex items-center justify-between w-full">
+                                                                        <span>
+                                                                            Comparison{' '}
+                                                                            {index +
+                                                                                1}
+                                                                        </span>
+                                                                        <Badge
+                                                                            variant={
+                                                                                sim.overall_similarity >
+                                                                                0.7
+                                                                                    ? 'destructive'
+                                                                                    : sim.overall_similarity >
+                                                                                        0.3
+                                                                                      ? 'secondary'
+                                                                                      : 'outline'
+                                                                            }
+                                                                            className="text-xs ml-2"
+                                                                        >
+                                                                            {(
+                                                                                sim.overall_similarity *
+                                                                                100
+                                                                            ).toFixed(
+                                                                                1
+                                                                            )}
+                                                                            %
+                                                                        </Badge>
+                                                                    </div>
+                                                                </SelectItem>
+                                                            )
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+
+                                        {currentSimilarityId && (
+                                            <div className="mt-2 p-2 bg-muted rounded text-xs">
+                                                <div className="grid grid-cols-2 gap-1">
+                                                    {(() => {
+                                                        const currentSim =
+                                                            similarities.find(
+                                                                (s) =>
+                                                                    s.similarity_id ===
+                                                                    currentSimilarityId
+                                                            )
+                                                        return currentSim ? (
+                                                            <>
+                                                                <div>
+                                                                    Overall:{' '}
+                                                                    {(
+                                                                        currentSim.overall_similarity *
+                                                                        100
+                                                                    ).toFixed(
+                                                                        1
+                                                                    )}
+                                                                    %
+                                                                </div>
+                                                                <div>
+                                                                    Jaccard:{' '}
+                                                                    {(
+                                                                        currentSim.jaccard_similarity *
+                                                                        100
+                                                                    ).toFixed(
+                                                                        1
+                                                                    )}
+                                                                    %
+                                                                </div>
+                                                                <div>
+                                                                    Type:{' '}
+                                                                    {(
+                                                                        currentSim.type_similarity *
+                                                                        100
+                                                                    ).toFixed(
+                                                                        1
+                                                                    )}
+                                                                    %
+                                                                </div>
+                                                                <div>
+                                                                    Blocks:{' '}
+                                                                    {
+                                                                        currentSim.shared_blocks_count
+                                                                    }
+                                                                </div>
+                                                            </>
+                                                        ) : null
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Comparison Context Display */}
+                    {comparisonContext && (
+                        <div className="p-4 border-b border-sidebar-border">
+                            <h2 className="text-sm font-semibold text-sidebar-foreground flex items-center mb-3">
+                                <ArrowLeftRight className="h-4 w-4 mr-2" />
+                                Submission Comparison
+                            </h2>
+
+                            <div className="space-y-4">
+                                {/* Step Information */}
+                                <div className="text-center">
+                                    <div className="text-sm font-medium text-sidebar-foreground mb-2">
+                                        Comparing submissions for step:
+                                    </div>
+                                    <Badge
+                                        variant="secondary"
+                                        className="text-sm px-3 py-1"
+                                    >
+                                        {comparisonContext.stepName ||
+                                            'Unknown Step'}
+                                    </Badge>
+                                </div>
+
+                                {/* Submission 1 */}
+                                <div className="bg-muted rounded p-3">
+                                    <div className="text-sm font-medium text-sidebar-foreground mb-2">
+                                        <Users className="inline h-4 w-4 mr-1" />
+                                        Group:{' '}
+                                        {
+                                            comparisonContext.submission1
+                                                .groupName
+                                        }
+                                    </div>
+                                    {comparisonContext.submission1
+                                        .groupMembers &&
+                                        comparisonContext.submission1
+                                            .groupMembers.length > 0 && (
+                                            <div className="text-xs text-muted-foreground space-y-1">
+                                                <div className="font-medium">
+                                                    Members:
+                                                </div>
+                                                {comparisonContext.submission1.groupMembers.map(
+                                                    (member) => (
+                                                        <div
+                                                            key={member.user_id}
+                                                            className="ml-2"
+                                                        >
+                                                            •{' '}
+                                                            {member.first_name}{' '}
+                                                            {member.last_name}
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        )}
+                                    {comparisonContext.submission1
+                                        .uploadDateTime && (
+                                        <div className="text-xs text-muted-foreground mt-2">
+                                            Uploaded:{' '}
+                                            {new Date(
+                                                comparisonContext.submission1.uploadDateTime
+                                            ).toLocaleDateString()}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* VS separator */}
+                                <div className="text-center">
+                                    <div className="relative">
+                                        <div className="absolute inset-0 flex items-center">
+                                            <div className="w-full border-t border-border"></div>
+                                        </div>
+                                        <div className="relative flex justify-center text-xs uppercase">
+                                            <span className="bg-sidebar px-2 text-muted-foreground font-semibold">
+                                                VS
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Submission 2 */}
+                                <div className="bg-muted rounded p-3">
+                                    <div className="text-sm font-medium text-sidebar-foreground mb-2">
+                                        <Users className="inline h-4 w-4 mr-1" />
+                                        Group:{' '}
+                                        {
+                                            comparisonContext.submission2
+                                                .groupName
+                                        }
+                                    </div>
+                                    {comparisonContext.submission2
+                                        .groupMembers &&
+                                        comparisonContext.submission2
+                                            .groupMembers.length > 0 && (
+                                            <div className="text-xs text-muted-foreground space-y-1">
+                                                <div className="font-medium">
+                                                    Members:
+                                                </div>
+                                                {comparisonContext.submission2.groupMembers.map(
+                                                    (member) => (
+                                                        <div
+                                                            key={member.user_id}
+                                                            className="ml-2"
+                                                        >
+                                                            •{' '}
+                                                            {member.first_name}{' '}
+                                                            {member.last_name}
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        )}
+                                    {comparisonContext.submission2
+                                        .uploadDateTime && (
+                                        <div className="text-xs text-muted-foreground mt-2">
+                                            Uploaded:{' '}
+                                            {new Date(
+                                                comparisonContext.submission2.uploadDateTime
+                                            ).toLocaleDateString()}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Enhanced File Pair Navigator */}
                     <div className="p-4 border-b border-sidebar-border">
                         <div className="flex items-center justify-between mb-3">
@@ -113,19 +395,20 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                                     <span className="text-xs text-muted-foreground">
                                         Current Comparison
                                     </span>
-                                    {currentPair.react_flow.has_similarity && (
+                                    {currentPair.react_flow?.has_similarity && (
                                         <Badge
                                             variant={getSimilarityBadgeVariant(
                                                 currentPair.react_flow
-                                                    .analysis_metadata
-                                                    .average_similarity
+                                                    ?.analysis_metadata
+                                                    ?.average_similarity || 0
                                             )}
                                             className="text-xs"
                                         >
                                             {(
-                                                currentPair.react_flow
-                                                    .analysis_metadata
-                                                    .average_similarity * 100
+                                                (currentPair.react_flow
+                                                    ?.analysis_metadata
+                                                    ?.average_similarity || 0) *
+                                                100
                                             ).toFixed(0)}
                                             %
                                         </Badge>
@@ -134,10 +417,8 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                                 <div className="text-sm font-medium justify-items-center w-full text-sidebar-foreground">
                                     <div className="flex items-center text-xs text-sidebar-muted-foreground mb-1">
                                         📁{' '}
-                                        {
-                                            currentPair.react_flow.file_metadata
-                                                .file1.name
-                                        }
+                                        {currentPair.react_flow?.file_metadata
+                                            ?.file1?.name || 'File 1'}
                                     </div>
                                     <div className="flex items-center my-1">
                                         <ArrowLeftRight className="h-3 w-3 text-sidebar-muted-foreground rotate-90" />
@@ -204,13 +485,14 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                                         >
                                             <div className="flex items-center justify-between w-full">
                                                 <span className="text-xs">
-                                                    {pair.file_pair.calculator_file
-                                                        .split('/')
-                                                        .pop()}{' '}
+                                                    {pair.file_pair?.file_from_submission1
+                                                        ?.split('/')
+                                                        ?.pop() ||
+                                                        'Unknown'}{' '}
                                                     ↔{' '}
-                                                    {pair.file_pair.game_file
-                                                        .split('/')
-                                                        .pop()}
+                                                    {pair.file_pair?.file_from_submission2
+                                                        ?.split('/')
+                                                        ?.pop() || 'Unknown'}
                                                 </span>
                                                 {pair.react_flow
                                                     .has_similarity && (
@@ -252,17 +534,17 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                                         Average Similarity
                                     </span>
                                     <span className="text-lg font-bold text-sidebar-foreground">
-                                        {currentPair.react_flow.has_similarity
-                                            ? `${(currentPair.react_flow.analysis_metadata.average_similarity * 100).toFixed(1)}%`
+                                        {currentPair.react_flow?.has_similarity
+                                            ? `${((currentPair.react_flow?.analysis_metadata?.average_similarity || 0) * 100).toFixed(1)}%`
                                             : 'None'}
                                     </span>
                                 </div>
-                                {currentPair.react_flow.has_similarity && (
+                                {currentPair.react_flow?.has_similarity && (
                                     <div className="w-full bg-muted rounded-full h-2">
                                         <div
                                             className="h-2 rounded-full bg-primary"
                                             style={{
-                                                width: `${currentPair.react_flow.analysis_metadata.average_similarity * 100}%`,
+                                                width: `${(currentPair.react_flow?.analysis_metadata?.average_similarity || 0) * 100}%`,
                                             }}
                                         ></div>
                                     </div>
@@ -343,95 +625,13 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                             </div>
                         </div>
                     </div>
-
-                    {/* Layout Performance */}
-                    <div className="p-4">
-                        <h2 className="text-sm font-semibold text-sidebar-foreground mb-3">
-                            <Zap className="h-4 w-4 inline mr-2" />
-                            Layout Performance
-                        </h2>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between items-center">
-                                <span className="text-sidebar-muted-foreground">
-                                    🚀 Algorithm
-                                </span>
-                                <Badge variant="default">ELK Layered</Badge>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sidebar-muted-foreground">
-                                    📐 Node Dragging
-                                </span>
-                                <Badge
-                                    variant="secondary"
-                                    className="text-green-600"
-                                >
-                                    ✓ Enabled
-                                </Badge>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sidebar-muted-foreground">
-                                    ⏱️ Processing
-                                </span>
-                                <Badge
-                                    variant={
-                                        layoutState.isApplyingLayout
-                                            ? 'destructive'
-                                            : 'secondary'
-                                    }
-                                >
-                                    {layoutState.isApplyingLayout
-                                        ? '⚡ Active'
-                                        : '✓ Ready'}
-                                </Badge>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sidebar-muted-foreground">
-                                    🔍 Current Zoom
-                                </span>
-                                <Badge variant="outline">
-                                    {reactFlowInstance
-                                        ? `${(reactFlowInstance.getZoom() * 100).toFixed(0)}%`
-                                        : '---'}
-                                </Badge>
-                            </div>
+                    <div className="text-xs text-muted-foreground text-center p-2 rounded">
+                        <div className="font-medium mb-1">
+                            Keyboard shortcuts:
                         </div>
-
-                        {/* Zoom Controls */}
-                        <Card className="mt-3 p-3">
-                            <CardHeader className="p-0 pb-2">
-                                <CardTitle className="text-xs font-semibold flex items-center">
-                                    <Target className="h-3 w-3 mr-1" />
-                                    Zoom Controls
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <Button
-                                    onClick={onApplyZoom}
-                                    disabled={
-                                        !reactFlowInstance ||
-                                        nodes.length === 0 ||
-                                        layoutState.isApplyingZoom
-                                    }
-                                    className="w-full text-xs h-8"
-                                    size="sm"
-                                >
-                                    {layoutState.isApplyingZoom ? (
-                                        <>
-                                            <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent mr-1"></div>
-                                            Applying Zoom...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Target className="h-3 w-3 mr-1" />
-                                            Reset to Optimal Zoom
-                                        </>
-                                    )}
-                                </Button>
-                                <p className="text-xs text-sidebar-muted-foreground mt-1">
-                                    Automatically fits content to viewport
-                                </p>
-                            </CardContent>
-                        </Card>
+                        <div>
+                            ← → Switch comparisons | ↑ ↓ Switch file pairs
+                        </div>
                     </div>
                 </div>
             )}

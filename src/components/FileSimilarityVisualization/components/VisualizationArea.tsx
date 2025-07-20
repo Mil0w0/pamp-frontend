@@ -1,28 +1,78 @@
 import React from 'react'
 import { Separator } from '@/components/ui/separator'
-import { FilePair, LayoutState } from '../types'
+import { Badge } from '@/components/ui/badge'
+import {
+    FilePair,
+    LayoutState,
+    SimilarityResponse,
+    SubmissionSimilarity,
+} from '../types'
+import { ArrowLeftRight, FileText } from 'lucide-react'
 
 interface TopBarProps {
     currentPair: FilePair
     layoutState: LayoutState
+    data?: SimilarityResponse
+    similarities?: SubmissionSimilarity[]
+    currentSimilarityId?: string | null
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ currentPair, layoutState }) => {
+export const TopBar: React.FC<TopBarProps> = ({
+    currentPair,
+    layoutState,
+    data,
+    similarities,
+    currentSimilarityId,
+}) => {
+    // Get current similarity info
+    const currentSimilarity = similarities?.find(
+        (s) => s.similarity_id === currentSimilarityId
+    )
+    const similarityIndex =
+        similarities?.findIndex(
+            (s) => s.similarity_id === currentSimilarityId
+        ) || 0
     return (
         <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-                <h1 className="text-lg font-semibold text-foreground">
-                    Code Structure Visualization
+                <h1 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <ArrowLeftRight className="h-5 w-5" />
+                    Submission Comparison
                 </h1>
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Separator orientation="vertical" className="h-4" />
+
+                    {/* Submission comparison info */}
+                    {data?.submission_info && currentSimilarity && (
+                        <>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                    Comparison {similarityIndex + 1} of{' '}
+                                    {similarities?.length || 1}
+                                </Badge>
+                                <span className="text-xs">
+                                    {(
+                                        currentSimilarity.overall_similarity *
+                                        100
+                                    ).toFixed(1)}
+                                    % similar
+                                </span>
+                            </div>
+                            <Separator orientation="vertical" className="h-4" />
+                        </>
+                    )}
+
+                    {/* File comparison */}
+                    <FileText className="h-3 w-3" />
                     <span>
-                        {currentPair.react_flow.file_metadata.file1.name} vs{' '}
-                        {currentPair.react_flow.file_metadata.file2.name}
+                        {currentPair.react_flow?.file_metadata?.file1?.name ||
+                            'File 1'}{' '}
+                        vs{' '}
+                        {currentPair.react_flow?.file_metadata?.file2?.name ||
+                            'File 2'}
                     </span>
                     <Separator orientation="vertical" className="h-4" />
-                    <span>Code Structure Analysis</span>
-                    {(layoutState.isApplyingZoom ||
+                    {(layoutState.isApplyingLayout ||
                         layoutState.isTransitioning) && (
                         <>
                             <Separator orientation="vertical" className="h-4" />

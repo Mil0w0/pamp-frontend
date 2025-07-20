@@ -24,7 +24,7 @@ import { Student } from '@/components/ManageStudentBatches/types.ts'
 import { authService } from '@/services/UserService/auth-api-client.ts'
 import { toast } from 'sonner'
 import { StepsSubmissionDataTable } from '@/components/ProjectPages/ProjectGroups/StepsSubmissionDataTable.tsx'
-import { sumbissionService } from '@/services/SubmissionService/submission-api-client.ts'
+import { submissionService } from '@/services/SubmissionService/submission-api-client.ts'
 import { SubmissionResponse } from '@/services/SubmissionService/types.ts'
 import {
     Card,
@@ -86,7 +86,7 @@ export default function ProjectGroupsById() {
     const loadAllGroupsSubmissions = async () => {
         if (!groupId || !projectId) return
         try {
-            const response = await sumbissionService.getAllByGroup(
+            const response = await submissionService.getAllByGroup(
                 groupId,
                 projectId
             )
