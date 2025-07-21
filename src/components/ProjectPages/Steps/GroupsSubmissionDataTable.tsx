@@ -1,10 +1,22 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { SubmissionResponse } from '@/services/SubmissionService/types.ts'
 import { useEffect, useState } from 'react'
 import { DateTime } from 'luxon'
 import { DataTable } from '@/components/ui/data-table.tsx'
 import { ProjectGroup } from '@/components/ProjectPages/types.ts'
+import { handleSubmissionDownload } from '@/utils/fileUpload.ts'
+import {
+    Calendar,
+    CheckIcon,
+    ClockIcon,
+    DownloadIcon,
+    ExternalLink,
+    FileIcon,
+    GithubIcon,
+    XIcon,
+} from 'lucide-react'
 
 export type SubmissionRow = {
     id?: string
@@ -19,12 +31,44 @@ export type SubmissionRow = {
 export const columns: ColumnDef<SubmissionRow>[] = [
     {
         accessorKey: 'hasSubmitted',
-        header: 'Submitted?',
+        header: () => (
+            <div className="flex items-center gap-2">
+                <CheckIcon className="h-4 w-4" />
+                Status
+            </div>
+        ),
         cell: ({ row }) => {
             const submitted = row.getValue('hasSubmitted')
+            const isLate = row.original.isLate
+
+            if (!submitted) {
+                return (
+                    <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1 w-fit"
+                    >
+                        <XIcon className="h-3 w-3" />
+                        Not Submitted
+                    </Badge>
+                )
+            }
+
             return (
-                <Badge variant={submitted ? 'default' : 'secondary'}>
-                    {submitted ? 'Yes' : 'No'}
+                <Badge
+                    variant={isLate ? 'destructive' : 'default'}
+                    className="flex items-center gap-1 w-fit"
+                >
+                    {isLate ? (
+                        <>
+                            <ClockIcon className="h-3 w-3" />
+                            Late
+                        </>
+                    ) : (
+                        <>
+                            <CheckIcon className="h-3 w-3" />
+                            On Time
+                        </>
+                    )}
                 </Badge>
             )
         },
@@ -32,69 +76,90 @@ export const columns: ColumnDef<SubmissionRow>[] = [
     },
     {
         accessorKey: 'group_name',
-        header: 'Group',
-        cell: ({ row }) => <div>{row.getValue('group_name')}</div>,
+        header: 'Group Name',
+        cell: ({ row }) => (
+            <div className="font-medium">{row.getValue('group_name')}</div>
+        ),
+    },
+    {
+        accessorKey: 'link_type',
+        header: 'Type',
+        cell: ({ row }) => {
+            const type: string | undefined = row.getValue('link_type')
+            if (!type) {
+                return <span className="text-muted-foreground italic">N/A</span>
+            }
+
+            return (
+                <div className="flex items-center gap-2">
+                    {type === 'github' ? (
+                        <GithubIcon className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                        <FileIcon className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <Badge variant="secondary" className="text-xs">
+                        {type === 'github'
+                            ? 'GitHub'
+                            : type === 's3'
+                              ? 'File'
+                              : type}
+                    </Badge>
+                </div>
+            )
+        },
     },
     {
         accessorKey: 'created_at',
-        header: 'Submitted At',
+        header: () => (
+            <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Submitted At
+            </div>
+        ),
         cell: ({ row }) => {
             const createdAt: string | undefined = row.getValue('created_at')
             if (!createdAt) {
                 return <div className="text-muted-foreground italic">N/A</div>
             }
-            const formatted =
-                DateTime.fromISO(createdAt).toFormat('dd/MM/yyyy HH:mm')
+            DateTime.fromISO(createdAt).toFormat('dd/MM/yyyy HH:mm')
             return (
-                <div className="text-sm text-muted-foreground">{formatted}</div>
+                <div className="text-sm">
+                    <div className="font-medium">
+                        {DateTime.fromISO(createdAt).toFormat('dd/MM/yyyy')}
+                    </div>
+                    <div className="text-muted-foreground">
+                        {DateTime.fromISO(createdAt).toFormat('HH:mm')}
+                    </div>
+                </div>
             )
         },
+        enableSorting: true,
     },
     {
         accessorKey: 'link',
-        header: 'Link',
+        header: 'Actions',
         cell: ({ row }) => {
             const url: string | undefined = row.getValue('link')
-            return url ? (
-                <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                >
-                    Open
-                </a>
-            ) : (
-                <span className="text-muted-foreground italic">N/A</span>
-            )
-        },
-    },
-    {
-        accessorKey: 'link_type',
-        header: 'Link Type',
-        cell: ({ row }) => {
-            const type = row.getValue('link_type')
-            return (
-                type || (
-                    <span className="text-muted-foreground italic">N/A</span>
-                )
-            )
-        },
-    },
-    {
-        accessorKey: 'isLate',
-        header: 'Status',
-        cell: ({ row }) => {
-            const isLate = row.getValue('isLate')
-            if (row.getValue('hasSubmitted')) {
-                return (
-                    <Badge variant={isLate ? 'destructive' : 'default'}>
-                        {isLate ? 'Late' : 'On Time'}
-                    </Badge>
-                )
-            } else {
-                return <Badge variant="secondary">No Submission</Badge>
+            const linkType: string | undefined = row.getValue('link_type')
+
+            if (!url || !linkType) {
+                return <span className="text-muted-foreground italic">N/A</span>
             }
+
+            return (
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleSubmissionDownload(url, linkType)}
+                >
+                    {linkType === 'github' ? (
+                        <ExternalLink className="h-4 w-4" />
+                    ) : (
+                        <DownloadIcon className="h-4 w-4" />
+                    )}
+                </Button>
+            )
         },
     },
 ]
@@ -111,9 +176,9 @@ export default function GroupsSubmissionDataTable({
     const [data, setData] = useState<SubmissionRow[]>([])
 
     useEffect(() => {
-        if (!stepDeadline || !groups) return
+        if (!groups) return
 
-        const deadline = DateTime.fromISO(stepDeadline)
+        const deadline = stepDeadline ? DateTime.fromISO(stepDeadline) : null
 
         const mapped: SubmissionRow[] = groups.map((group) => {
             const submission = submissions?.find(
@@ -135,7 +200,7 @@ export default function GroupsSubmissionDataTable({
                 link: submission.link,
                 link_type: submission.link_type,
                 group_name: group.name,
-                isLate: created > deadline,
+                isLate: deadline ? created > deadline : false,
                 hasSubmitted: true,
             }
         })
@@ -143,12 +208,102 @@ export default function GroupsSubmissionDataTable({
         setData(mapped)
     }, [submissions, groups, stepDeadline])
 
+    // Calculate statistics
+    const totalGroups = groups?.length || 0
+    const submittedCount = data.filter((row) => row.hasSubmitted).length
+    const lateCount = data.filter(
+        (row) => row.hasSubmitted && row.isLate
+    ).length
+    const onTimeCount = submittedCount - lateCount
+
     return (
-        <div className="container mx-auto py-6">
-            <h2 className="text-xl font-semibold mb-4">
-                Group Submissions for this Step
-            </h2>
-            <DataTable columns={columns} data={data} />
+        <div className="space-y-6">
+            {/* Header with statistics */}
+            <div className="bg-white dark:bg-muted rounded-lg border p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 className="text-2xl font-bold">
+                            Group Submissions Overview
+                        </h2>
+                        <p className="text-muted-foreground mt-1">
+                            Monitor submission status across all project groups
+                        </p>
+                    </div>
+                    {stepDeadline && (
+                        <div className="text-right">
+                            <p className="text-sm text-muted-foreground">
+                                Deadline
+                            </p>
+                            <p className="font-medium">
+                                {DateTime.fromISO(stepDeadline).toFormat(
+                                    'dd/MM/yyyy HH:mm'
+                                )}
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Statistics cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-muted/50 rounded-lg p-4">
+                        <div className="flex items-center gap-2">
+                            <Badge
+                                variant="outline"
+                                className="h-6 w-6 rounded-full p-0 flex items-center justify-center"
+                            >
+                                {totalGroups}
+                            </Badge>
+                            <span className="text-sm font-medium">
+                                Total Groups
+                            </span>
+                        </div>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4">
+                        <div className="flex items-center gap-2">
+                            <Badge
+                                variant="default"
+                                className="h-6 w-6 rounded-full p-0 flex items-center justify-center bg-green-600"
+                            >
+                                {onTimeCount}
+                            </Badge>
+                            <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                                On Time
+                            </span>
+                        </div>
+                    </div>
+                    <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-4">
+                        <div className="flex items-center gap-2">
+                            <Badge
+                                variant="destructive"
+                                className="h-6 w-6 rounded-full p-0 flex items-center justify-center"
+                            >
+                                {lateCount}
+                            </Badge>
+                            <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                                Late
+                            </span>
+                        </div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-950/20 rounded-lg p-4">
+                        <div className="flex items-center gap-2">
+                            <Badge
+                                variant="secondary"
+                                className="h-6 w-6 rounded-full p-0 flex items-center justify-center"
+                            >
+                                {totalGroups - submittedCount}
+                            </Badge>
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Not Submitted
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Data table */}
+            <div className="bg-white dark:bg-muted rounded-lg border">
+                <DataTable columns={columns} data={data} />
+            </div>
         </div>
     )
 }
