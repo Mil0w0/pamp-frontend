@@ -7,6 +7,10 @@ import {
 import { authService } from '@/services/UserService/auth-api-client'
 import { DetailedSimilarityResponse } from '../types'
 import { User } from '@/services/UserService/types'
+import {
+    CreatedSubmissionResponse,
+    SubmissionResponse,
+} from '@/services/SubmissionService/types'
 
 export interface SubmissionContext {
     submissionId: string
@@ -76,7 +80,8 @@ export const useComparisonContext = ({
                 }
 
                 // Handle different response structures and extract submission data
-                let sub1Submission: any, sub2Submission: any
+                let sub1Submission: SubmissionResponse,
+                    sub2Submission: SubmissionResponse
 
                 // Type guard for CreatedSubmissionResponse
                 if (
@@ -84,9 +89,10 @@ export const useComparisonContext = ({
                     typeof sub1Data === 'object' &&
                     'data' in sub1Data
                 ) {
-                    sub1Submission = (sub1Data as any).data
+                    sub1Submission = (sub1Data as CreatedSubmissionResponse)
+                        .data
                 } else {
-                    sub1Submission = sub1Data
+                    sub1Submission = sub1Data as SubmissionResponse
                 }
 
                 if (
@@ -94,9 +100,10 @@ export const useComparisonContext = ({
                     typeof sub2Data === 'object' &&
                     'data' in sub2Data
                 ) {
-                    sub2Submission = (sub2Data as any).data
+                    sub2Submission = (sub2Data as CreatedSubmissionResponse)
+                        .data
                 } else {
-                    sub2Submission = sub2Data
+                    sub2Submission = sub2Data as SubmissionResponse
                 }
 
                 // Extract project, group, and step IDs with safety checks

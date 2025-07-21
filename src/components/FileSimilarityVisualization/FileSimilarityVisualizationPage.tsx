@@ -169,8 +169,8 @@ const FileSimilarityVisualizationPage: React.FC = () => {
         currentSimilarityId,
     })
 
-    // Keyboard navigation
-    const navigationInfo = useKeyboardNavigation({
+    // Keyboard navigation - hook needed for side effects (event listeners)
+    void useKeyboardNavigation({
         similarities: similarities || [],
         currentSimilarityId,
         selectedPairIndex,
