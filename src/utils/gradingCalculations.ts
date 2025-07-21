@@ -3,7 +3,7 @@ import {
     GradingResult,
     GradingStats,
     GradingGrid,
-} from '@/components/GradingSystem/type'
+} from '@/types/grading'
 
 // Cache for statistics calculations
 const statsCache = new Map<string, GradingStats>()
@@ -11,7 +11,10 @@ const statsCache = new Map<string, GradingStats>()
 /**
  * Generate a cache key for statistics
  */
-const getStatsCacheKey = (criteria: GradingCriterion[], results: GradingResult[]): string => {
+const getStatsCacheKey = (
+    criteria: GradingCriterion[],
+    results: GradingResult[]
+): string => {
     const criteriaKey = Array.isArray(criteria)
         ? criteria.map((c) => `${c.id}:${c.maxPoints}:${c.weight}`).join('|')
         : ''
@@ -47,6 +50,7 @@ export const calculateGradingStats = (
     let maxScore = 0
     let weightedScore = 0
     let totalWeight = 0
+    let criteriaCount = 0
 
     const safeCriteria = Array.isArray(criteria) ? criteria : []
     for (const criterion of safeCriteria) {
@@ -57,6 +61,8 @@ export const calculateGradingStats = (
         )
         totalScore += clampedScore
         maxScore += criterion.maxPoints
+        criteriaCount++
+
         const normalizedScore =
             criterion.maxPoints > 0 ? clampedScore / criterion.maxPoints : 0
         weightedScore += normalizedScore * criterion.weight
@@ -66,11 +72,15 @@ export const calculateGradingStats = (
     const percentage = maxScore > 0 ? totalScore / maxScore : 0
     const finalWeightedScore = totalWeight > 0 ? weightedScore / totalWeight : 0
 
+    // Calculate simple average: sum of all scores divided by number of criteria
+    const simpleAverage = criteriaCount > 0 ? totalScore / criteriaCount : 0
+
     const stats: GradingStats = {
         totalScore,
         maxScore,
         percentage: Math.round(percentage * 100),
         weightedScore: Math.round(finalWeightedScore * 100),
+        simpleAverage: Math.round(simpleAverage * 100) / 100, // Round to 2 decimal places
     }
 
     // Mettre en cache le résultat (limiter la taille du cache)

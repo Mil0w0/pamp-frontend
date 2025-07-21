@@ -15,7 +15,7 @@ import {
     GradingCriterion,
     GradingStats,
     GradingApiResponse,
-} from '@/components/GradingSystem/type'
+} from '@/types/grading'
 import {
     calculateGradingStats,
     validateGridCompleteness,
@@ -150,7 +150,7 @@ interface UseGradingGridReturn {
     updateGrid: (
         gridId: string,
         gridData: UpdateGradingGridDto
-    ) => Promise<void>
+    ) => Promise<GradingGrid | null>
     saveResults: (
         gridId: string,
         results: GradingResult[],
@@ -158,12 +158,16 @@ interface UseGradingGridReturn {
     ) => Promise<GradingApiResponse>
     validateGrid: (gridId: string) => Promise<GradingApiResponse>
     deleteGrid: (gridId: string) => Promise<void>
-    addCriterion: (criterion: Omit<GradingCriterion, 'id'>) => void
+    addCriterion: (
+        gridId: string,
+        criterion: Omit<GradingCriterion, 'id'>
+    ) => Promise<GradingCriterion | null>
     updateCriterion: (
+        gridId: string,
         criterionId: string,
         updates: Partial<GradingCriterion>
-    ) => void
-    removeCriterion: (criterionId: string) => void
+    ) => Promise<GradingCriterion | null>
+    removeCriterion: (gridId: string, criterionId: string) => Promise<void>
     updateResult: (result: GradingResult) => void
     clearError: () => void
     isGridComplete: boolean
@@ -450,11 +454,9 @@ export const useGradingGrid = ({
                 )
                 if (response.success && response.data) {
                     const newGrid = response.data as GradingGrid
-                    dispatch({ type: 'SET_GRID', payload: newGrid })
-                    dispatch({
-                        type: 'SET_GRIDS',
-                        payload: [...grids, newGrid],
-                    })
+                    if (gridData.projectId) {
+                        await loadProjectGrids(gridData.projectId)
+                    }
                     toast.success('New grading grid created successfully')
                     return newGrid
                 } else {
@@ -471,7 +473,7 @@ export const useGradingGrid = ({
                 dispatch({ type: 'SET_SAVING', payload: false })
             }
         },
-        [handleError, grids]
+        [handleError, loadProjectGrids]
     )
 
     const updateGridInState = useCallback((updatedGrid: GradingGrid) => {
@@ -479,30 +481,87 @@ export const useGradingGrid = ({
     }, [])
 
     const updateGrid = useCallback(
-        async (gridId: string, gridData: UpdateGradingGridDto) => {
+        async (
+            gridId: string,
+            gridData: UpdateGradingGridDto
+        ): Promise<GradingGrid | null> => {
             dispatch({ type: 'SET_SAVING', payload: true })
             dispatch({ type: 'SET_ERROR', payload: null })
+
+            const originalGrid = state.grid
+
             try {
-                const response = await gradingService.updateGrid(
-                    gridId,
-                    gridData
-                )
+                // Update title separately if it has changed
+                if (originalGrid && gridData.title !== originalGrid.title) {
+                    await gradingService.updateGrid(gridId, {
+                        title: gridData.title,
+                    })
+                }
+
+                // Handle criteria changes
+                if (gridData.criteria) {
+                    const originalCriteria = originalGrid?.criteria || []
+
+                    // Find new, updated, and deleted criteria
+                    const newCriteria = gridData.criteria.filter((c) => !c.id)
+                    const updatedCriteria = gridData.criteria.filter(
+                        (c) =>
+                            c.id &&
+                            originalCriteria.some(
+                                (oc) =>
+                                    oc.id === c.id &&
+                                    (oc.label !== c.label ||
+                                        oc.maxPoints !== c.maxPoints ||
+                                        oc.weight !== c.weight)
+                            )
+                    )
+                    const deletedCriterionIds = originalCriteria
+                        .filter(
+                            (oc) =>
+                                !gridData.criteria?.some((c) => c.id === oc.id)
+                        )
+                        .map((c) => c.id)
+
+                    // Perform API calls
+                    await Promise.all([
+                        ...newCriteria.map((c) =>
+                            gradingService.addCriterion(gridId, c)
+                        ),
+                        ...updatedCriteria.map((c) =>
+                            gradingService.updateCriterion(c.id!, c)
+                        ),
+                        ...deletedCriterionIds.map((id) =>
+                            gradingService.removeCriterion(id)
+                        ),
+                    ])
+                }
+
+                // Reload grid from server to get the final state
+                const response = await gradingService.getGrid(gridId)
                 if (response.success && response.data) {
                     const updatedGrid = response.data as GradingGrid
                     updateGridInState(updatedGrid)
+                    toast.success('Grid updated successfully')
+                    return updatedGrid
                 } else {
                     handleError(
-                        response.error || 'Error updating the grid',
+                        response.error || 'Error fetching updated grid',
                         'update_grid'
                     )
+                    return null
                 }
             } catch (err: unknown) {
                 handleError(err, 'update_grid')
+                // Optionally rollback state on error
+                if (originalGrid) {
+                    dispatch({ type: 'SET_GRID', payload: originalGrid })
+                }
+                return null
             } finally {
                 dispatch({ type: 'SET_SAVING', payload: false })
             }
         },
-        [handleError, updateGridInState]
+        [handleError, updateGridInState, state.grid]
     )
 
     const saveResults = useCallback(
@@ -603,31 +662,126 @@ export const useGradingGrid = ({
     )
 
     const addCriterion = useCallback(
-        (criterion: Omit<GradingCriterion, 'id'>) => {
-            const newCriterion: GradingCriterion = {
-                ...criterion,
-                id: `criterion_${Date.now()}_${Math.random()
-                    .toString(36)
-                    .substr(2, 9)}`,
+        async (
+            gridId: string,
+            criterion: Omit<GradingCriterion, 'id'>
+        ): Promise<GradingCriterion | null> => {
+            dispatch({ type: 'SET_SAVING', payload: true })
+            try {
+                const response = await gradingService.addCriterion(
+                    gridId,
+                    criterion
+                )
+
+                if (response.success && response.data) {
+                    const newCriterion =
+                        response.data as unknown as GradingCriterion
+                    dispatch({
+                        type: 'ADD_CRITERION',
+                        payload: newCriterion,
+                    })
+                    dispatch({ type: 'SET_SAVING', payload: false })
+                    return newCriterion
+                } else {
+                    const errorInfo = getGradingErrorMessage(
+                        response.error || 'Failed to add criterion',
+                        'add_criterion'
+                    )
+                    dispatch({ type: 'SET_ERROR', payload: errorInfo })
+                    dispatch({ type: 'SET_SAVING', payload: false })
+                    toast.error(errorInfo.message)
+                    return null
+                }
+            } catch (error: unknown) {
+                const errorInfo = getGradingErrorMessage(
+                    error instanceof Error ? error : String(error),
+                    'add_criterion'
+                )
+                dispatch({ type: 'SET_ERROR', payload: errorInfo })
+                dispatch({ type: 'SET_SAVING', payload: false })
+                toast.error(errorInfo.message)
+                return null
             }
-            dispatch({ type: 'ADD_CRITERION', payload: newCriterion })
         },
         []
     )
 
     const updateCriterion = useCallback(
-        (criterionId: string, updates: Partial<GradingCriterion>) => {
-            dispatch({
-                type: 'UPDATE_CRITERION',
-                payload: { id: criterionId, updates },
-            })
+        async (
+            criterionId: string,
+            updates: Partial<GradingCriterion>
+        ): Promise<GradingCriterion | null> => {
+            dispatch({ type: 'SET_SAVING', payload: true })
+            try {
+                const response = await gradingService.updateCriterion(
+                    criterionId,
+                    updates
+                )
+                if (response.success && response.data) {
+                    const updatedCriterion =
+                        response.data as unknown as GradingCriterion
+                    dispatch({
+                        type: 'UPDATE_CRITERION',
+                        payload: {
+                            id: criterionId,
+                            updates: updatedCriterion,
+                        },
+                    })
+                    dispatch({ type: 'SET_SAVING', payload: false })
+                    return updatedCriterion
+                } else {
+                    const errorInfo = getGradingErrorMessage(
+                        response.error || 'Failed to update criterion',
+                        'update_criterion'
+                    )
+                    dispatch({ type: 'SET_ERROR', payload: errorInfo })
+                    dispatch({ type: 'SET_SAVING', payload: false })
+                    toast.error(errorInfo.message)
+                    return null
+                }
+            } catch (error: unknown) {
+                const errorInfo = getGradingErrorMessage(
+                    error instanceof Error ? error : String(error),
+                    'update_criterion'
+                )
+                dispatch({ type: 'SET_ERROR', payload: errorInfo })
+                dispatch({ type: 'SET_SAVING', payload: false })
+                toast.error(errorInfo.message)
+                return null
+            }
         },
         []
     )
 
-    const removeCriterion = useCallback((criterionId: string) => {
-        dispatch({ type: 'REMOVE_CRITERION', payload: criterionId })
-    }, [])
+    const removeCriterion = useCallback(
+        async (gridId: string, criterionId: string): Promise<void> => {
+            dispatch({ type: 'SET_SAVING', payload: true })
+            try {
+                const response =
+                    await gradingService.removeCriterion(criterionId)
+                if (response.success) {
+                    dispatch({ type: 'REMOVE_CRITERION', payload: criterionId })
+                    // Invalidate cache for the specific grid
+                    gradingService.clearCache()
+                    toast.success('Criterion deleted successfully')
+                } else {
+                    throw new Error(
+                        response.error || 'Failed to delete criterion'
+                    )
+                }
+                dispatch({ type: 'SET_SAVING', payload: false })
+            } catch (error: unknown) {
+                const errorInfo = getGradingErrorMessage(
+                    error instanceof Error ? error : String(error),
+                    'remove_criterion'
+                )
+                dispatch({ type: 'SET_ERROR', payload: errorInfo })
+                dispatch({ type: 'SET_SAVING', payload: false })
+                toast.error(errorInfo.message)
+            }
+        },
+        []
+    )
 
     const updateResult = useCallback((result: GradingResult) => {
         dispatch({ type: 'UPDATE_RESULT', payload: result })
@@ -706,7 +860,13 @@ export const useGradingGrid = ({
         validateGrid,
         deleteGrid,
         addCriterion,
-        updateCriterion,
+        updateCriterion: async (
+            gridId: string,
+            criterionId: string,
+            updates: Partial<GradingCriterion>
+        ) => {
+            return updateCriterion(criterionId, updates)
+        },
         removeCriterion,
         updateResult,
         clearError,

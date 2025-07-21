@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,14 +14,9 @@ import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { CheckCircle2, Save } from 'lucide-react'
 import { gradingService } from '@/services/GradingService/grading-api-client'
-import {
-    GradingGrid,
-    GradingResult,
-    GradingCriterion,
-} from '@/components/GradingSystem/type'
+import { GradingGrid, GradingResult, GradingCriterion } from '@/types/grading'
 import { toast } from 'sonner'
 import { FixedSizeList as List } from 'react-window'
-import { memo } from 'react'
 import {
     calculateGradingStats,
     calculateFinalGrade,
@@ -44,6 +39,112 @@ interface CriterionGrade {
     commentEnabled: boolean
 }
 
+const CriterionRow = memo(
+    ({
+        grade,
+        updateGrade,
+        getScoreColor,
+        criterion,
+    }: {
+        grade: CriterionGrade
+        updateGrade: (
+            criterionId: string,
+            field: 'score' | 'comment',
+            value: number | string
+        ) => void
+        getScoreColor: (score: number, maxPoints: number) => string
+        criterion?: GradingCriterion
+    }) => (
+        <div className="border rounded-lg p-4 space-y-4">
+            <div className="flex justify-between items-center">
+                <h4 className="font-medium">{grade.label}</h4>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                        Max: {grade.maxPoints}
+                    </span>
+                    {criterion?.weight && (
+                        <Badge variant="outline" className="text-xs">
+                            Weight: {criterion.weight}
+                        </Badge>
+                    )}
+                </div>
+            </div>
+            <div className="space-y-4">
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <Label>Score</Label>
+                        <span
+                            className={`font-bold ${getScoreColor(
+                                grade.score,
+                                grade.maxPoints
+                            )}`}
+                        >
+                            {grade.score}/{grade.maxPoints}
+                        </span>
+                    </div>
+                    <Slider
+                        value={[grade.score]}
+                        onValueChange={(value) =>
+                            updateGrade(grade.criterionId, 'score', value[0])
+                        }
+                        max={grade.maxPoints}
+                        min={0}
+                        step={0.5}
+                        className="cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>0</span>
+                        <span>{grade.maxPoints}</span>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label>Precise Score</Label>
+                    <Input
+                        type="number"
+                        min={0}
+                        max={grade.maxPoints}
+                        step={0.5}
+                        value={grade.score}
+                        onChange={(e) => {
+                            const value = parseFloat(e.target.value)
+                            if (
+                                !isNaN(value) &&
+                                value >= 0 &&
+                                value <= grade.maxPoints
+                            ) {
+                                updateGrade(grade.criterionId, 'score', value)
+                            }
+                        }}
+                        className="w-32"
+                    />
+                </div>
+                {grade.commentEnabled && (
+                    <div className="space-y-2">
+                        <Label>
+                            Comment{' '}
+                            {criterion?.commentEnabled
+                                ? '(Required)'
+                                : '(Optional)'}
+                        </Label>
+                        <Textarea
+                            value={grade.comment}
+                            onChange={(e) =>
+                                updateGrade(
+                                    grade.criterionId,
+                                    'comment',
+                                    e.target.value
+                                )
+                            }
+                            placeholder="Add a comment..."
+                            rows={3}
+                        />
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+)
+
 export function GradingInterface({
     gradingScale,
     targetGroupId,
@@ -51,29 +152,19 @@ export function GradingInterface({
     onGradingComplete,
     onCancel,
 }: GradingInterfaceProps) {
-    const [grades, setGrades] = useState<CriterionGrade[]>([])
-    const [isLoading, setIsLoading] = useState(false)
-    const [existingResults, setExistingResults] = useState<GradingResult[]>([])
-    const [isValidated, setIsValidated] = useState(false)
-
-    // Initialization of grades with useMemo for performance optimization
-    const initialGrades = useMemo(() => {
-        if (!gradingScale.criteria) return []
+    const [grades, setGrades] = useState<CriterionGrade[]>(() => {
         return gradingScale.criteria.map((criterion: GradingCriterion) => ({
             criterionId: criterion.id,
             score: 0,
             comment: '',
             maxPoints: criterion.maxPoints,
             label: criterion.label,
-            commentEnabled: criterion.commentEnabled,
+            commentEnabled: criterion.commentEnabled || false,
         }))
-    }, [gradingScale.criteria])
-
-    useEffect(() => {
-        setGrades(initialGrades)
-        loadExistingResults()
-        setIsValidated(gradingScale.isValidated)
-    }, [initialGrades, gradingScale.isValidated])
+    })
+    const [isLoading, setIsLoading] = useState(false)
+    const [existingResults, setExistingResults] = useState<GradingResult[]>([])
+    const [isValidated, setIsValidated] = useState(false)
 
     const loadExistingResults = useCallback(async () => {
         try {
@@ -93,7 +184,7 @@ export function GradingInterface({
                         result.targetGroupId === targetGroupId
                 )
                 setExistingResults(gridResults)
-                // Update grades with existing results
+
                 setGrades((prevGrades) =>
                     prevGrades.map((grade) => {
                         const existingResult = gridResults.find(
@@ -122,6 +213,10 @@ export function GradingInterface({
             console.error('Error loading existing results:', error)
         }
     }, [gradingScale.id, targetStudentId, targetGroupId])
+
+    useEffect(() => {
+        loadExistingResults()
+    }, [loadExistingResults])
 
     const updateGrade = useCallback(
         (
@@ -179,6 +274,18 @@ export function GradingInterface({
         })
     }, [grades, gradingScale.criteria])
 
+    const completedCriteria = useMemo(() => {
+        return grades.filter((grade) => {
+            const criterion = gradingScale.criteria?.find(
+                (c: { id: string }) => c.id === grade.criterionId
+            )
+            const hasScore = grade.score >= 0 && grade.score <= grade.maxPoints
+            const hasRequiredComment =
+                !criterion?.commentEnabled || grade.comment.trim() !== ''
+            return hasScore && hasRequiredComment
+        }).length
+    }, [grades, gradingScale.criteria])
+
     const handleSaveGrades = useCallback(async () => {
         if (!isGradingComplete) {
             toast.error('Please complete all required fields before saving')
@@ -187,102 +294,70 @@ export function GradingInterface({
 
         setIsLoading(true)
         try {
-            const results = grades.map((grade) => ({
-                gradingCriterionId: grade.criterionId,
-                targetStudentId,
-                targetGroupId,
-                score: Math.max(0, Math.min(grade.maxPoints, grade.score)),
-                comment: grade.comment,
-            }))
-
-            const response = await gradingService.saveResults(
+            // Fetch the latest grid to get current valid criteria
+            const latestResponse = await gradingService.getGrid(
                 gradingScale.id,
-                results
+                true
             )
-            if (response.success) {
-                toast.success('Grades saved successfully')
-                onGradingComplete?.()
-            } else {
-                throw new Error(response.error || 'Failed to save grades')
+            if (
+                !latestResponse.success ||
+                !latestResponse.data ||
+                !('criteria' in latestResponse.data) ||
+                !Array.isArray(latestResponse.data.criteria)
+            ) {
+                throw new Error('Failed to fetch latest grading grid')
             }
-        } catch (error) {
-            console.error('Error saving grades:', error)
-            toast.error('Failed to save grades')
-        } finally {
-            setIsLoading(false)
-        }
-    }, [
-        isGradingComplete,
-        grades,
-        gradingScale.id,
-        targetStudentId,
-        targetGroupId,
-        onGradingComplete,
-    ])
+            const latestCriteria = latestResponse.data.criteria
 
-    const handleValidateScale = useCallback(async () => {
-        console.log('Tentative de validation de la grille:', {
-            gridId: gradingScale.id,
-            isGradingComplete: isGradingComplete,
-            gradesCount: grades.length,
-            allGraded: grades.every(
-                (g) =>
-                    g.score >= 0 &&
-                    g.score <= g.maxPoints &&
-                    (g.commentEnabled ? g.comment.trim() !== '' : true)
-            ),
-        })
+            const validCriterionIds = new Set(
+                latestCriteria.map((c: { id: unknown }) => c.id)
+            )
 
-        if (!isGradingComplete) {
-            console.warn('Validation bloquée: Grille incomplète')
-            toast.error('Please complete all grading before validating')
-            return
-        }
-
-        setIsLoading(true)
-        try {
-            const results = grades.map((grade) => ({
-                gradingCriterionId: grade.criterionId,
-                targetStudentId,
-                targetGroupId,
-                score: Math.max(0, Math.min(grade.maxPoints, grade.score)),
-                comment: grade.comment,
-            }))
+            const results = grades
+                .filter((grade) => validCriterionIds.has(grade.criterionId))
+                .map((grade) => ({
+                    gradingCriterionId: grade.criterionId,
+                    targetStudentId,
+                    targetGroupId,
+                    score: Math.max(0, Math.min(grade.maxPoints, grade.score)),
+                    comment: grade.comment,
+                }))
 
             console.log(
-                'Appel à gradingService.validateGridWorkflow avec gridId:',
-                gradingScale.id,
-                'et results:',
-                results
+                'Latest Valid Criterion IDs:',
+                Array.from(validCriterionIds)
             )
+            console.log('Results being sent:', JSON.stringify(results, null, 2))
+
+            if (results.length < grades.length) {
+                toast.warning(
+                    `${grades.length - results.length} criteria were filtered out due to updates in the grading scale.`
+                )
+            }
+
             const response = await gradingService.validateGridWorkflow(
                 gradingScale.id,
                 results
             )
-            console.log('Réponse de validation:', {
-                success: response.success,
-                data: response.data,
-                error: response.error,
-            })
             if (response.success) {
                 setIsValidated(true)
-                toast.success('Grading scale validated successfully')
+                toast.success('Grading completed and validated successfully')
                 onGradingComplete?.()
             } else {
                 throw new Error(
-                    response.error || 'Failed to validate grading scale'
+                    response.error || 'Failed to save and validate grades'
                 )
             }
         } catch (error) {
-            console.error('Error validating grading scale:', error)
-            toast.error('Failed to validate grading scale')
+            console.error('Error saving and validating grades:', error)
+            toast.error('Failed to save and validate grades')
         } finally {
             setIsLoading(false)
         }
     }, [
         isGradingComplete,
-        gradingScale.id,
         grades,
+        gradingScale.id,
         targetStudentId,
         targetGroupId,
         onGradingComplete,
@@ -371,7 +446,7 @@ export function GradingInterface({
                         <div className="flex gap-2 mb-4">
                             <Badge variant="default">Validated</Badge>
                             <Badge variant="outline">
-                                Total Score: {calculateTotalScore}%
+                                Total Score: {overallStats.percentage}
                             </Badge>
                         </div>
 
@@ -410,120 +485,6 @@ export function GradingInterface({
         )
     }
 
-    const CriterionRow = memo(
-        ({
-            grade,
-            updateGrade,
-            getScoreColor,
-            criterion,
-        }: {
-            grade: CriterionGrade
-            updateGrade: (
-                criterionId: string,
-                field: 'score' | 'comment',
-                value: number | string
-            ) => void
-            getScoreColor: (score: number, maxPoints: number) => string
-            criterion?: GradingCriterion
-        }) => (
-            <div className="border rounded-lg p-4 space-y-4">
-                <div className="flex justify-between items-center">
-                    <h4 className="font-medium">{grade.label}</h4>
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                            Max: {grade.maxPoints}
-                        </span>
-                        {criterion?.weight && (
-                            <Badge variant="outline" className="text-xs">
-                                Weight: {criterion.weight}
-                            </Badge>
-                        )}
-                    </div>
-                </div>
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <Label>Score</Label>
-                            <span
-                                className={`font-bold ${getScoreColor(
-                                    grade.score,
-                                    grade.maxPoints
-                                )}`}
-                            >
-                                {grade.score}/{grade.maxPoints}
-                            </span>
-                        </div>
-                        <Slider
-                            value={[grade.score]}
-                            onValueChange={(value) =>
-                                updateGrade(
-                                    grade.criterionId,
-                                    'score',
-                                    value[0]
-                                )
-                            }
-                            max={grade.maxPoints}
-                            min={0}
-                            step={0.5}
-                            className="cursor-pointer"
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>0</span>
-                            <span>{grade.maxPoints}</span>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Precise Score</Label>
-                        <Input
-                            type="number"
-                            min={0}
-                            max={grade.maxPoints}
-                            step={0.5}
-                            value={grade.score}
-                            onChange={(e) => {
-                                const value = parseFloat(e.target.value)
-                                if (
-                                    !isNaN(value) &&
-                                    value >= 0 &&
-                                    value <= grade.maxPoints
-                                ) {
-                                    updateGrade(
-                                        grade.criterionId,
-                                        'score',
-                                        value
-                                    )
-                                }
-                            }}
-                            className="w-32"
-                        />
-                    </div>
-                    {grade.commentEnabled && (
-                        <div className="space-y-2">
-                            <Label>
-                                Comment{' '}
-                                {criterion?.commentEnabled
-                                    ? '(Required)'
-                                    : '(Optional)'}
-                            </Label>
-                            <Textarea
-                                value={grade.comment}
-                                onChange={(e) =>
-                                    updateGrade(
-                                        grade.criterionId,
-                                        'comment',
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Add a comment..."
-                                rows={3}
-                            />
-                        </div>
-                    )}
-                </div>
-            </div>
-        )
-    )
-
     return (
         <Card>
             <CardHeader>
@@ -532,6 +493,27 @@ export function GradingInterface({
                     Grade each criterion below. Total Score:{' '}
                     {calculateTotalScore}%
                 </CardDescription>
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                        <span>Progress</span>
+                        <span>
+                            {completedCriteria}/{grades.length} criteria
+                            completed
+                        </span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                                isGradingComplete
+                                    ? 'bg-green-500'
+                                    : 'bg-primary'
+                            }`}
+                            style={{
+                                width: `${(completedCriteria / grades.length) * 100}%`,
+                            }}
+                        />
+                    </div>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="space-y-6">
@@ -566,20 +548,10 @@ export function GradingInterface({
                             className="flex items-center gap-2"
                         >
                             <Save className="w-4 h-4" />
-                            {isLoading ? 'Saving...' : 'Save Grades'}
+                            {isLoading
+                                ? 'Saving...'
+                                : 'Save & Complete Grading'}
                         </Button>
-
-                        {!isValidated && (
-                            <Button
-                                onClick={handleValidateScale}
-                                disabled={isLoading || !isGradingComplete}
-                                variant="default"
-                            >
-                                {isLoading
-                                    ? 'Validating...'
-                                    : 'Validate & Finalize'}
-                            </Button>
-                        )}
 
                         {onCancel && (
                             <Button onClick={onCancel} variant="outline">

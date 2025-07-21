@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,11 +30,7 @@ import {
     RefreshCw,
 } from 'lucide-react'
 import { useGradingGrid } from '@/hooks/useGradingGrid'
-import {
-    GradingGrid,
-    GradingGridType,
-    NotationMode,
-} from '@/components/GradingSystem/type'
+import { GradingGrid, GradingGridType, NotationMode } from '@/types/grading'
 import { formatPercentage } from '@/utils/gradingCalculations'
 import { ErrorDisplay } from '@/components/ui/error-display'
 
@@ -44,11 +40,20 @@ interface GradingGridListProps {
     onEditGrid?: (grid: GradingGrid) => void
     onViewGrid?: (grid: GradingGrid) => void
     onDeleteGrid?: (grid: GradingGrid) => void
+    showFilters?: boolean
+    showOnlyValidated?: boolean
+    showOnlyDrafts?: boolean
+    // External filter props
+    externalFilterType?: FilterType
+    externalFilterStatus?: FilterStatus
+    externalFilterMode?: FilterMode
+    externalSortBy?: string
+    externalSearchTerm?: string
 }
 
-type FilterType = 'all' | GradingGridType
-type FilterStatus = 'all' | 'validated' | 'draft'
-type FilterMode = 'all' | NotationMode
+export type FilterType = 'all' | GradingGridType
+export type FilterStatus = 'all' | 'validated' | 'draft'
+export type FilterMode = 'all' | NotationMode
 
 export const GradingGridList: React.FC<GradingGridListProps> = ({
     projectId,
@@ -56,6 +61,13 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
     onEditGrid,
     onViewGrid,
     onDeleteGrid,
+    showFilters = true,
+    showOnlyValidated = false,
+    showOnlyDrafts = false,
+    externalFilterType,
+    externalFilterMode,
+    externalSortBy,
+    externalSearchTerm,
 }) => {
     const { grids, loading, error, deleteGrid, clearError, loadProjectGrids } =
         useGradingGrid({
@@ -64,49 +76,84 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
 
     const [searchTerm, setSearchTerm] = useState('')
     const [filterType, setFilterType] = useState<FilterType>('all')
-    const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
+
     const [filterMode, setFilterMode] = useState<FilterMode>('all')
-    const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-    // Auto-refresh functionality
-    useEffect(() => {
-        if (!projectId) return
-
-        // Set up auto-refresh every 30 seconds
-        intervalRef.current = setInterval(() => {
-            loadProjectGrids(projectId)
-        }, 30000)
-
-        // Cleanup interval on unmount
-        return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current)
-            }
-        }
-    }, [projectId, loadProjectGrids])
-
-    // Filtrage des grilles
     const safeGrids = Array.isArray(grids) ? grids : []
-    const filteredGrids = safeGrids.filter((grid) => {
-        const matchesSearch = grid.title
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
-        const matchesType = filterType === 'all' || grid.type === filterType
-        const matchesStatus =
-            filterStatus === 'all' ||
-            (filterStatus === 'validated' && grid.isValidated) ||
-            (filterStatus === 'draft' && !grid.isValidated)
-        const matchesMode =
-            filterMode === 'all' || grid.notationMode === filterMode
 
-        return matchesSearch && matchesType && matchesStatus && matchesMode
+    // Use external filters if provided, otherwise use internal state
+    const activeFilterType = externalFilterType ?? filterType
+
+    const activeFilterMode = externalFilterMode ?? filterMode
+    const activeSortBy = externalSortBy ?? 'date'
+    const activeSearchTerm = externalSearchTerm ?? searchTerm
+
+    const filteredGrids = safeGrids.filter((grid) => {
+        const matchesSearch = (grid.title || '')
+            .toLowerCase()
+            .includes(activeSearchTerm.toLowerCase())
+        const typeEquivalents = {
+            deliverable: ['deliverable', 'livrable'],
+            report: ['report', 'rapport'],
+            presentation: ['presentation', 'soutenance', 'oralpresentation'],
+        }
+        const equiv =
+            activeFilterType === 'all'
+                ? []
+                : typeEquivalents[
+                      activeFilterType as keyof typeof typeEquivalents
+                  ] || []
+        const matchesType =
+            activeFilterType === 'all' || equiv.includes(grid.type)
+
+        const matchesMode =
+            activeFilterMode === 'all' || grid.notationMode === activeFilterMode
+
+        // Apply prop-based filtering
+        const matchesValidationFilter =
+            (!showOnlyValidated && !showOnlyDrafts) ||
+            (showOnlyValidated && grid.isValidated) ||
+            (showOnlyDrafts && !grid.isValidated)
+
+        return (
+            matchesSearch &&
+            matchesType &&
+            matchesMode &&
+            matchesValidationFilter
+        )
     })
 
-    // Tri des grilles par date de création (plus récent en premier)
     const sortedGrids = filteredGrids.sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
-        return dateB - dateA // Tri décroissant (plus récent en premier)
+        switch (activeSortBy) {
+            case 'title':
+                return a.title.localeCompare(b.title)
+            case 'type':
+                return a.type.localeCompare(b.type)
+            case 'average': {
+                // Sort by average score if available
+                const avgA =
+                    Array.isArray(a.results) && a.results.length > 0
+                        ? a.results.reduce(
+                              (sum, r) => sum + (r.score || 0),
+                              0
+                          ) / a.results.length
+                        : 0
+                const avgB =
+                    Array.isArray(b.results) && b.results.length > 0
+                        ? b.results.reduce(
+                              (sum, r) => sum + (r.score || 0),
+                              0
+                          ) / b.results.length
+                        : 0
+                return avgB - avgA
+            }
+            case 'date':
+            default: {
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+                return dateB - dateA
+            }
+        }
     })
 
     const safeFilteredGrids = Array.isArray(sortedGrids) ? sortedGrids : []
@@ -114,23 +161,22 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
     const handleDelete = async (grid: GradingGrid) => {
         if (
             window.confirm(
-                `Êtes-vous sûr de vouloir supprimer la grille "${grid.title}" ?`
+                `Are you sure you want to delete the grid "${grid.title}" ?`
             )
         ) {
             try {
                 await deleteGrid(grid.id)
-                // Refresh the grid list immediately after deletion
+
                 await loadProjectGrids(projectId)
                 if (onDeleteGrid) {
                     onDeleteGrid(grid)
                 }
             } catch (err) {
-                console.error('Erreur lors de la suppression:', err)
+                console.error('Error during deletion:', err)
             }
         }
     }
 
-    // Manual refresh function
     const handleRefresh = async () => {
         if (projectId) {
             await loadProjectGrids(projectId)
@@ -139,11 +185,11 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
 
     const getTypeIcon = (type: GradingGridType) => {
         switch (type) {
-            case 'livrable':
+            case 'deliverable':
                 return <FileText className="h-4 w-4" />
-            case 'rapport':
+            case 'report':
                 return <FileText className="h-4 w-4" />
-            case 'soutenance':
+            case 'presentation':
                 return <Users className="h-4 w-4" />
             default:
                 return <FileText className="h-4 w-4" />
@@ -152,11 +198,11 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
 
     const getTypeLabel = (type: GradingGridType) => {
         switch (type) {
-            case 'livrable':
+            case 'deliverable':
                 return 'Deliverable'
-            case 'rapport':
+            case 'report':
                 return 'Report'
-            case 'soutenance':
+            case 'presentation':
                 return 'Presentation'
             default:
                 return type
@@ -164,7 +210,7 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
     }
 
     const getModeIcon = (mode: NotationMode) => {
-        return mode === 'groupe' ? (
+        return mode === 'group' ? (
             <Users className="h-4 w-4" />
         ) : (
             <User className="h-4 w-4" />
@@ -172,7 +218,7 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
     }
 
     const getModeLabel = (mode: NotationMode) => {
-        return mode === 'groupe' ? 'By Group' : 'Individual'
+        return mode === 'group' ? 'By Group' : 'Individual'
     }
 
     if (loading) {
@@ -197,172 +243,184 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
                     onDismiss={clearError}
                 />
             )}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold">Grading Grids</h2>
-                    <p className="text-muted-foreground">
-                        Manage grading grids for this project • Auto-refreshes
-                        every 30s
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleRefresh}
-                        disabled={loading}
-                    >
-                        <RefreshCw
-                            className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
-                        />
-                        Refresh
-                    </Button>
-                    {onCreateGrid && (
-                        <Button onClick={onCreateGrid}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Grid
-                        </Button>
-                    )}
-                </div>
-            </div>
+            {showFilters && (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-2xl font-bold">
+                                Grading Grids
+                            </h2>
+                            <p className="text-muted-foreground">
+                                Manage grading grids for this project
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleRefresh}
+                                disabled={loading}
+                            >
+                                <RefreshCw
+                                    className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
+                                />
+                                Refresh
+                            </Button>
+                        </div>
+                    </div>
 
-            {/* Filtres et recherche */}
-            <Card>
-                <CardContent className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="relative">
+                    {/* Search and Filters */}
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        {/* Search Input */}
+                        <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search for a grid..."
+                                placeholder="Search grids by title..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-10"
                             />
                         </div>
 
-                        <Select
-                            value={filterType}
-                            onValueChange={(value: FilterType) =>
-                                setFilterType(value)
-                            }
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Types</SelectItem>
-                                <SelectItem value="livrable">
-                                    Deliverable
-                                </SelectItem>
-                                <SelectItem value="rapport">Report</SelectItem>
-                                <SelectItem value="soutenance">
-                                    Presentation
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                        {/* Filters */}
+                        <div className="flex gap-2">
+                            <Select
+                                value={filterType}
+                                onValueChange={(value: FilterType) =>
+                                    setFilterType(value)
+                                }
+                            >
+                                <SelectTrigger className="w-[140px]">
+                                    <SelectValue placeholder="Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All Types
+                                    </SelectItem>
+                                    <SelectItem value="deliverable">
+                                        Deliverable
+                                    </SelectItem>
+                                    <SelectItem value="report">
+                                        Report
+                                    </SelectItem>
+                                    <SelectItem value="presentation">
+                                        Presentation
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
 
-                        <Select
-                            value={filterStatus}
-                            onValueChange={(value: FilterStatus) =>
-                                setFilterStatus(value)
-                            }
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">
-                                    All Statuses
-                                </SelectItem>
-                                <SelectItem value="validated">
-                                    Validated
-                                </SelectItem>
-                                <SelectItem value="draft">Drafts</SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        <Select
-                            value={filterMode}
-                            onValueChange={(value: FilterMode) =>
-                                setFilterMode(value)
-                            }
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Mode" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Modes</SelectItem>
-                                <SelectItem value="groupe">By Group</SelectItem>
-                                <SelectItem value="individuel">
-                                    Individual
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                            <Select
+                                value={filterMode}
+                                onValueChange={(value: FilterMode) =>
+                                    setFilterMode(value)
+                                }
+                            >
+                                <SelectTrigger className="w-[140px]">
+                                    <SelectValue placeholder="Mode" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All Modes
+                                    </SelectItem>
+                                    <SelectItem value="individual">
+                                        Individual
+                                    </SelectItem>
+                                    <SelectItem value="group">Group</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            )}
 
             {/* Liste des grilles */}
             {safeFilteredGrids.length === 0 ? (
                 <Card>
                     <CardContent className="p-12 text-center">
-                        <div className="max-w-md mx-auto">
-                            <FileText className="h-16 w-16 mx-auto text-muted-foreground mb-6" />
-                            <h3 className="text-xl font-semibold mb-3">
+                        <div className="max-w-lg mx-auto">
+                            <div className="mb-6">
+                                <div className="relative">
+                                    <FileText className="h-20 w-20 mx-auto text-muted-foreground/50 mb-4" />
+                                    <div className="absolute -top-2 -right-2 bg-primary/10 rounded-full p-2">
+                                        <Plus className="h-6 w-6 text-primary" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h3 className="text-2xl font-bold mb-3 text-foreground">
                                 {safeGrids.length === 0
-                                    ? 'Aucune grille créée'
-                                    : 'No results found'}
+                                    ? 'Ready to Start Grading?'
+                                    : showOnlyDrafts
+                                      ? 'No Grids Available'
+                                      : 'No results found'}
                             </h3>
-                            <p className="text-muted-foreground mb-6 leading-relaxed">
+
+                            <p className="text-muted-foreground mb-8 leading-relaxed text-lg">
                                 {safeGrids.length === 0
-                                    ? 'Grading grids allow you to evaluate deliverables, reports and presentations of your students in a structured and consistent manner. Create your first grid to start the evaluation.'
-                                    : 'No grids match your search criteria. Try modifying the filters or search to display more results.'}
+                                    ? 'Create your first grading grid to evaluate student work with structured criteria. Define custom evaluation standards for deliverables, reports, and presentations.'
+                                    : showOnlyDrafts
+                                      ? 'Create a new grid and give notes to start grading. All validated grids can be found in the "Gradings" section.'
+                                      : 'No grids match your search criteria. Try modifying the filters or search to display more results.'}
                             </p>
-                            {grids.length === 0 ? (
+
+                            {safeGrids.length === 0 ? (
                                 onCreateGrid && (
-                                    <div className="space-y-3">
+                                    <div className="space-y-6">
                                         <Button
                                             onClick={onCreateGrid}
                                             size="lg"
-                                            className="w-full sm:w-auto"
+                                            className="px-8 py-3 text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-200"
                                         >
-                                            <Plus className="h-4 w-4 mr-2" />
-                                            Create First Grid
+                                            <Plus className="h-5 w-5 mr-3" />
+                                            Create Your First Grading Grid
                                         </Button>
-                                        <p className="text-xs text-muted-foreground">
-                                            You can define custom evaluation
-                                            criteria
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 text-sm">
+                                            <div className="p-4 bg-muted/30 rounded-lg">
+                                                <div className="font-semibold text-foreground mb-2">
+                                                    📝 Define Criteria
+                                                </div>
+                                                <div className="text-muted-foreground">
+                                                    Set up evaluation standards
+                                                    and point values
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-muted/30 rounded-lg">
+                                                <div className="font-semibold text-foreground mb-2">
+                                                    ⚖️ Weight Importance
+                                                </div>
+                                                <div className="text-muted-foreground">
+                                                    Assign weights to different
+                                                    criteria
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-muted/30 rounded-lg">
+                                                <div className="font-semibold text-foreground mb-2">
+                                                    🎯 Grade Consistently
+                                                </div>
+                                                <div className="text-muted-foreground">
+                                                    Ensure fair and structured
+                                                    evaluations
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <p className="text-xs text-muted-foreground mt-4">
+                                            💡 Tip: Start with a simple grid and
+                                            refine it as you go
                                         </p>
                                     </div>
                                 )
                             ) : (
                                 <div className="space-y-3">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            setSearchTerm('')
-                                            setFilterType('all')
-                                            setFilterStatus('all')
-                                            setFilterMode('all')
-                                        }}
-                                        className="w-full sm:w-auto"
-                                    >
-                                        Reset Filters
-                                    </Button>
                                     {onCreateGrid && (
-                                        <div className="pt-4 border-t">
-                                            <p className="text-sm text-muted-foreground mb-3">
-                                                Or create a new grid:
-                                            </p>
-                                            <Button
-                                                onClick={onCreateGrid}
-                                                variant="outline"
-                                                className="w-full sm:w-auto"
-                                            >
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                New Grid
-                                            </Button>
-                                        </div>
+                                        <Button
+                                            onClick={onCreateGrid}
+                                            className="w-full sm:w-auto"
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            New Grid
+                                        </Button>
                                     )}
                                 </div>
                             )}
@@ -505,6 +563,49 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
                                             )}
                                     </div>
 
+                                    {/* Criteria Details */}
+                                    {grid.criteria &&
+                                        grid.criteria.length > 0 && (
+                                            <div className="space-y-2">
+                                                {grid.criteria.map(
+                                                    (criterion) => (
+                                                        <div
+                                                            key={criterion.id}
+                                                            className="p-3 bg-muted/50 rounded text-sm space-y-2"
+                                                        >
+                                                            <div className="font-medium text-foreground break-words">
+                                                                {
+                                                                    criterion.label
+                                                                }
+                                                            </div>
+                                                            <div className="flex items-center gap-4 text-muted-foreground text-xs">
+                                                                <span className="flex items-center gap-1">
+                                                                    <span className="font-medium">
+                                                                        {
+                                                                            criterion.maxPoints
+                                                                        }
+                                                                    </span>
+                                                                    <span>
+                                                                        pts
+                                                                    </span>
+                                                                </span>
+                                                                <span className="flex items-center gap-1">
+                                                                    <span>
+                                                                        Weight:
+                                                                    </span>
+                                                                    <span className="font-medium">
+                                                                        {
+                                                                            criterion.weight
+                                                                        }
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        )}
+
                                     {/* Dates */}
                                     <div className="text-xs text-muted-foreground space-y-1">
                                         {grid.createdAt && (
@@ -538,7 +639,9 @@ export const GradingGridList: React.FC<GradingGridListProps> = ({
                                                 onClick={() => onViewGrid(grid)}
                                                 className="flex-1"
                                             >
-                                                View
+                                                {grid.isValidated
+                                                    ? 'View'
+                                                    : 'Give note'}
                                             </Button>
                                         )}
                                         {onEditGrid && !grid.isValidated && (

@@ -9,10 +9,11 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { gradingService } from '@/services/GradingService/grading-api-client'
-import { GradingGrid, GradingResult } from '@/components/GradingSystem/type'
+import { GradingGrid, GradingResult } from '@/types/grading'
 import { calculateGradingStats } from '@/utils/gradingCalculations'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { CheckCircle2 } from 'lucide-react'
+import { useProject } from '@/contexts/useProject'
 
 interface GradingConsultationProps {
     stepId: string
@@ -23,6 +24,7 @@ export function GradingConsultation({
     stepId,
     studentId,
 }: GradingConsultationProps) {
+    const { projectId } = useProject()
     const [gradingGrid, setGradingGrid] = useState<GradingGrid | null>(null)
     const [gradingResults, setGradingResults] = useState<GradingResult[]>([])
     const [loading, setLoading] = useState(true)
@@ -30,43 +32,39 @@ export function GradingConsultation({
 
     useEffect(() => {
         const fetchGradingData = async () => {
+            if (!projectId) {
+                setError('Project not found')
+                setLoading(false)
+                return
+            }
             try {
                 setLoading(true)
                 setError(null)
-
-                // Fetch grading grid for this step
                 const response = await gradingService.getGridByTarget(
-                    stepId, // assuming stepId is projectId
-                    'livrable', // or determine type based on context
+                    projectId,
+                    'livrable',
                     stepId
                 )
-
                 if (!response.success || !response.data) {
                     setError('No grading grid found for this step')
                     return
                 }
-
                 const grid = response.data as GradingGrid
-
-                // Only show if the grid is validated
                 if (!grid.isValidated) {
                     setError('Grading grid is not yet validated')
                     return
                 }
-
                 setGradingGrid(grid)
-                // Results are already included in the grid
-                setGradingResults(grid.results || [])
+                setGradingResults(() => grid.results || [])
             } catch (err) {
-                console.error('Error fetching grading data:', err)
                 setError('Failed to load grading information')
+                console.log(err)
             } finally {
                 setLoading(false)
             }
         }
-
         fetchGradingData()
-    }, [stepId, studentId])
+    }, [projectId, stepId, studentId])
 
     if (loading) {
         return <LoadingSpinner />
@@ -94,11 +92,13 @@ export function GradingConsultation({
         )
     }
 
-    // Calculate stats using utility
     const studentResults = gradingResults.filter(
         (result) => result.targetStudentId === studentId
     )
-    const stats = calculateGradingStats(gradingGrid.criteria, studentResults)
+    const stats = calculateGradingStats(
+        gradingGrid?.criteria || [],
+        studentResults
+    )
 
     return (
         <div className="space-y-6">
@@ -107,7 +107,7 @@ export function GradingConsultation({
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle className="flex items-center gap-2">
-                                {gradingGrid.title}
+                                {gradingGrid?.title || 'Untitled'}
                                 <Badge
                                     variant="secondary"
                                     className="flex items-center gap-1"
@@ -118,14 +118,14 @@ export function GradingConsultation({
                             </CardTitle>
                             <CardDescription>
                                 Grading Mode:{' '}
-                                {gradingGrid.notationMode === 'groupe'
+                                {gradingGrid?.notationMode === 'group'
                                     ? 'Group'
                                     : 'Individual'}
                             </CardDescription>
                         </div>
                         <div className="text-right">
                             <div className="text-2xl font-bold">
-                                {stats.weightedScore}%
+                                {stats?.weightedScore?.toFixed(2) || 0}%
                             </div>
                             <div className="text-sm text-muted-foreground">
                                 Weighted Score
@@ -138,19 +138,18 @@ export function GradingConsultation({
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <span className="font-medium">Raw Score:</span>{' '}
-                                {stats.totalScore} / {stats.maxScore}
+                                {stats?.totalScore ?? 0} /{' '}
+                                {stats?.maxScore ?? 0}
                             </div>
                             <div>
                                 <span className="font-medium">Percentage:</span>{' '}
-                                {stats.percentage}%
+                                {stats?.percentage ?? 0}%
                             </div>
                         </div>
-
                         <Separator />
-
                         <div className="space-y-4">
                             <h4 className="font-medium">Detailed Results</h4>
-                            {gradingGrid.criteria.map((criterion) => {
+                            {gradingGrid?.criteria?.map((criterion) => {
                                 const result = studentResults.find(
                                     (r) => r.gradingCriterionId === criterion.id
                                 )
@@ -189,7 +188,6 @@ export function GradingConsultation({
                                                 </div>
                                             </div>
                                         </div>
-
                                         {result?.comment && (
                                             <div className="mt-2 p-2 bg-muted rounded text-sm">
                                                 <strong>Comment:</strong>{' '}
@@ -200,7 +198,6 @@ export function GradingConsultation({
                                 )
                             })}
                         </div>
-
                         {gradingResults.some((r) => r.comment) && (
                             <div className="mt-4">
                                 <Separator className="mb-4" />

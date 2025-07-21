@@ -3,35 +3,40 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { Plus, FileText, Users, BarChart3, Settings } from 'lucide-react'
 import {
-    GradingGridForm,
-    GradingForm,
-    GradingGridList,
-    GradingResults,
-    GradingGrid,
-    GradingResult,
-} from './index'
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 import {
-    validateGridCompleteness,
-    validateResultsCompleteness,
-} from '@/utils/gradingCalculations'
+    Plus,
+    FileText,
+    Users,
+    BarChart3,
+    Settings,
+    RefreshCw,
+    Search,
+} from 'lucide-react'
+import { GradingGridForm } from '@/components/GradingSystem/GradingGridForm'
+import { GradingGridList, FilterType, FilterStatus } from './GradingGridList'
+import { GradingResults } from './GradingResults'
+import { SwipeGradingInterface } from './SwipeGradingInterface'
+import type { GradingGrid } from '@/types/grading'
 
 interface GradingSystemDemoProps {
     projectId: string
     userRole?: 'teacher' | 'student'
 }
 
-/**
- * Demo component showcasing the complete integration of the grading system
- * This component can serve as a reference for integration into project pages
- */
 export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
     projectId,
     userRole = 'teacher',
@@ -41,8 +46,13 @@ export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
     const [showCreateDialog, setShowCreateDialog] = useState(false)
     const [showGradingDialog, setShowGradingDialog] = useState(false)
     const [refreshKey, setRefreshKey] = useState(0)
+    const [filterType, setFilterType] = useState<FilterType>('all')
+    const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
+    const [sortBy, setSortBy] = useState<string>('date')
+    const [searchTerm, setSearchTerm] = useState<string>('')
 
     const handleCreateGrid = () => {
+        setSelectedGrid(null)
         setShowCreateDialog(true)
     }
 
@@ -67,46 +77,10 @@ export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
         setSelectedGrid(null)
     }
 
-    const handleGridSaved = (grid: GradingGrid) => {
-        const validation = validateGridCompleteness(grid)
-        if (!validation.isComplete) {
-            console.error('Grid validation failed:', validation.missingFields)
-            return
-        }
-        console.log('Grid saved:', grid)
-        setRefreshKey((k) => k + 1)
-        handleCloseDialogs()
-    }
-
-    const handleResultsSaved = (results: GradingResult[], comment?: string) => {
-        if (selectedGrid) {
-            const validation = validateResultsCompleteness(
-                selectedGrid.criteria,
-                results
-            )
-            if (!validation.isComplete) {
-                console.error(
-                    'Results validation failed:',
-                    validation.missingCriteria
-                )
-                return
-            }
-        }
-        console.log('Results saved:', results, comment)
-        setRefreshKey((k) => k + 1)
-        handleCloseDialogs()
-    }
-
-    const handleExportResults = (grid: GradingGrid) => {
-        console.log('Export results for:', grid.title)
-        // Here you could implement CSV/PDF export
-    }
-
     const isTeacher = userRole === 'teacher'
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">Grading System</h1>
@@ -118,8 +92,6 @@ export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
                     {isTeacher ? 'Teacher' : 'Student'}
                 </Badge>
             </div>
-
-            {/* Tab Navigation */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger
@@ -134,7 +106,7 @@ export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
                         className="flex items-center gap-2"
                     >
                         <FileText className="h-4 w-4" />
-                        Grading
+                        Gradings
                     </TabsTrigger>
                     <TabsTrigger
                         value="results"
@@ -144,24 +116,30 @@ export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
                         Results
                     </TabsTrigger>
                 </TabsList>
-
-                {/* Grid Management Tab */}
                 <TabsContent value="grids" className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-semibold">
                             Grid Management
                         </h2>
-                        {/* Le bouton 'New Grid' n'est affiché qu'ici */}
                         {isTeacher && (
-                            <Button onClick={handleCreateGrid}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                New Grid
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setRefreshKey((k) => k + 1)}
+                                >
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                    Refresh
+                                </Button>
+                                <Button onClick={handleCreateGrid}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    New Grid
+                                </Button>
+                            </div>
                         )}
                     </div>
                     <GradingGridList
+                        key={refreshKey}
                         projectId={projectId}
-                        // onCreateGrid retiré pour éviter le double affichage
                         onEditGrid={isTeacher ? handleEditGrid : undefined}
                         onViewGrid={handleViewGrid}
                         onDeleteGrid={
@@ -169,26 +147,126 @@ export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
                                 ? (grid) => console.log('Delete:', grid)
                                 : undefined
                         }
+                        onCreateGrid={isTeacher ? handleCreateGrid : undefined}
+                        showFilters={false}
+                        showOnlyDrafts={true}
                     />
                 </TabsContent>
-
-                {/* Grading Tab */}
                 <TabsContent value="grading" className="space-y-4">
-                    <h2 className="text-xl font-semibold">Grading Interface</h2>
-
                     {isTeacher ? (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Select a grid to grade</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <GradingGridList
-                                    key={refreshKey}
-                                    projectId={projectId}
-                                    onViewGrid={handleGradeGrid}
-                                />
-                            </CardContent>
-                        </Card>
+                        <>
+                            <div>
+                                <h2 className="text-2xl font-bold">Gradings</h2>
+                                <p className="text-muted-foreground">
+                                    Grade validated grids for this project
+                                </p>
+                            </div>
+                            <Card>
+                                <CardContent className="p-4">
+                                    <div className="space-y-4">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                placeholder="Search grading grids..."
+                                                value={searchTerm}
+                                                onChange={(e) =>
+                                                    setSearchTerm(
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="pl-10"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <Select
+                                                value={filterType}
+                                                onValueChange={(value) =>
+                                                    setFilterType(
+                                                        value as FilterType
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">
+                                                        All types
+                                                    </SelectItem>
+                                                    <SelectItem value="deliverable">
+                                                        Deliverable
+                                                    </SelectItem>
+                                                    <SelectItem value="report">
+                                                        Report
+                                                    </SelectItem>
+                                                    <SelectItem value="presentation">
+                                                        Presentation
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <Select
+                                                value={filterStatus}
+                                                onValueChange={(value) =>
+                                                    setFilterStatus(
+                                                        value as FilterStatus
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Status" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">
+                                                        All statuses
+                                                    </SelectItem>
+                                                    <SelectItem value="validated">
+                                                        Validated
+                                                    </SelectItem>
+                                                    <SelectItem value="draft">
+                                                        Drafts
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <Select
+                                                value={sortBy}
+                                                onValueChange={(value) =>
+                                                    setSortBy(value)
+                                                }
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Sort by" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="date">
+                                                        Modification Date
+                                                    </SelectItem>
+                                                    <SelectItem value="title">
+                                                        Title
+                                                    </SelectItem>
+                                                    <SelectItem value="type">
+                                                        Type
+                                                    </SelectItem>
+                                                    <SelectItem value="average">
+                                                        Average
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <GradingGridList
+                                key={refreshKey}
+                                projectId={projectId}
+                                onViewGrid={handleGradeGrid}
+                                showFilters={false}
+                                showOnlyValidated={true}
+                                externalFilterType={filterType}
+                                externalFilterStatus={filterStatus}
+                                externalSortBy={sortBy}
+                                externalSearchTerm={searchTerm}
+                            />
+                        </>
                     ) : (
                         <Card>
                             <CardContent className="p-8 text-center">
@@ -204,48 +282,45 @@ export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
                         </Card>
                     )}
                 </TabsContent>
-
-                {/* Results Tab */}
                 <TabsContent value="results" className="space-y-4">
                     <h2 className="text-xl font-semibold">
                         Results and Statistics
                     </h2>
-
                     <GradingResults
                         key={refreshKey}
                         projectId={projectId}
                         onViewGrid={handleViewGrid}
-                        onExportResults={
-                            isTeacher ? handleExportResults : undefined
-                        }
                     />
                 </TabsContent>
             </Tabs>
-
-            {/* Dialog for creating/editing a grid */}
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                <DialogContent className="w-full max-w-none max-h-[90vh] overflow-y-auto">
+                <DialogContent className="w-[90vw] min-w-[600px] max-w-4xl max-h-[90vh] overflow-auto">
                     <DialogHeader>
                         <DialogTitle>
-                            {selectedGrid ? 'Edit Grid' : 'Create Grid'}
+                            {selectedGrid
+                                ? selectedGrid.isValidated
+                                    ? 'View Grading Grid'
+                                    : 'Edit Grid'
+                                : 'Create Grid'}
                         </DialogTitle>
                     </DialogHeader>
                     <GradingGridForm
                         projectId={projectId}
                         gridId={selectedGrid?.id}
-                        onSave={handleGridSaved}
+                        onSave={() => {
+                            handleCloseDialogs()
+                            setRefreshKey((k) => k + 1)
+                        }}
                         onCancel={handleCloseDialogs}
-                        readOnly={!isTeacher}
+                        readOnly={!isTeacher || selectedGrid?.isValidated}
                     />
                 </DialogContent>
             </Dialog>
-
-            {/* Dialog for grading/viewing */}
             <Dialog
                 open={showGradingDialog}
                 onOpenChange={setShowGradingDialog}
             >
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="w-[90vw] max-w-5xl max-h-[90vh] overflow-auto">
                     <DialogHeader>
                         <DialogTitle>
                             {isTeacher ? 'Grade' : 'View'} -{' '}
@@ -253,10 +328,14 @@ export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
                         </DialogTitle>
                     </DialogHeader>
                     {selectedGrid && (
-                        <GradingForm
-                            gridId={selectedGrid.id}
-                            targetGroupId={selectedGrid.targetId} // Use actual target ID from grid
-                            onSave={isTeacher ? handleResultsSaved : undefined}
+                        <SwipeGradingInterface
+                            gradingScale={selectedGrid}
+                            targetGroupId={selectedGrid.targetId}
+                            onGradingComplete={() => {
+                                setRefreshKey((k) => k + 1)
+                                handleCloseDialogs()
+                            }}
+                            onCancel={handleCloseDialogs}
                             readOnly={!isTeacher || selectedGrid.isValidated}
                         />
                     )}
@@ -266,36 +345,28 @@ export const GradingSystemDemo: React.FC<GradingSystemDemoProps> = ({
     )
 }
 
-// Example usage in a project page
 export const ProjectGradingPage: React.FC<{ projectId: string }> = ({
     projectId,
 }) => {
     return (
         <div className="container mx-auto p-6">
-            <GradingSystemDemo
-                projectId={projectId}
-                userRole="teacher" // or "student" based on context
-            />
+            <GradingSystemDemo projectId={projectId} userRole="teacher" />
         </div>
     )
 }
 
-// Example integration in an existing component
 export const ProjectPageWithGrading: React.FC<{ projectId: string }> = ({
     projectId,
 }) => {
     const [showGrading, setShowGrading] = useState(false)
-
     return (
         <div className="space-y-6">
-            {/* Existing project page content */}
             <Card>
                 <CardHeader>
                     <CardTitle>Project Information</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <p>Existing project content...</p>
-
                     <div className="mt-4">
                         <Button
                             onClick={() => setShowGrading(!showGrading)}
@@ -307,8 +378,6 @@ export const ProjectPageWithGrading: React.FC<{ projectId: string }> = ({
                     </div>
                 </CardContent>
             </Card>
-
-            {/* Integrated grading system */}
             {showGrading && (
                 <Card>
                     <CardContent className="p-6">

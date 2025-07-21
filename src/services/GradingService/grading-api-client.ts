@@ -5,7 +5,8 @@ import {
     UpdateGradingGridDto,
     GradingResult,
     GradingApiResponse,
-} from '@/components/GradingSystem/type'
+    GradingCriterion,
+} from '@/types/grading'
 import { ApiErrorMessage } from '../ProjectService/types'
 
 // Configuration des timeouts et retry
@@ -235,10 +236,16 @@ export const gradingService = {
     },
 
     // Récupérer une grille spécifique avec cache
-    getGrid: async (gridId: string): Promise<GradingApiResponse> => {
+    getGrid: async (
+        gridId: string,
+        forceRefresh: boolean = false
+    ): Promise<GradingApiResponse> => {
         try {
             const cacheKey = getCacheKey('getGrid', gridId)
-            const cachedData = getFromCache<GradingGrid>(cacheKey)
+            let cachedData: GradingGrid | null = null
+            if (!forceRefresh) {
+                cachedData = getFromCache<GradingGrid>(cacheKey)
+            }
 
             if (cachedData) {
                 console.log('📋 Grille chargée depuis le cache:', gridId)
@@ -390,6 +397,71 @@ export const gradingService = {
             console.error('❌ Erreur sauvegarde résultats:', error)
             return handleApiError(
                 `Erreur lors de la sauvegarde des résultats: ${String(error)}`
+            )
+        }
+    },
+
+    addCriterion: async (
+        gridId: string,
+        criterionData: Omit<GradingCriterion, 'id'>
+    ): Promise<GradingApiResponse> => {
+        try {
+            const url = `${PROJECT_API_URL}/grading-scales/${gridId}/criteria`
+            const response = await fetchWithRetry(url, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(criterionData),
+            })
+            return await handleApiResponse(response)
+        } catch (error: unknown) {
+            return handleApiError(
+                `Erreur lors de l'ajout du critère: ${String(error)}`
+            )
+        }
+    },
+
+    updateCriterion: async (
+        criterionId: string,
+        criterionData: Partial<GradingCriterion>
+    ): Promise<GradingApiResponse> => {
+        try {
+            const url = `${PROJECT_API_URL}/grading-scales/criteria/${criterionId}`
+            const response = await fetchWithRetry(url, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(criterionData),
+            })
+            return await handleApiResponse(response)
+        } catch (error: unknown) {
+            return handleApiError(
+                `Error while updating criteria: ${String(error)}`
+            )
+        }
+    },
+
+    removeCriterion: async (
+        criterionId: string
+    ): Promise<GradingApiResponse> => {
+        try {
+            const url = `${PROJECT_API_URL}/grading-scales/criteria/${criterionId}`
+            const response = await fetchWithRetry(url, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            })
+
+            const result = await handleApiResponse(response)
+
+            if (result.success) {
+                // Invalidate relevant cache entries after successful deletion
+                invalidateCache('getProjectGrids')
+                // Note: We can't invalidate specific grid cache without gridId
+                console.log('✅ Criterion deleted successfully:', criterionId)
+            }
+
+            return result
+        } catch (error: unknown) {
+            return handleApiError(
+                `Error while deleting criteria: ${String(error)}`
             )
         }
     },

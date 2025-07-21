@@ -1,5 +1,5 @@
 import React, { createContext, useReducer, ReactNode } from 'react'
-import { GradingGrid, GradingResult } from '@/components/GradingSystem/type'
+import { GradingGrid, GradingResult } from '@/types/grading'
 
 type State = {
     grids: GradingGrid[]

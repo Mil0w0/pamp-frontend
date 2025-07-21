@@ -18,10 +18,11 @@ import { useGradingGrid } from '@/hooks/useGradingGrid'
 import {
     GradingGrid,
     GradingCriterion,
-    CreateGradingGridDto,
     GradingGridType,
     NotationMode,
-} from '@/components/GradingSystem/type'
+    CreateGradingGridDto,
+    UpdateGradingGridDto,
+} from '@/types/grading'
 import { formatScore, formatPercentage } from '@/utils/gradingCalculations'
 import { Student } from '@/components/ManageStudentBatches/types'
 import { ProjectGroup } from '@/components/ProjectPages/types'
@@ -29,6 +30,40 @@ import { authService } from '@/services/UserService/auth-api-client'
 import { groupService } from '@/services/ProjectService/project-api-client'
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store/index'
+import { toast } from 'sonner'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '../ui/table'
+import { Progress } from '../ui/progress'
+
+const mapNotationModeToApi = (mode: NotationMode): NotationMode => {
+    switch (mode) {
+        case 'group':
+            return 'groupe'
+        case 'individual':
+            return 'individuel'
+        default:
+            return mode
+    }
+}
+
+const mapTypeToApi = (type: GradingGridType): GradingGridType => {
+    switch (type) {
+        case 'deliverable':
+            return 'livrable'
+        case 'report':
+            return 'rapport'
+        case 'presentation':
+            return 'soutenance'
+        default:
+            return type
+    }
+}
 
 interface GradingGridFormProps {
     projectId: string
@@ -40,7 +75,6 @@ interface GradingGridFormProps {
     readOnly?: boolean
 }
 
-// Helper pour vérifier si la grille locale est complète (création)
 const isLocalGridComplete = (formData: {
     title: string
     targetId: string
@@ -88,8 +122,8 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
 
         const [formData, setFormData] = useState({
             title: '',
-            notationMode: 'groupe' as NotationMode,
-            type: type || ('livrable' as GradingGridType),
+            notationMode: 'group' as NotationMode,
+            type: type || ('deliverable' as GradingGridType),
             targetId: targetId || '',
             criteria: [] as GradingCriterion[],
         })
@@ -101,18 +135,16 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
             commentEnabled: false,
         })
 
+        const [applyToAllGroups, setApplyToAllGroups] = useState(false)
         const [students, setStudents] = useState<Student[]>([])
         const [groups, setGroups] = useState<ProjectGroup[]>([])
         const [loadingTargets, setLoadingTargets] = useState(false)
-
         const { currentProject } = useSelector(
-            (state: RootState) => state.project
+            (state: RootState) => state?.project || {}
         )
 
-        // Memoized batch student IDs
         const batchStudentIds = useMemo(() => {
             if (!currentProject?.studentBatch?.students) return []
-
             return typeof currentProject.studentBatch.students === 'string'
                 ? currentProject.studentBatch.students
                       .split(',')
@@ -122,7 +154,6 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                   )
         }, [currentProject?.studentBatch?.students])
 
-        // Fetch students
         const fetchStudents = useCallback(async () => {
             setLoadingTargets(true)
             try {
@@ -139,13 +170,13 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                     }
                 }
             } catch (error) {
-                console.error('Error fetching students:', error)
+                // Silence error
+                console.log(error)
             } finally {
                 setLoadingTargets(false)
             }
         }, [batchStudentIds])
 
-        // Fetch groups
         const fetchGroups = useCallback(async () => {
             setLoadingTargets(true)
             try {
@@ -154,13 +185,13 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                     setGroups(response.data as ProjectGroup[])
                 }
             } catch (error) {
-                console.error('Error fetching groups:', error)
+                // Silence error
+                console.log(error)
             } finally {
                 setLoadingTargets(false)
             }
         }, [projectId])
 
-        // Sync form data with loaded grid
         useEffect(() => {
             if (grid) {
                 setFormData({
@@ -173,54 +204,119 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
             }
         }, [grid])
 
-        // Load students or groups based on notation mode
         useEffect(() => {
-            if (formData.notationMode === 'individuel') {
+            if (formData.notationMode === 'individual') {
                 fetchStudents()
-            } else if (formData.notationMode === 'groupe') {
+            } else if (
+                formData.notationMode === 'group' ||
+                formData.notationMode === 'groupe'
+            ) {
                 fetchGroups()
             }
         }, [formData.notationMode, fetchStudents, fetchGroups])
 
-        // Memoized target options
-
-        // Memoized form validation
-
-        // Save handler
         const handleSave = useCallback(async () => {
+            if (saving) return
+            if (!formData.title.trim()) {
+                toast.error('Grid title is required')
+                return
+            }
+            if (!formData.targetId) {
+                toast.error('Target selection is required')
+                return
+            }
+            if (formData.criteria.length === 0) {
+                toast.error('At least one criterion is required')
+                return
+            }
+            const invalidCriteria = formData.criteria.find(
+                (c) => !c.label.trim() || c.maxPoints <= 0 || c.weight <= 0
+            )
+            if (invalidCriteria) {
+                toast.error(
+                    'All criteria must have a label, positive max points, and positive weight'
+                )
+                return
+            }
             try {
                 if (grid) {
-                    // Utiliser les critères mis à jour de la grille actuelle
-                    const updatedCriteria = grid.criteria || []
-                    await updateGrid(grid.id, {
-                        title: formData.title,
-                        notationMode: formData.notationMode,
-                        criteria: updatedCriteria,
-                    })
-
-                    // Vérifier si la mise à jour a échoué
-                    if (error) {
-                        alert('Error updating the grid: ' + error.message)
-                        return
+                    const originalCriteria = grid.criteria || []
+                    const updatedCriteria = formData.criteria
+                    const updates: Partial<UpdateGradingGridDto> = {}
+                    if (grid.title !== formData.title) {
+                        updates.title = formData.title
                     }
-
-                    if (onSave) {
-                        onSave({
-                            ...grid,
-                            title: formData.title,
-                            notationMode: formData.notationMode,
-                            criteria: updatedCriteria,
-                        })
+                    const mappedMode = mapNotationModeToApi(
+                        formData.notationMode
+                    )
+                    if (grid.notationMode !== mappedMode) {
+                        updates.notationMode = mappedMode
+                    }
+                    if (Object.keys(updates).length > 0) {
+                        await updateGrid(grid.id, updates)
+                    }
+                    const criteriaToAdd = updatedCriteria.filter((c) =>
+                        c.id?.startsWith('temp-')
+                    )
+                    const criteriaToRemove = originalCriteria.filter(
+                        (oc) => !updatedCriteria.some((uc) => uc.id === oc.id)
+                    )
+                    const criteriaToUpdate = updatedCriteria.filter((uc) => {
+                        if (!uc.id || uc.id.startsWith('temp-')) return false
+                        const original = originalCriteria.find(
+                            (oc) => oc.id === uc.id
+                        )
+                        return (
+                            original &&
+                            (original.label !== uc.label ||
+                                original.maxPoints !== uc.maxPoints ||
+                                original.weight !== uc.weight ||
+                                original.commentEnabled !== uc.commentEnabled)
+                        )
+                    })
+                    const results = await Promise.allSettled([
+                        ...criteriaToRemove.map((c) =>
+                            removeCriterion(grid.id, c.id)
+                        ),
+                        ...criteriaToAdd.map((c) => {
+                            const criterionData: Omit<GradingCriterion, 'id'> =
+                                {
+                                    label: c.label,
+                                    maxPoints: c.maxPoints,
+                                    weight: c.weight,
+                                    commentEnabled: c.commentEnabled,
+                                }
+                            return addCriterion(grid.id, criterionData)
+                        }),
+                        ...criteriaToUpdate.map((c) => {
+                            const { id, ...data } = c
+                            return updateCriterion(grid.id, id, data)
+                        }),
+                    ])
+                    const failed = results.some(
+                        (result) => result.status === 'rejected'
+                    )
+                    if (failed) {
+                        toast.error(
+                            'An error occurred while updating the grid criteria.'
+                        )
+                    } else {
+                        toast.success('Grid updated successfully!')
+                        if (onSave) {
+                            const updatedGrid = { ...grid, ...formData }
+                            onSave(updatedGrid)
+                        }
                     }
                 } else {
-                    const gridData: CreateGradingGridDto = {
+                    const newGridData: CreateGradingGridDto = {
+                        ...formData,
                         projectId,
-                        title: formData.title,
-                        type: formData.type,
-                        targetId: formData.targetId,
-                        notationMode: formData.notationMode,
+                        notationMode: mapNotationModeToApi(
+                            formData.notationMode
+                        ),
+                        type: mapTypeToApi(formData.type),
                         criteria: formData.criteria.map(
-                            (criterion: GradingCriterion) => ({
+                            (criterion): Omit<GradingCriterion, 'id'> => ({
                                 label: criterion.label,
                                 maxPoints: criterion.maxPoints,
                                 weight: criterion.weight,
@@ -228,45 +324,41 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                             })
                         ),
                     }
-                    const newGrid = await createGrid(gridData)
-
-                    // Vérifier si la création a échoué
-                    if (!newGrid || error) {
-                        alert(
-                            'An error occurred while saving the grid: ' +
-                                (error?.message || 'Unknown error')
-                        )
-                        return
-                    }
-
-                    if (onSave && newGrid) {
-                        onSave(newGrid)
+                    const newGrid = await createGrid(newGridData)
+                    if (newGrid) {
+                        toast.success('Grid created successfully!')
+                        if (onSave) {
+                            onSave(newGrid)
+                        }
                     }
                 }
-            } catch (err) {
-                console.error('An error occured while saving the grid:', err)
-                alert(
-                    'An error occurred while saving the grid: ' +
-                        (err instanceof Error ? err.message : String(err))
-                )
+            } catch (error) {
+                toast.error('An error occurred while saving the grid.')
+                console.log(error)
             }
-        }, [grid, formData, updateGrid, createGrid, onSave, error])
+        }, [
+            grid,
+            formData,
+            saving,
+            projectId,
+            onSave,
+            createGrid,
+            updateGrid,
+            addCriterion,
+            removeCriterion,
+            updateCriterion,
+        ])
 
-        // Add criterion handler
         const handleAddCriterion = useCallback(() => {
             if (newCriterion.label.trim()) {
-                if (grid) {
-                    addCriterion(newCriterion)
-                } else {
-                    const newCriterionWithId = {
-                        ...newCriterion,
-                        id: `temp-${Date.now()}-${Math.random()}`,
-                    }
-                    setFormData((prev) => ({
-                        ...prev,
-                        criteria: [...prev.criteria, newCriterionWithId],
-                    }))
+                const newCriterionWithId = {
+                    ...newCriterion,
+                    id: `temp-${Date.now()}-${Math.random()}`,
                 }
+                setFormData((prev) => ({
+                    ...prev,
+                    criteria: [...prev.criteria, newCriterionWithId],
+                }))
                 setNewCriterion({
                     label: '',
                     maxPoints: 20,
@@ -274,46 +366,36 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                     commentEnabled: false,
                 })
             }
-        }, [newCriterion, grid, addCriterion, setFormData])
+        }, [newCriterion, setFormData])
 
-        // Update criterion handler
         const handleUpdateCriterion = useCallback(
             (
                 criterionId: string,
                 field: keyof GradingCriterion,
                 value: string | number | boolean
             ) => {
-                if (grid) {
-                    updateCriterion(criterionId, { [field]: value })
-                } else {
-                    setFormData((prev) => {
-                        const criteria = prev.criteria.map((criterion) =>
-                            criterion.id === criterionId
-                                ? { ...criterion, [field]: value }
-                                : criterion
-                        )
-                        return { ...prev, criteria }
-                    })
-                }
+                setFormData((prev) => {
+                    const criteria = prev.criteria.map((criterion) =>
+                        criterion.id === criterionId
+                            ? { ...criterion, [field]: value }
+                            : criterion
+                    )
+                    return { ...prev, criteria }
+                })
             },
-            [grid, updateCriterion]
+            [setFormData]
         )
 
-        // Remove criterion handler
         const handleRemoveCriterion = useCallback(
             (criterionId: string) => {
-                if (grid) {
-                    removeCriterion(criterionId)
-                } else {
-                    setFormData((prev) => ({
-                        ...prev,
-                        criteria: prev.criteria.filter(
-                            (criterion) => criterion.id !== criterionId
-                        ),
-                    }))
-                }
+                setFormData((prev) => ({
+                    ...prev,
+                    criteria: prev.criteria.filter(
+                        (criterion) => criterion.id !== criterionId
+                    ),
+                }))
             },
-            [grid, removeCriterion]
+            [setFormData]
         )
 
         if (loading) {
@@ -330,7 +412,7 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
         }
 
         return (
-            <div className="space-y-6">
+            <div className="space-y-6 max-w-4xl mx-auto">
                 {error && (
                     <ErrorDisplay
                         error={error}
@@ -338,8 +420,7 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                         onDismiss={clearError}
                     />
                 )}
-
-                <Card>
+                <Card className="w-full">
                     <CardHeader>
                         <CardTitle className="flex items-center justify-between">
                             <span>
@@ -393,17 +474,16 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="groupe">
-                                            By Group
+                                        <SelectItem value="group">
+                                            Group
                                         </SelectItem>
-                                        <SelectItem value="individuel">
+                                        <SelectItem value="individual">
                                             Individual
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                         </div>
-
                         {!grid && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -426,13 +506,13 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="livrable">
+                                            <SelectItem value="deliverable">
                                                 Deliverable
                                             </SelectItem>
-                                            <SelectItem value="rapport">
+                                            <SelectItem value="report">
                                                 Report
                                             </SelectItem>
-                                            <SelectItem value="soutenance">
+                                            <SelectItem value="presentation">
                                                 Presentation
                                             </SelectItem>
                                         </SelectContent>
@@ -440,7 +520,7 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="targetId">
-                                        {formData.notationMode === 'groupe'
+                                        {formData.notationMode === 'group'
                                             ? 'Target Group'
                                             : 'Target Student'}
                                     </Label>
@@ -460,14 +540,14 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                                                     loadingTargets
                                                         ? 'Loading...'
                                                         : formData.notationMode ===
-                                                            'groupe'
+                                                            'group'
                                                           ? 'Select a group'
                                                           : 'Select a student'
                                                 }
                                             />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {formData.notationMode === 'groupe'
+                                            {formData.notationMode === 'group'
                                                 ? groups.map((group) => (
                                                       <SelectItem
                                                           key={group.id}
@@ -476,24 +556,36 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                                                           {group.name}
                                                       </SelectItem>
                                                   ))
-                                                : students.map((student) => (
+                                                : students &&
+                                                  students.map((student) => (
                                                       <SelectItem
                                                           key={student.user_id}
                                                           value={
                                                               student.user_id
                                                           }
                                                       >
-                                                          {student.first_name}{' '}
-                                                          {student.last_name} (
-                                                          {student.email})
+                                                          {`${student.first_name} ${student.last_name} (${student.email})`}
                                                       </SelectItem>
                                                   ))}
                                         </SelectContent>
                                     </Select>
+                                    {!readOnly &&
+                                        formData.notationMode === 'group' && (
+                                            <div className="space-y-2 mt-2">
+                                                <Label>
+                                                    Appliquer à tous les groupes
+                                                </Label>
+                                                <Switch
+                                                    checked={applyToAllGroups}
+                                                    onCheckedChange={
+                                                        setApplyToAllGroups
+                                                    }
+                                                />
+                                            </div>
+                                        )}
                                 </div>
                             </div>
                         )}
-
                         {stats && grid && grid.criteria.length > 0 && (
                             <div className="p-4 bg-muted rounded-lg">
                                 <h4 className="font-medium mb-2">Statistics</h4>
@@ -544,207 +636,604 @@ export const GradingGridForm: React.FC<GradingGridFormProps> = memo(
                         )}
                     </CardContent>
                 </Card>
-
-                {/* Grading Criteria */}
-                <Card>
+                <Card className="w-full">
                     <CardHeader>
                         <CardTitle>Grading Criteria</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        {(grid?.criteria || formData.criteria).map(
-                            (criterion: GradingCriterion, idx: number) => (
-                                <div
-                                    key={criterion.id || idx}
-                                    className="flex items-center gap-4"
-                                >
-                                    {!readOnly && !grid?.isValidated ? (
-                                        <>
-                                            <Input
-                                                value={criterion.label}
-                                                onChange={(e) =>
-                                                    handleUpdateCriterion(
-                                                        criterion.id,
-                                                        'label',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-32"
-                                                placeholder="Criteria"
-                                            />
-                                            <Input
-                                                type="number"
-                                                value={criterion.maxPoints}
-                                                min={1}
-                                                onChange={(e) =>
-                                                    handleUpdateCriterion(
-                                                        criterion.id,
-                                                        'maxPoints',
-                                                        Number(e.target.value)
-                                                    )
-                                                }
-                                                className="w-24"
-                                                placeholder="Max Points"
-                                            />
-                                            <Input
-                                                type="number"
-                                                value={criterion.weight}
-                                                min={1}
-                                                onChange={(e) =>
-                                                    handleUpdateCriterion(
-                                                        criterion.id,
-                                                        'weight',
-                                                        Number(e.target.value)
-                                                    )
-                                                }
-                                                className="w-24"
-                                                placeholder="Weight"
-                                            />
-                                            <div className="flex items-center gap-1">
-                                                <Label
-                                                    htmlFor={`commentEnabled-${criterion.id}`}
-                                                >
-                                                    Comment
-                                                </Label>
-                                                <Switch
-                                                    id={`commentEnabled-${criterion.id}`}
-                                                    checked={
-                                                        criterion.commentEnabled
+                    <CardContent>
+                        <div className="space-y-4">
+                            <div className="hidden lg:block overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[40%]">
+                                                Label
+                                            </TableHead>
+                                            <TableHead className="w-[15%]">
+                                                Max Points
+                                            </TableHead>
+                                            <TableHead className="w-[15%]">
+                                                Weight
+                                            </TableHead>
+                                            <TableHead className="w-[15%]">
+                                                Comment
+                                            </TableHead>
+                                            {!readOnly &&
+                                                !grid?.isValidated && (
+                                                    <TableHead className="w-[100px]">
+                                                        Actions
+                                                    </TableHead>
+                                                )}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {formData.criteria.map(
+                                            (
+                                                criterion: GradingCriterion,
+                                                idx: number
+                                            ) => (
+                                                <TableRow
+                                                    key={
+                                                        criterion.id ||
+                                                        `new-${idx}`
                                                     }
-                                                    onCheckedChange={(
-                                                        checked
-                                                    ) =>
-                                                        handleUpdateCriterion(
-                                                            criterion.id,
-                                                            'commentEnabled',
-                                                            checked
+                                                >
+                                                    <TableCell>
+                                                        {readOnly ||
+                                                        grid?.isValidated ? (
+                                                            <div>
+                                                                <div className="font-semibold break-words whitespace-normal">
+                                                                    {
+                                                                        criterion.label
+                                                                    }
+                                                                </div>
+                                                                {criterion.comment && (
+                                                                    <p className="text-sm text-muted-foreground mt-1">
+                                                                        {
+                                                                            criterion.comment
+                                                                        }
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <Input
+                                                                value={
+                                                                    criterion.label
+                                                                }
+                                                                onChange={(e) =>
+                                                                    handleUpdateCriterion(
+                                                                        criterion.id ||
+                                                                            `new-${idx}`,
+                                                                        'label',
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                                placeholder="Criterion label"
+                                                                className="w-full"
+                                                            />
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {readOnly ||
+                                                        grid?.isValidated ? (
+                                                            <div>
+                                                                <div>{`${criterion.score ?? 0} / ${criterion.maxPoints}`}</div>
+                                                                <div className="w-full bg-muted rounded-full h-2.5 mt-1">
+                                                                    <div
+                                                                        className="bg-primary h-2.5 rounded-full"
+                                                                        style={{
+                                                                            width: `${((criterion.score ? Number(criterion.score) : 0) / Number(criterion.maxPoints)) * 100}%`,
+                                                                        }}
+                                                                    ></div>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <Input
+                                                                type="number"
+                                                                value={
+                                                                    criterion.maxPoints
+                                                                }
+                                                                min={1}
+                                                                onChange={(e) =>
+                                                                    handleUpdateCriterion(
+                                                                        criterion.id ||
+                                                                            `new-${idx}`,
+                                                                        'maxPoints',
+                                                                        Number(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    )
+                                                                }
+                                                                placeholder="Points"
+                                                                className="w-full"
+                                                            />
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {readOnly ||
+                                                        grid?.isValidated ? (
+                                                            criterion.weight
+                                                        ) : (
+                                                            <Input
+                                                                type="number"
+                                                                value={
+                                                                    criterion.weight
+                                                                }
+                                                                min={1}
+                                                                onChange={(e) =>
+                                                                    handleUpdateCriterion(
+                                                                        criterion.id ||
+                                                                            `new-${idx}`,
+                                                                        'weight',
+                                                                        Number(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    )
+                                                                }
+                                                                placeholder="Weight"
+                                                                className="w-full"
+                                                            />
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {readOnly ||
+                                                        grid?.isValidated ? (
+                                                            criterion.commentEnabled ? (
+                                                                'Yes'
+                                                            ) : (
+                                                                'No'
+                                                            )
+                                                        ) : (
+                                                            <Switch
+                                                                checked={
+                                                                    criterion.commentEnabled
+                                                                }
+                                                                onCheckedChange={(
+                                                                    checked
+                                                                ) =>
+                                                                    handleUpdateCriterion(
+                                                                        criterion.id ||
+                                                                            `new-${idx}`,
+                                                                        'commentEnabled',
+                                                                        checked
+                                                                    )
+                                                                }
+                                                            />
+                                                        )}
+                                                    </TableCell>
+                                                    {!readOnly &&
+                                                        !grid?.isValidated && (
+                                                            <TableCell>
+                                                                <Button
+                                                                    variant="destructive"
+                                                                    size="icon"
+                                                                    onClick={() =>
+                                                                        handleRemoveCriterion(
+                                                                            criterion.id ||
+                                                                                `new-${idx}`
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </TableCell>
+                                                        )}
+                                                </TableRow>
+                                            )
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <div className="lg:hidden space-y-4">
+                                {formData.criteria.map(
+                                    (
+                                        criterion: GradingCriterion,
+                                        idx: number
+                                    ) => (
+                                        <Card
+                                            key={criterion.id || `new-${idx}`}
+                                            className="p-4"
+                                        >
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <Label className="text-sm font-medium">
+                                                        Label
+                                                    </Label>
+                                                    {!readOnly &&
+                                                        !grid?.isValidated && (
+                                                            <Button
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    handleRemoveCriterion(
+                                                                        criterion.id ||
+                                                                            `new-${idx}`
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                </div>
+                                                {readOnly ||
+                                                grid?.isValidated ? (
+                                                    <div>
+                                                        <div className="break-words whitespace-normal p-2 bg-muted rounded">
+                                                            {criterion.label}
+                                                        </div>
+                                                        {criterion.comment && (
+                                                            <div className="text-xs text-gray-500 italic mt-1 pl-2">
+                                                                {
+                                                                    criterion.comment
+                                                                }
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <Input
+                                                        value={criterion.label}
+                                                        onChange={(e) =>
+                                                            handleUpdateCriterion(
+                                                                criterion.id ||
+                                                                    `new-${idx}`,
+                                                                'label',
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        placeholder="Criterion label"
+                                                    />
+                                                )}
+                                                {(readOnly ||
+                                                    grid?.isValidated) && (
+                                                    <div className="mt-3">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="text-sm font-medium">
+                                                                Score:{' '}
+                                                                {(() => {
+                                                                    const result =
+                                                                        grid?.results.find(
+                                                                            (
+                                                                                r
+                                                                            ) =>
+                                                                                r.gradingCriterionId ===
+                                                                                criterion.id
+                                                                        )
+                                                                    return (
+                                                                        result?.score ??
+                                                                        0
+                                                                    )
+                                                                })()}{' '}
+                                                                /{' '}
+                                                                {
+                                                                    criterion.maxPoints
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                        <Progress
+                                                            value={
+                                                                ((() => {
+                                                                    const result =
+                                                                        grid?.results.find(
+                                                                            (
+                                                                                r
+                                                                            ) =>
+                                                                                r.gradingCriterionId ===
+                                                                                criterion.id
+                                                                        )
+                                                                    return (
+                                                                        result?.score ??
+                                                                        0
+                                                                    )
+                                                                })() /
+                                                                    Number(
+                                                                        criterion.maxPoints
+                                                                    )) *
+                                                                100
+                                                            }
+                                                        />
+                                                    </div>
+                                                )}
+                                                <div className="grid grid-cols-3 gap-3 mt-3">
+                                                    <div>
+                                                        <Label className="text-sm">
+                                                            Max Points
+                                                        </Label>
+                                                        {readOnly ||
+                                                        grid?.isValidated ? (
+                                                            <div className="p-2 bg-muted rounded text-center">
+                                                                {
+                                                                    criterion.maxPoints
+                                                                }
+                                                            </div>
+                                                        ) : (
+                                                            <Input
+                                                                type="number"
+                                                                value={
+                                                                    criterion.maxPoints
+                                                                }
+                                                                min={1}
+                                                                onChange={(e) =>
+                                                                    handleUpdateCriterion(
+                                                                        criterion.id ||
+                                                                            `new-${idx}`,
+                                                                        'maxPoints',
+                                                                        Number(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    )
+                                                                }
+                                                                placeholder="Points"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-sm">
+                                                            Weight
+                                                        </Label>
+                                                        {readOnly ||
+                                                        grid?.isValidated ? (
+                                                            <div className="p-2 bg-muted rounded text-center">
+                                                                {
+                                                                    criterion.weight
+                                                                }
+                                                            </div>
+                                                        ) : (
+                                                            <Input
+                                                                type="number"
+                                                                value={
+                                                                    criterion.weight
+                                                                }
+                                                                min={1}
+                                                                onChange={(e) =>
+                                                                    handleUpdateCriterion(
+                                                                        criterion.id ||
+                                                                            `new-${idx}`,
+                                                                        'weight',
+                                                                        Number(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    )
+                                                                }
+                                                                placeholder="Weight"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-sm">
+                                                            Comment
+                                                        </Label>
+                                                        <div className="flex items-center justify-center h-10">
+                                                            {readOnly ||
+                                                            grid?.isValidated ? (
+                                                                <span className="text-sm">
+                                                                    {criterion.commentEnabled
+                                                                        ? 'Yes'
+                                                                        : 'No'}
+                                                                </span>
+                                                            ) : (
+                                                                <Switch
+                                                                    checked={
+                                                                        criterion.commentEnabled
+                                                                    }
+                                                                    onCheckedChange={(
+                                                                        checked
+                                                                    ) =>
+                                                                        handleUpdateCriterion(
+                                                                            criterion.id ||
+                                                                                `new-${idx}`,
+                                                                            'commentEnabled',
+                                                                            checked
+                                                                        )
+                                                                    }
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )
+                                )}
+                            </div>
+                        </div>
+                        {!readOnly && !grid?.isValidated && (
+                            <div className="pt-4 mt-4 border-t">
+                                <div className="hidden lg:grid grid-cols-[1fr_auto_auto_auto_auto] items-end gap-4 w-full">
+                                    <div>
+                                        <Label htmlFor="new-criterion-label">
+                                            Label
+                                        </Label>
+                                        <Input
+                                            id="new-criterion-label"
+                                            placeholder="New criterion label"
+                                            value={newCriterion.label}
+                                            onChange={(e) =>
+                                                setNewCriterion((prev) => ({
+                                                    ...prev,
+                                                    label: e.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="new-criterion-maxpoints">
+                                            Points
+                                        </Label>
+                                        <Input
+                                            id="new-criterion-maxpoints"
+                                            type="number"
+                                            className="w-24"
+                                            value={newCriterion.maxPoints}
+                                            min={1}
+                                            onChange={(e) =>
+                                                setNewCriterion((prev) => ({
+                                                    ...prev,
+                                                    maxPoints: Number(
+                                                        e.target.value
+                                                    ),
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="new-criterion-weight">
+                                            Weight
+                                        </Label>
+                                        <Input
+                                            id="new-criterion-weight"
+                                            type="number"
+                                            className="w-24"
+                                            value={newCriterion.weight}
+                                            min={1}
+                                            onChange={(e) =>
+                                                setNewCriterion((prev) => ({
+                                                    ...prev,
+                                                    weight: Number(
+                                                        e.target.value
+                                                    ),
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <div className="flex flex-col items-center">
+                                        <Label>Comment</Label>
+                                        <Switch
+                                            checked={
+                                                newCriterion.commentEnabled
+                                            }
+                                            onCheckedChange={(checked) =>
+                                                setNewCriterion((prev) => ({
+                                                    ...prev,
+                                                    commentEnabled: checked,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={handleAddCriterion}
+                                        variant="outline"
+                                        className="flex items-center gap-1"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        Add
+                                    </Button>
+                                </div>
+                                <div className="lg:hidden space-y-4">
+                                    <h4 className="font-medium">
+                                        Add New Criterion
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <Label htmlFor="new-criterion-label-mobile">
+                                                Label
+                                            </Label>
+                                            <Input
+                                                id="new-criterion-label-mobile"
+                                                placeholder="New criterion label"
+                                                value={newCriterion.label}
+                                                onChange={(e) =>
+                                                    setNewCriterion((prev) => ({
+                                                        ...prev,
+                                                        label: e.target.value,
+                                                    }))
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <Label htmlFor="new-criterion-maxpoints-mobile">
+                                                    Points
+                                                </Label>
+                                                <Input
+                                                    id="new-criterion-maxpoints-mobile"
+                                                    type="number"
+                                                    value={
+                                                        newCriterion.maxPoints
+                                                    }
+                                                    min={1}
+                                                    onChange={(e) =>
+                                                        setNewCriterion(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                maxPoints:
+                                                                    Number(
+                                                                        e.target
+                                                                            .value
+                                                                    ),
+                                                            })
                                                         )
                                                     }
                                                 />
                                             </div>
-                                            <Button
-                                                variant="destructive"
-                                                size="icon"
-                                                onClick={() =>
-                                                    handleRemoveCriterion(
-                                                        criterion.id
-                                                    )
-                                                }
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span className="font-medium">
-                                                {criterion.label}
-                                            </span>
-                                            <span>
-                                                Max Points:{' '}
-                                                {criterion.maxPoints}
-                                            </span>
-                                            <span>
-                                                Weight: {criterion.weight}
-                                            </span>
-                                            <span>
-                                                Comment Enabled:{' '}
-                                                {criterion.commentEnabled
-                                                    ? 'Yes'
-                                                    : 'No'}
-                                            </span>
-                                        </>
-                                    )}
+                                            <div>
+                                                <Label htmlFor="new-criterion-weight-mobile">
+                                                    Weight
+                                                </Label>
+                                                <Input
+                                                    id="new-criterion-weight-mobile"
+                                                    type="number"
+                                                    value={newCriterion.weight}
+                                                    min={1}
+                                                    onChange={(e) =>
+                                                        setNewCriterion(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                weight: Number(
+                                                                    e.target
+                                                                        .value
+                                                                ),
+                                                            })
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label>Comment</Label>
+                                                <div className="flex items-center justify-center h-10">
+                                                    <Switch
+                                                        checked={
+                                                            newCriterion.commentEnabled
+                                                        }
+                                                        onCheckedChange={(
+                                                            checked
+                                                        ) =>
+                                                            setNewCriterion(
+                                                                (prev) => ({
+                                                                    ...prev,
+                                                                    commentEnabled:
+                                                                        checked,
+                                                                })
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            onClick={handleAddCriterion}
+                                            variant="outline"
+                                            className="w-full flex items-center gap-2"
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                            Add Criterion
+                                        </Button>
+                                    </div>
                                 </div>
-                            )
-                        )}
-
-                        {!readOnly && !grid?.isValidated && (
-                            <div className="flex flex-col md:flex-row items-center gap-2 pt-4 border-t w-full">
-                                <div className="flex flex-col w-full md:w-32">
-                                    <Label htmlFor="new-criterion-label">
-                                        Label
-                                    </Label>
-                                    <Input
-                                        id="new-criterion-label"
-                                        placeholder="Criterion label"
-                                        value={newCriterion.label}
-                                        onChange={(e) =>
-                                            setNewCriterion((prev) => ({
-                                                ...prev,
-                                                label: e.target.value,
-                                            }))
-                                        }
-                                        className="w-full"
-                                    />
-                                </div>
-                                <div className="flex flex-col w-full md:w-24">
-                                    <Label htmlFor="new-criterion-maxpoints">
-                                        Max Points
-                                    </Label>
-                                    <Input
-                                        id="new-criterion-maxpoints"
-                                        placeholder="Max points"
-                                        type="number"
-                                        value={newCriterion.maxPoints}
-                                        min={1}
-                                        onChange={(e) =>
-                                            setNewCriterion((prev) => ({
-                                                ...prev,
-                                                maxPoints: Number(
-                                                    e.target.value
-                                                ),
-                                            }))
-                                        }
-                                        className="w-full"
-                                    />
-                                </div>
-                                <div className="flex flex-col w-full md:w-24">
-                                    <Label htmlFor="new-criterion-weight">
-                                        Weight
-                                    </Label>
-                                    <Input
-                                        id="new-criterion-weight"
-                                        placeholder="Weight (e.g. 1 or 0.3)"
-                                        type="number"
-                                        value={newCriterion.weight}
-                                        min={1}
-                                        onChange={(e) =>
-                                            setNewCriterion((prev) => ({
-                                                ...prev,
-                                                weight: Number(e.target.value),
-                                            }))
-                                        }
-                                        className="w-full"
-                                    />
-                                </div>
-                                <div className="flex flex-col items-center gap-1">
-                                    <Label htmlFor="commentEnabled">
-                                        Comment
-                                    </Label>
-                                    <Switch
-                                        id="commentEnabled"
-                                        checked={newCriterion.commentEnabled}
-                                        onCheckedChange={(checked) =>
-                                            setNewCriterion((prev) => ({
-                                                ...prev,
-                                                commentEnabled: checked,
-                                            }))
-                                        }
-                                    />
-                                </div>
-                                <Button
-                                    type="button"
-                                    onClick={handleAddCriterion}
-                                    variant="outline"
-                                    className="flex items-center gap-1"
-                                >
-                                    <Plus className="h-4 w-4" />
-                                    Add
-                                </Button>
                             </div>
                         )}
                     </CardContent>
                 </Card>
-
                 <div className="flex justify-end gap-2 pt-6">
                     {onCancel && (
                         <Button

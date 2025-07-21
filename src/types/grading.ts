@@ -1,4 +1,7 @@
+import { ReactNode } from 'react'
+
 export interface GradingCriterion {
+    [x: string]: ReactNode
     id: string
     label: string
     maxPoints: number
@@ -15,13 +18,15 @@ export interface GradingResult {
 }
 
 export interface GradingGrid {
+    [x: string]: unknown
     id: string
     projectId: string
-    type: 'livrable' | 'rapport' | 'soutenance'
+    type: GradingGridType
     targetId: string
-    notationMode: 'groupe' | 'individuel'
+    notationMode: NotationMode
     title: string
     isValidated: boolean
+    validatedAt?: string
     criteria: GradingCriterion[]
     results: GradingResult[]
     generalComment?: string
@@ -31,17 +36,18 @@ export interface GradingGrid {
 
 export interface CreateGradingGridDto {
     projectId: string
-    type: 'livrable' | 'rapport' | 'soutenance'
+    type: GradingGridType
     targetId: string
-    notationMode: 'groupe' | 'individuel'
+    notationMode: NotationMode
     title: string
     criteria: Omit<GradingCriterion, 'id'>[]
+    generalComment?: string
 }
 
 export interface UpdateGradingGridDto {
     title?: string
-    notationMode?: 'groupe' | 'individuel'
-    criteria?: GradingCriterion[]
+    notationMode?: NotationMode
+    criteria?: (Omit<GradingCriterion, 'id'> & { id?: string })[]
 }
 
 export interface GradingApiResponse {
@@ -55,6 +61,7 @@ export interface GradingStats {
     maxScore: number
     percentage: number
     weightedScore: number
+    simpleAverage: number
 }
 
 export interface GradingTarget {
@@ -63,5 +70,11 @@ export interface GradingTarget {
     type: 'group' | 'student'
 }
 
-export type GradingGridType = 'livrable' | 'rapport' | 'soutenance'
-export type NotationMode = 'groupe' | 'individuel'
+export type GradingGridType =
+    | 'livrable'
+    | 'rapport'
+    | 'soutenance'
+    | 'deliverable'
+    | 'report'
+    | 'presentation'
+export type NotationMode = 'groupe' | 'individuel' | 'group' | 'individual'

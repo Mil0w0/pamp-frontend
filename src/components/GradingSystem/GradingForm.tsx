@@ -20,7 +20,7 @@ import {
     GradingResult,
     GradingCriterion,
     GradingApiResponse,
-} from '@/components/GradingSystem/type'
+} from '@/types/grading'
 import { gradingService } from '@/services/GradingService/grading-api-client'
 import {
     formatScore,
@@ -30,8 +30,6 @@ import {
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { useSwipeable } from 'react-swipeable'
 import { toast } from 'sonner'
-
-// Composant optimisé pour un critère individuel
 
 interface GradingFormProps {
     gridId: string
@@ -52,7 +50,7 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
             clearError,
             isResultsComplete,
             canValidate,
-            missingCriteria,
+
             loadGrid,
         } = useGradingGrid({ gridId })
 
@@ -64,7 +62,6 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
         const [currentCriterionIndex, setCurrentCriterionIndex] = useState(0)
         const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-        // Memoized results initialization
         const initialResults = useMemo(() => {
             if (!grid?.results) return {}
 
@@ -81,7 +78,6 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
             return resultMap
         }, [grid?.results, targetGroupId, targetStudentId])
 
-        // Initialize results with existing data, defaulting to 0 for missing criteria when not readOnly
         useEffect(() => {
             const newResults = { ...initialResults }
             if (!readOnly && grid?.criteria) {
@@ -100,11 +96,20 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
             setResults(newResults)
         }, [initialResults, readOnly, grid, targetGroupId, targetStudentId])
 
-        // Separate effect for general comment to avoid unnecessary re-renders
         useEffect(() => {
             setGeneralComment(grid?.generalComment || '')
         }, [grid?.generalComment])
-        // Monitor grid validation status changes with cleanup
+
+        const missingCriteria = useMemo(() => {
+            if (!grid?.criteria) return []
+            return grid.criteria
+                .filter((c) => {
+                    const result = results[c.id]
+                    return !result || result.score == null
+                })
+                .map((c) => c.label)
+        }, [grid, results])
+
         useEffect(() => {
             if (validationTimeoutRef.current) {
                 clearTimeout(validationTimeoutRef.current)
@@ -235,8 +240,6 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
                 return
             }
 
-            // Check that all criteria have a score (0 is a valid score)
-            // Dans handleValidate, remplacer la vérification missingCriteria par:
             const missingCriteria = grid.criteria.filter((criterion) => {
                 const result = results[criterion.id]
                 const isMissing =
@@ -278,7 +281,7 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
                     formattedResults,
                     generalComment,
                 })
-                // Save results first
+
                 const saveResponse: GradingApiResponse | undefined =
                     await gradingService.saveResults(
                         grid.id,
@@ -299,7 +302,7 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
                 }
 
                 console.log('Validating grid', { gridId: grid.id })
-                // Validate
+
                 const validateResponse: GradingApiResponse | undefined =
                     await gradingService.validateGrid(grid.id)
                 console.log('Validate response', validateResponse)
@@ -322,7 +325,6 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
             console.log('handleValidate ended')
         }, [grid, targetGroupId, results, generalComment, loadGrid])
 
-        // Memoized calculations for performance
         const currentStats = useMemo(() => {
             if (!grid) return null
 
@@ -602,7 +604,7 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
                 </Card>
 
                 {/* Validation */}
-                {!isResultsComplete && missingCriteria.length > 0 && (
+                {missingCriteria.length > 0 && (
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
@@ -633,7 +635,7 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
                         {canValidate && (
                             <Button
                                 onClick={handleValidate}
-                                disabled={saving || !isResultsComplete}
+                                disabled={saving || missingCriteria.length > 0}
                             >
                                 <CheckCircle className="h-4 w-4 mr-2" />
                                 Validate Grading
@@ -646,7 +648,6 @@ export const GradingForm: React.FC<GradingFormProps> = memo(
     }
 )
 
-// Memoized child component for a single criterion with swipe
 const GradingCriterionSwipe = React.memo<{
     criterion: GradingCriterion
     index: number
@@ -812,23 +813,3 @@ const GradingCriterionSwipe = React.memo<{
         )
     }
 )
-
-// Add swipe animations to global CSS (e.g., in index.css or a global file)
-/*
-.animate-swipe-left {
-  animation: swipeLeft 0.4s cubic-bezier(0.4,0,0.2,1);
-}
-.animate-swipe-right {
-  animation: swipeRight 0.4s cubic-bezier(0.4,0,0.2,1);
-}
-@keyframes swipeLeft {
-  0% { transform: translateX(0); }
-  80% { transform: translateX(-40px) scale(0.98); }
-  100% { transform: translateX(0); }
-}
-@keyframes swipeRight {
-  0% { transform: translateX(0); }
-  80% { transform: translateX(40px) scale(0.98); }
-  100% { transform: translateX(0); }
-}
-*/
