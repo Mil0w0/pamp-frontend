@@ -112,7 +112,6 @@ export function GradingScaleCreationForm({
                         }
                     }
                 } catch (error) {
-                    /* empty */
                     console.log(error)
                 }
             }

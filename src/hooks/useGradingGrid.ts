@@ -754,7 +754,7 @@ export const useGradingGrid = ({
     )
 
     const removeCriterion = useCallback(
-        async (gridId: string, criterionId: string): Promise<void> => {
+        async (_gridId: string, criterionId: string): Promise<void> => {
             dispatch({ type: 'SET_SAVING', payload: true })
             try {
                 const response =
@@ -861,7 +861,7 @@ export const useGradingGrid = ({
         deleteGrid,
         addCriterion,
         updateCriterion: async (
-            gridId: string,
+            _gridId: string,
             criterionId: string,
             updates: Partial<GradingCriterion>
         ) => {

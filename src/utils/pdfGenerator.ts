@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 import { Project } from '@/components/ManageProjects/types.ts'
 import { toast } from 'sonner'
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { error, PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { ProjectGroup } from '@/components/ProjectPages/types.ts'
 import { OralDTO } from '@/services/ProjectService/types.ts'
 import { User } from '@/services/UserService/types.ts'
@@ -669,8 +669,8 @@ const getStudents = async (studentsIds: string) => {
                 return response.data
             }
         } else {
-            // Ligne 672 supprimée : console.log(response.message)
-            // Ligne 675 supprimée : console.log(error)
+            console.log(response.message)
+            console.log(error)
             return []
         }
     } catch (error) {

@@ -11,16 +11,6 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
     server: {
         port: 5173,
-        cors: {
-            origin: '*',
-            methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-            allowedHeaders: [
-                'Content-Type',
-                'Authorization',
-                'X-Requested-With',
-            ],
-            credentials: true,
-        },
         proxy: {
             '/api/auth': {
                 target: 'http://localhost:3000',
