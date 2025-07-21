@@ -1,4 +1,4 @@
-import { Node, Edge } from 'reactflow'
+import { Edge, Node } from 'reactflow'
 
 // New types matching the real API structure
 export interface SubmissionSimilarity {
@@ -63,6 +63,17 @@ export interface DetailedSimilarityDetails {
     }
 }
 
+export interface SharedBlock {
+    id: string
+    type: string
+    content: string
+    similarity_score: number
+    positions: {
+        file1: { start: number; end: number }
+        file2: { start: number; end: number }
+    }
+}
+
 export interface DetailedSimilarityResponse {
     similarity_id: string
     submissions: {
@@ -73,7 +84,7 @@ export interface DetailedSimilarityResponse {
     analysis_metadata: DetailedSimilarityAnalysis
     detailed_results: {
         similarity_details: DetailedSimilarityDetails
-        shared_blocks: any | null
+        shared_blocks: SharedBlock[] | null
         visualization_data: FilePair[]
     }
 }
