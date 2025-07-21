@@ -277,8 +277,7 @@ function SubmissionsTable({
                                             )
                                         ) : (
                                             <p className="text-xs text-muted-foreground">
-                                                No conformity rules were
-                                                checked.
+                                                Everything is clear.
                                             </p>
                                         )}
                                     </PopoverContent>
@@ -698,7 +697,7 @@ export function StepById() {
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
                                         <Upload className="h-5 w-5" />
-                                        Submit New Work
+                                        Submit new work
                                     </CardTitle>
                                     <CardDescription>
                                         Choose how you want to submit your work
