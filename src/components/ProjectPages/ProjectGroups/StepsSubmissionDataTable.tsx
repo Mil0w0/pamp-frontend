@@ -53,11 +53,14 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
             return (
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{stepName}</span>
+                        <FileText className="h-4 text-muted-foreground" />
+                        <span className="font-medium truncate">{stepName}</span>
                     </div>
                     {stepDescription && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">
+                        <p
+                            className="text-xs text-muted-foreground truncate line-clamp-2"
+                            title={stepDescription}
+                        >
                             {stepDescription}
                         </p>
                     )}
