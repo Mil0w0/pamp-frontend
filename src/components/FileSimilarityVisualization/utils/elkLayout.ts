@@ -9,9 +9,31 @@ interface BoundaryInfo {
     minY: number
 }
 
+// ELK Graph interfaces
+interface ELKNode {
+    id: string
+    x?: number
+    y?: number
+    width?: number
+    height?: number
+    children?: ELKNode[]
+    layoutOptions?: Record<string, string>
+}
+
+interface ELKGraph extends ELKNode {
+    children: ELKNode[]
+    edges?: Array<{
+        id: string
+        sources: string[]
+        targets: string[]
+    }>
+}
+
 // Helper function to find a node in the ELK result
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const findELKNode = (elkGraph: any, nodeId: string): any => {
+export const findELKNode = (
+    elkGraph: ELKNode,
+    nodeId: string
+): ELKNode | null => {
     if (elkGraph.id === nodeId) {
         return elkGraph
     }
@@ -164,7 +186,7 @@ export const applyELKLayout = async (
     const initialBoundaries = calculateSubflowBoundaries(nodes)
 
     // Create ELK graph structure with dynamic container sizing
-    const elkGraph = {
+    const elkGraph: ELKGraph = {
         id: 'root',
         layoutOptions: layoutOptions,
         children: [
