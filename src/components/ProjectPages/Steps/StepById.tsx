@@ -35,7 +35,10 @@ import {
     ValidationError,
 } from '@/services/SubmissionService/types.ts'
 import { submissionService } from '@/services/SubmissionService/submission-api-client.ts'
-import { createS3UploadFunction } from '@/utils/fileUpload.ts'
+import {
+    createS3UploadFunction,
+    handleSubmissionDownload,
+} from '@/utils/fileUpload.ts'
 import { DateTime } from 'luxon'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
 import GroupsSubmissionDataTable from '@/components/ProjectPages/Steps/GroupsSubmissionDataTable.tsx'
@@ -208,10 +211,9 @@ function SubmissionsTable({
                                         size="sm"
                                         className="h-8 w-8 p-0"
                                         onClick={() =>
-                                            window.open(
+                                            handleSubmissionDownload(
                                                 submission.link,
-                                                '_blank',
-                                                'noopener,noreferrer'
+                                                submission.link_type
                                             )
                                         }
                                     >

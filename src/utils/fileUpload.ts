@@ -1,4 +1,8 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import {
+    GetObjectCommand,
+    PutObjectCommand,
+    S3Client,
+} from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -209,4 +213,130 @@ export const createS3UploadForReports = () => {
         maxFileSize: 15 * 1024 * 1024, // 15MB for reports images
         bucketName: 'pamp-reports-images',
     })
+}
+
+// Parse S3 URI format (s3://bucket/key) to extract bucket and key
+const parseS3Uri = (s3Uri: string): { bucket: string; key: string } => {
+    if (!s3Uri.startsWith('s3://')) {
+        throw new Error('Invalid S3 URI format. Expected s3://bucket/key')
+    }
+
+    const uriWithoutProtocol = s3Uri.slice(5) // Remove 's3://'
+    const firstSlashIndex = uriWithoutProtocol.indexOf('/')
+
+    if (firstSlashIndex === -1) {
+        throw new Error('Invalid S3 URI format. Missing key part')
+    }
+
+    const bucket = uriWithoutProtocol.slice(0, firstSlashIndex)
+    const key = uriWithoutProtocol.slice(firstSlashIndex + 1)
+
+    return { bucket, key }
+}
+
+// Download function for private S3 files
+export const downloadS3File = async (
+    s3Uri: string,
+    filename?: string
+): Promise<void> => {
+    try {
+        const { bucket, key } = parseS3Uri(s3Uri)
+
+        // Get the object from S3
+        const getObjectCommand = new GetObjectCommand({
+            Bucket: bucket,
+            Key: key,
+        })
+
+        const response = await s3Client.send(getObjectCommand)
+
+        if (!response.Body) {
+            throw new Error('No file data received from S3')
+        }
+
+        // Convert the stream to a blob
+        const stream = response.Body as ReadableStream
+        const reader = stream.getReader()
+        const chunks: Uint8Array[] = []
+
+        while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            chunks.push(value)
+        }
+
+        // Combine all chunks into a single Uint8Array
+        const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0)
+        const combinedArray = new Uint8Array(totalLength)
+        let offset = 0
+
+        for (const chunk of chunks) {
+            combinedArray.set(chunk, offset)
+            offset += chunk.length
+        }
+
+        // Create blob and trigger download
+        const blob = new Blob([combinedArray], {
+            type: response.ContentType || 'application/octet-stream',
+        })
+
+        // Extract filename from key if not provided
+        const downloadFilename = filename || key.split('/').pop() || 'download'
+
+        // Create download link and trigger download
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = downloadFilename
+        document.body.appendChild(link)
+        link.click()
+
+        // Cleanup
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+    } catch (error) {
+        console.error('S3 download failed:', error)
+
+        if (error instanceof Error) {
+            // Check for common AWS errors
+            if (error.message.includes('NoSuchBucket')) {
+                throw new Error('S3 bucket does not exist')
+            } else if (error.message.includes('NoSuchKey')) {
+                throw new Error('File not found in S3')
+            } else if (error.message.includes('AccessDenied')) {
+                throw new Error('Access denied. Please check your permissions.')
+            } else if (error.message.includes('InvalidAccessKeyId')) {
+                throw new Error('Invalid AWS access key ID.')
+            } else if (error.message.includes('SignatureDoesNotMatch')) {
+                throw new Error('Invalid AWS secret access key.')
+            }
+            throw error
+        }
+
+        throw new Error('Failed to download file from S3. Please try again.')
+    }
+}
+
+// Unified download handler for submissions
+export const handleSubmissionDownload = async (
+    link: string,
+    linkType: string
+) => {
+    const { toast } = await import('sonner')
+
+    try {
+        if (linkType === 's3' && link.startsWith('s3://')) {
+            // Use S3 downloader for private S3 files
+            await downloadS3File(link)
+            toast.success('File download started')
+        } else {
+            // For GitHub links or public URLs, open in new window
+            window.open(link, '_blank', 'noopener,noreferrer')
+        }
+    } catch (error) {
+        console.error('Download failed:', error)
+        toast.error(
+            error instanceof Error ? error.message : 'Failed to download file'
+        )
+    }
 }
