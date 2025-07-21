@@ -15,14 +15,18 @@ import {
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import {
+    AlertCircle,
     Calendar,
     CheckIcon,
     ClockIcon,
     DownloadIcon,
     ExternalLink,
     FileIcon,
+    FileText,
     GithubIcon,
+    Link2,
     TrashIcon,
+    Upload,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button.tsx'
 import {
@@ -37,6 +41,203 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
 import GroupsSubmissionDataTable from '@/components/ProjectPages/Steps/GroupsSubmissionDataTable.tsx'
 import { ApiErrorMessage } from '@/services/ProjectService/types.ts'
 import { Badge } from '@/components/ui/badge.tsx'
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card'
+
+// New component for displaying existing submissions in a table format
+function SubmissionsTable({
+    submission,
+    step,
+    conformityLevel,
+    onDelete,
+}: {
+    submission: SubmissionResponse | null
+    step: Partial<Step> | null
+    conformityLevel: number
+    onDelete: () => void
+}) {
+    if (!submission) {
+        return (
+            <Card className="bg-white dark:bg-muted">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Submissions for this step
+                    </CardTitle>
+                    <CardDescription>
+                        No submissions have been made for this step yet
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p>No submissions yet</p>
+                        <p className="text-sm">
+                            Submit your work using the form below
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
+    const isLate =
+        step?.submissionDeadLine &&
+        DateTime.fromISO(submission.created_at) >
+            DateTime.fromISO(step.submissionDeadLine)
+
+    return (
+        <Card className="bg-white dark:bg-muted">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Submissions for this step
+                    <Badge variant="default">1</Badge>
+                </CardTitle>
+                <CardDescription>
+                    Your submission details and status
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="border rounded-lg overflow-hidden">
+                    {/* Table Header */}
+                    <div className="bg-muted/50 px-4 py-3 border-b">
+                        <div className="grid grid-cols-12 gap-4 text-sm font-medium">
+                            <div className="col-span-3">Type & Link</div>
+                            <div className="col-span-3">Submitted</div>
+                            <div className="col-span-2">Status</div>
+                            <div className="col-span-2">Conformity</div>
+                            <div className="col-span-2">Actions</div>
+                        </div>
+                    </div>
+
+                    {/* Table Row */}
+                    <div className="px-4 py-4">
+                        <div className="grid grid-cols-12 gap-4 items-center">
+                            {/* Type & Link */}
+                            <div className="col-span-3">
+                                <div className="flex items-center gap-2">
+                                    {submission.link_type === 'github' ? (
+                                        <GithubIcon className="h-4 w-4 text-muted-foreground" />
+                                    ) : (
+                                        <FileIcon className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                    <div className="flex flex-col">
+                                        <Badge
+                                            variant="secondary"
+                                            className="text-xs w-fit"
+                                        >
+                                            {submission.link_type === 'github'
+                                                ? 'GitHub'
+                                                : 'File'}
+                                        </Badge>
+                                        {submission.link_type === 'github' && (
+                                            <span className="text-xs text-muted-foreground mt-1 truncate max-w-32">
+                                                {submission.link}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Submitted */}
+                            <div className="col-span-3">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium">
+                                            {DateTime.fromISO(
+                                                submission.created_at
+                                            ).toFormat('dd/MM/yyyy')}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {DateTime.fromISO(
+                                                submission.created_at
+                                            ).toFormat('HH:mm')}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Status */}
+                            <div className="col-span-2">
+                                <Badge
+                                    variant={isLate ? 'destructive' : 'default'}
+                                    className="flex items-center gap-1 w-fit"
+                                >
+                                    {isLate ? (
+                                        <>
+                                            <ClockIcon className="h-3 w-3" />
+                                            Late
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckIcon className="h-3 w-3" />
+                                            On time
+                                        </>
+                                    )}
+                                </Badge>
+                            </div>
+
+                            {/* Conformity */}
+                            <div className="col-span-2">
+                                <Badge
+                                    variant="outline"
+                                    className={
+                                        conformityLevel === 0
+                                            ? 'text-red-500 border-red-500'
+                                            : conformityLevel === 100
+                                              ? 'text-green-600 border-green-600'
+                                              : 'text-yellow-500 border-yellow-500'
+                                    }
+                                >
+                                    {conformityLevel}%
+                                </Badge>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="col-span-2">
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        onClick={() =>
+                                            window.open(
+                                                submission.link,
+                                                '_blank',
+                                                'noopener,noreferrer'
+                                            )
+                                        }
+                                    >
+                                        {submission.link_type === 'github' ? (
+                                            <ExternalLink className="h-4 w-4" />
+                                        ) : (
+                                            <DownloadIcon className="h-4 w-4" />
+                                        )}
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                                        onClick={onDelete}
+                                    >
+                                        <TrashIcon className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 export function StepById() {
     const { stepId, projectId } = useParams()
@@ -190,11 +391,12 @@ export function StepById() {
         if (
             !step.allowSubmittingAfterDeadLine &&
             step.submissionDeadLine &&
-            DateTime.fromISO(step.submissionDeadLine) > DateTime.now()
+            DateTime.fromISO(step.submissionDeadLine) < DateTime.now()
         ) {
             toast.error(
                 'It is too late to submit something. Contact your teacher or cry'
             )
+            setisLoading(false)
             return
         }
 
@@ -221,8 +423,16 @@ export function StepById() {
                 ) {
                     //it got created
                     //Update step with the submissionID
-
                     toast.success(response.data.message)
+                    // Reload submission data
+                    await loadSubmission()
+                    // Clear form
+                    setSubmissionLocal({
+                        ...submissionLocal,
+                        link: '',
+                    })
+                    setFile(null)
+                    setErrors(null)
                 } else {
                     //it didn't create
                     if (response.data && response.data instanceof Array) {
@@ -307,7 +517,6 @@ export function StepById() {
     }
 
     const uploadFile = async () => {
-        setisLoading(true)
         if (!file) {
             toast.error('No file to upload')
             return null
@@ -354,8 +563,6 @@ export function StepById() {
             console.error(err)
             toast.error(error.message)
             return null
-        } finally {
-            setisLoading(false)
         }
     }
 
@@ -376,265 +583,275 @@ export function StepById() {
         return <LoadingSpinner />
     }
     if (!step) return null
+
+    const isAfterDeadline =
+        step.submissionDeadLine &&
+        DateTime.fromISO(step.submissionDeadLine) < DateTime.now()
+
     return (
-        <div className="m-2">
-            <StepBox
-                step={step}
-                index={0} //we display the step name instead of number in list here
-            />
-            {step.hasMandatorySubmission && isStudent ? (
-                <Tabs
-                    defaultValue={
-                        submission?.link_type === 's3' ? 'file' : 'link'
-                    }
-                    className="w-full mt-4"
-                >
-                    <h2 className="text">Choose how to submit: </h2>
-                    <TabsList>
-                        <TabsTrigger value="link">Link</TabsTrigger>
-                        <TabsTrigger value="file">File</TabsTrigger>
-                    </TabsList>
-                    {errors &&
-                        errors.map((error, index) => (
-                            <p key={index} className="text-xs text-red-500">
-                                {error}
-                            </p>
-                        ))}
+        <div className="min-h-screen bg-background">
+            <div className="container mx-auto p-6 space-y-8">
+                {/* Step Information */}
+                <StepBox
+                    step={step}
+                    index={0} //we display the step name instead of number in list here
+                />
 
-                    <TabsContent value="link">
-                        <div className="mt-4 space-y-4 rounded-xl border bg-white p-6 shadow-sm dark:bg-muted">
-                            {/* Input Section */}
-                            <div className="space-y-2 w-full">
-                                <Label htmlFor="submission-link">
-                                    Repo link
-                                </Label>
-                                <Input
-                                    id="submission-link"
-                                    type="text"
-                                    value={submissionLocal.link}
-                                    onChange={handleLinkChange}
-                                    className="w-1/3"
-                                    placeholder="https://github.com/your-repo"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    Paste your GitHub or GitLab repo link here.
-                                    Make sure it’s public before submitting.
-                                </p>
-                                <Button onClick={checkConformity}>Send</Button>
-                            </div>
+                {isStudent ? (
+                    <div className="space-y-8">
+                        {/* Existing Submissions Section */}
+                        <SubmissionsTable
+                            submission={submission}
+                            step={step}
+                            conformityLevel={conformityLevel}
+                            onDelete={deleteSubmission}
+                        />
 
-                            {/* Submitted GitHub Link */}
-                            {submission?.link_type === 'github' && (
-                                <div className="rounded-md border p-4 space-y-2 text-sm">
-                                    <div className="flex items-center gap-2 font-medium">
-                                        <GithubIcon className="h-4 w-4" />
-                                        <span>Current Submission</span>
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-4">
-                                        {/* Link */}
-                                        <Button
-                                            variant="link"
-                                            className="p-0 h-auto text-blue-600"
-                                            onClick={() =>
-                                                window.open(
-                                                    submission.link,
-                                                    '_blank'
-                                                )
-                                            }
-                                        >
-                                            <ExternalLink className="mr-1 h-4 w-4" />
-                                            Open Link
-                                        </Button>
-
-                                        {/* Created At */}
-                                        <div className="text-muted-foreground">
-                                            <span className="font-medium">
-                                                Created at:
-                                            </span>{' '}
-                                            {DateTime.fromISO(
-                                                submission.created_at
-                                            ).toFormat('dd/MM/yyyy HH:mm')}
-                                        </div>
-
-                                        {/* Status Badge */}
-                                        <Badge
-                                            variant={
-                                                step.submissionDeadLine &&
-                                                DateTime.fromISO(
-                                                    submission.created_at
-                                                ) >
-                                                    DateTime.fromISO(
-                                                        step.submissionDeadLine
-                                                    )
-                                                    ? 'destructive'
-                                                    : 'default'
-                                            }
-                                            className="flex items-center gap-1"
-                                        >
-                                            {step.submissionDeadLine &&
-                                            DateTime.fromISO(
-                                                submission.created_at
-                                            ) >
-                                                DateTime.fromISO(
-                                                    step.submissionDeadLine
-                                                ) ? (
-                                                <>
-                                                    <ClockIcon className="h-3 w-3" />
-                                                    Late
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <CheckIcon className="h-3 w-3" />
-                                                    On time
-                                                </>
-                                            )}
-                                        </Badge>
-
-                                        {/* Conformity */}
-                                        <Badge
-                                            className={`font-medium ${
-                                                conformityLevel === 0
-                                                    ? 'bg-red-500'
-                                                    : conformityLevel === 100
-                                                      ? 'bg-green-500'
-                                                      : 'bg-yellow-500'
-                                            }`}
-                                        >
-                                            Conformity: {conformityLevel}%
-                                        </Badge>
-
-                                        <TrashIcon
-                                            className="h-5 w-5 text-red-500 cursor-pointer"
-                                            onClick={deleteSubmission}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </TabsContent>
-
-                    <TabsContent value="file">
-                        <div className="mt-4 w-full space-y-6 rounded-xl border bg-white p-6 shadow-sm dark:bg-muted">
-                            {/* Upload Section */}
-                            <div className="space-y-2">
-                                <Label htmlFor="submission-file">
-                                    Upload a file
-                                </Label>
-                                <Input
-                                    id="submission-file"
-                                    type="file"
-                                    onChange={handleFileChange}
-                                    className={'w-1/3'}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    Max file size: 300MB
-                                </p>
-                                <Button onClick={checkConformity}>Send</Button>
-                            </div>
-
-                            {/* Current File Info */}
-                            {submission?.link_type === 's3' && (
-                                <div className="rounded-md border p-4 space-y-3">
-                                    <Label className="text-sm font-semibold">
-                                        Current Submission
-                                    </Label>
-                                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                                        <div className="flex items-center gap-2">
-                                            <FileIcon className="h-4 w-4 text-muted-foreground" />
-                                            <span>
-                                                File ID: {submission.id}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                                            <span>
-                                                Uploaded:{' '}
+                        {/* New Submission Section */}
+                        {step.hasMandatorySubmission && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Upload className="h-5 w-5" />
+                                        Submit New Work
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Choose how you want to submit your work
+                                        for this step
+                                        {step.submissionDeadLine && (
+                                            <span className="block mt-1">
+                                                Deadline:{' '}
                                                 {DateTime.fromISO(
-                                                    submission.created_at
+                                                    step.submissionDeadLine
                                                 ).toFormat('dd/MM/yyyy HH:mm')}
                                             </span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge
-                                                variant={
-                                                    step.submissionDeadLine &&
-                                                    DateTime.fromISO(
-                                                        submission.created_at
-                                                    ) >
-                                                        DateTime.fromISO(
-                                                            step.submissionDeadLine
+                                        )}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    {isAfterDeadline &&
+                                        !step.allowSubmittingAfterDeadLine && (
+                                            <div className="mb-6 p-4 border border-red-200 bg-red-50 rounded-lg flex items-start gap-2">
+                                                <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                                <p className="text-red-800 text-sm">
+                                                    The submission deadline has
+                                                    passed. Contact your teacher
+                                                    if you need to submit late.
+                                                </p>
+                                            </div>
+                                        )}
+
+                                    {errors && errors.length > 0 && (
+                                        <div className="mb-6 p-4 border border-red-200 bg-red-50 rounded-lg">
+                                            <div className="flex items-start gap-2">
+                                                <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                                <div className="space-y-1">
+                                                    {errors.map(
+                                                        (error, index) => (
+                                                            <p
+                                                                key={index}
+                                                                className="text-red-800 text-sm"
+                                                            >
+                                                                {error}
+                                                            </p>
                                                         )
-                                                        ? 'destructive'
-                                                        : 'default'
-                                                }
-                                                className="gap-1"
-                                            >
-                                                {step.submissionDeadLine &&
-                                                DateTime.fromISO(
-                                                    submission.created_at
-                                                ) >
-                                                    DateTime.fromISO(
-                                                        step.submissionDeadLine
-                                                    ) ? (
-                                                    <>
-                                                        <ClockIcon className="h-3 w-3" />
-                                                        Late
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <CheckIcon className="h-3 w-3" />
-                                                        On time
-                                                    </>
-                                                )}
-                                            </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge
-                                                variant="outline"
-                                                className={
-                                                    conformityLevel === 0
-                                                        ? 'text-red-500 border-red-500'
-                                                        : conformityLevel ===
-                                                            100
-                                                          ? 'text-green-600 border-green-600'
-                                                          : 'text-yellow-500 border-yellow-500'
-                                                }
+                                    )}
+
+                                    <Tabs
+                                        defaultValue="link"
+                                        className="w-full"
+                                    >
+                                        <TabsList className="grid w-full grid-cols-2">
+                                            <TabsTrigger
+                                                value="link"
+                                                className="flex items-center gap-2"
                                             >
-                                                Conformity: {conformityLevel}%
-                                            </Badge>
-                                        </div>
+                                                <Link2 className="h-4 w-4" />
+                                                Repository Link
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                                value="file"
+                                                className="flex items-center gap-2"
+                                            >
+                                                <Upload className="h-4 w-4" />
+                                                File Upload
+                                            </TabsTrigger>
+                                        </TabsList>
 
-                                        <TrashIcon
-                                            className="h-5 w-5 text-muted-foreground hover:text-red-600 cursor-pointer"
-                                            onClick={deleteSubmission}
-                                        />
+                                        <TabsContent
+                                            value="link"
+                                            className="space-y-6 mt-6"
+                                        >
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label
+                                                        htmlFor="repo-link"
+                                                        className="text-base font-medium"
+                                                    >
+                                                        Repository URL
+                                                    </Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <GithubIcon className="h-5 w-5 text-muted-foreground" />
+                                                        <Input
+                                                            id="repo-link"
+                                                            type="url"
+                                                            value={
+                                                                submissionLocal.link
+                                                            }
+                                                            onChange={
+                                                                handleLinkChange
+                                                            }
+                                                            placeholder="https://github.com/username/repository"
+                                                            className="flex-1"
+                                                            disabled={Boolean(
+                                                                isAfterDeadline &&
+                                                                    !step.allowSubmittingAfterDeadLine
+                                                            )}
+                                                        />
+                                                    </div>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Make sure your
+                                                        repository is public and
+                                                        accessible before
+                                                        submitting.
+                                                    </p>
+                                                </div>
 
-                                        <DownloadIcon
-                                            className="h-5 w-5 text-muted-foreground hover:text-blue-600 cursor-pointer"
-                                            onClick={() =>
-                                                window.open(
-                                                    submission.link,
-                                                    '_blank',
-                                                    'noopener,noreferrer'
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </TabsContent>
-                </Tabs>
-            ) : (
-                !isStudent && (
+                                                <Button
+                                                    onClick={checkConformity}
+                                                    disabled={
+                                                        !submissionLocal.link ||
+                                                        isloading ||
+                                                        Boolean(
+                                                            isAfterDeadline &&
+                                                                !step.allowSubmittingAfterDeadLine
+                                                        )
+                                                    }
+                                                    className="w-full sm:w-auto"
+                                                >
+                                                    {isloading ? (
+                                                        <>
+                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                                            Submitting...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <ExternalLink className="h-4 w-4 mr-2" />
+                                                            Submit Repository
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </TabsContent>
+
+                                        <TabsContent
+                                            value="file"
+                                            className="space-y-6 mt-6"
+                                        >
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label
+                                                        htmlFor="file-upload"
+                                                        className="text-base font-medium"
+                                                    >
+                                                        Select File
+                                                    </Label>
+                                                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 hover:border-muted-foreground/50 transition-colors">
+                                                        <div className="flex flex-col items-center space-y-2">
+                                                            <Upload className="h-8 w-8 text-muted-foreground" />
+                                                            <div className="text-center">
+                                                                <Input
+                                                                    id="file-upload"
+                                                                    type="file"
+                                                                    onChange={
+                                                                        handleFileChange
+                                                                    }
+                                                                    className="cursor-pointer"
+                                                                    disabled={Boolean(
+                                                                        isAfterDeadline &&
+                                                                            !step.allowSubmittingAfterDeadLine
+                                                                    )}
+                                                                />
+                                                                <p className="text-sm text-muted-foreground mt-2">
+                                                                    Maximum file
+                                                                    size: 300MB
+                                                                </p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    Supported
+                                                                    formats:
+                                                                    PDF, ZIP,
+                                                                    Word, Excel,
+                                                                    PowerPoint,
+                                                                    Text files
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {file && (
+                                                        <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                                                            <FileIcon className="h-4 w-4 text-muted-foreground" />
+                                                            <span className="text-sm font-medium">
+                                                                {file.name}
+                                                            </span>
+                                                            <span className="text-xs text-muted-foreground">
+                                                                (
+                                                                {(
+                                                                    file.size /
+                                                                    1024 /
+                                                                    1024
+                                                                ).toFixed(
+                                                                    1
+                                                                )}{' '}
+                                                                MB)
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <Button
+                                                    onClick={checkConformity}
+                                                    disabled={
+                                                        !file ||
+                                                        isloading ||
+                                                        Boolean(
+                                                            isAfterDeadline &&
+                                                                !step.allowSubmittingAfterDeadLine
+                                                        )
+                                                    }
+                                                    className="w-full sm:w-auto"
+                                                >
+                                                    {isloading ? (
+                                                        <>
+                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                                            Uploading...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Upload className="h-4 w-4 mr-2" />
+                                                            Upload File
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </TabsContent>
+                                    </Tabs>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                ) : (
+                    // Teacher view - show all group submissions
                     <GroupsSubmissionDataTable
                         groups={currentProject?.groups}
                         submissions={stepSubmissions}
                         stepDeadline={step.submissionDeadLine}
                     />
-                )
-            )}
+                )}
+            </div>
         </div>
     )
 }
