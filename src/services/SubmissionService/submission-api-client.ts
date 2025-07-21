@@ -218,7 +218,7 @@ export const submissionService = {
     },
     createOne: async (
         submissionDto: SubmissionDTO,
-        forceRules: boolean = false
+        forceRules: boolean = true
     ): Promise<CreatedSubmissionResponse | SubmissionApiResponse> => {
         //Force creation and store unsucessful rules check
         try {
