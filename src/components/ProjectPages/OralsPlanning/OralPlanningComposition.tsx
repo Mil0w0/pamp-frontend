@@ -22,6 +22,7 @@ import {
     generateAttendanceSheet,
     generatePlanning,
 } from '@/utils/pdfGenerator.ts'
+import GroupAccordion from '@/components/ProjectPages/OralsPlanning/GroupAccordion.tsx'
 
 type OralPlanningProps = {
     currentProject: Project
@@ -198,14 +199,13 @@ export default function OralPlanningComposition({
                             <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                                 {groups.length > 0 ? (
                                     groups.map((group) => (
-                                        <div
-                                            className="bg-muted flex p-2 rounded-sm cursor-pointer"
-                                            onClick={() =>
+                                        <GroupAccordion
+                                            key={group.id}
+                                            goToGroup={() =>
                                                 goToGroupById(group.id)
                                             }
-                                        >
-                                            {group.name}
-                                        </div>
+                                            group={group}
+                                        />
                                     ))
                                 ) : (
                                     <div className="text-center p-6 text-muted-foreground">
