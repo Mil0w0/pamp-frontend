@@ -15,8 +15,10 @@ import {
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import {
+    AlertTriangle,
     AlertCircle,
     Calendar,
+    CheckCircle,
     CheckIcon,
     ClockIcon,
     DownloadIcon,
@@ -41,6 +43,11 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
 import GroupsSubmissionDataTable from '@/components/ProjectPages/Steps/GroupsSubmissionDataTable.tsx'
 import { ApiErrorMessage } from '@/services/ProjectService/types.ts'
 import { Badge } from '@/components/ui/badge.tsx'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover'
 import {
     Card,
     CardContent,
@@ -186,18 +193,96 @@ function SubmissionsTable({
 
                             {/* Conformity */}
                             <div className="col-span-2">
-                                <Badge
-                                    variant="outline"
-                                    className={
-                                        conformityLevel === 0
-                                            ? 'text-red-500 border-red-500'
-                                            : conformityLevel === 100
-                                              ? 'text-green-600 border-green-600'
-                                              : 'text-yellow-500 border-yellow-500'
-                                    }
-                                >
-                                    {conformityLevel}%
-                                </Badge>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Badge
+                                            variant="outline"
+                                            className={`cursor-pointer font-medium ${
+                                                conformityLevel === 0
+                                                    ? 'text-red-500 border-red-500'
+                                                    : conformityLevel === 100
+                                                      ? 'text-green-600 border-green-600'
+                                                      : 'text-yellow-500 border-yellow-500'
+                                            }`}
+                                        >
+                                            Conformity: {conformityLevel}%
+                                        </Badge>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-96 max-h-80 overflow-auto p-4 space-y-3">
+                                        {submission?.rule_results &&
+                                        submission.rule_results.length > 0 ? (
+                                            submission.rule_results.map(
+                                                (rule, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className={`p-2 rounded border text-sm ${
+                                                            rule.passed
+                                                                ? 'border-green-300 bg-green-50 dark:bg-muted'
+                                                                : 'border-red-300 bg-red-50  dark:bg-muted'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="font-semibold">
+                                                                {rule.rule_name}
+                                                            </span>
+                                                            {rule.passed ? (
+                                                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                                            ) : (
+                                                                <AlertTriangle className="h-4 w-4 text-red-600" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground mt-1">
+                                                            {rule.message}
+                                                        </p>
+
+                                                        {/* Show error details if rule failed */}
+                                                        {!rule.passed &&
+                                                            rule.error_details?.errors?.map(
+                                                                (err, i) => (
+                                                                    <div
+                                                                        key={i}
+                                                                        className="mt-1 text-xs text-red-700"
+                                                                    >
+                                                                        -{' '}
+                                                                        {
+                                                                            err.message
+                                                                        }
+                                                                        {err.failed_files?.map(
+                                                                            (
+                                                                                file,
+                                                                                fi
+                                                                            ) => (
+                                                                                <div
+                                                                                    key={
+                                                                                        fi
+                                                                                    }
+                                                                                    className="ml-2 text-red-500"
+                                                                                >
+                                                                                    File:{' '}
+                                                                                    {
+                                                                                        file.file
+                                                                                    }{' '}
+                                                                                    –{' '}
+                                                                                    {
+                                                                                        file.reason
+                                                                                    }
+                                                                                </div>
+                                                                            )
+                                                                        )}
+                                                                    </div>
+                                                                )
+                                                            )}
+                                                    </div>
+                                                )
+                                            )
+                                        ) : (
+                                            <p className="text-xs text-muted-foreground">
+                                                No conformity rules were
+                                                checked.
+                                            </p>
+                                        )}
+                                    </PopoverContent>
+                                </Popover>
                             </div>
 
                             {/* Actions */}
@@ -393,10 +478,10 @@ export function StepById() {
             step.submissionDeadLine &&
             DateTime.fromISO(step.submissionDeadLine) < DateTime.now()
         ) {
+            setisLoading(false)
             toast.error(
                 'It is too late to submit something. Contact your teacher or cry'
             )
-            setisLoading(false)
             return
         }
 
