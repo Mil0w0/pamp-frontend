@@ -505,9 +505,20 @@ export function StepById() {
                     response.data &&
                     'data' in response.data
                 ) {
-                    //it got created
-                    //Update step with the submissionID
-                    toast.success(response.data.message)
+                    //Check conformity since we force_rules
+                    const ruleResults = response.data.rule_results
+                    if (
+                        ruleResults &&
+                        Array.isArray(ruleResults) &&
+                        ruleResults.some((rule) => !rule.passed)
+                    ) {
+                        toast.info(
+                            response.data.message +
+                                " but some conformity rules didn't pass."
+                        )
+                    } else {
+                        toast.success(response.data.message)
+                    }
                     // Reload submission data
                     await loadSubmission()
                     // Clear form

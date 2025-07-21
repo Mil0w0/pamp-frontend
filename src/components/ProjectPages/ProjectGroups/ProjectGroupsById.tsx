@@ -538,7 +538,7 @@ export default function ProjectGroupsById() {
                                             .map((student) => (
                                                 <Avatar
                                                     key={student.user_id}
-                                                    className="border-2 border-background h-8 w-8"
+                                                    className="border-2 border-background h-8 w-8 mr-2"
                                                 >
                                                     <AvatarFallback className="text-xs">
                                                         {student.first_name[0]}
