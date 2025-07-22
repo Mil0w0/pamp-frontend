@@ -7,10 +7,12 @@ import {
     ChevronLeft,
     ChevronRight,
     ChevronUp,
+    ExternalLink,
     Files,
     Loader2,
     Users,
 } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router'
 import { Button } from '@/components/ui/button'
 import {
     Select,
@@ -48,6 +50,7 @@ interface SidebarPanelProps {
     onSimilarityChange?: (similarityId: string) => void
     // Comparison context for meaningful display
     comparisonContext?: ComparisonContext | null
+    projectId?: string
 }
 
 export const SidebarPanel: React.FC<SidebarPanelProps> = ({
@@ -64,8 +67,22 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
     currentSimilarityId,
     onSimilarityChange,
     comparisonContext,
+    projectId,
 }) => {
+    const navigate = useNavigate()
+    useParams<{ submissionId: string }>()
     const nodeStats = getNodeStats(currentPair.react_flow?.nodes || [])
+
+    const handleViewGroup = (groupId: string | undefined) => {
+        if (!groupId || !projectId) {
+            console.warn('Missing group ID or project ID for navigation', {
+                groupId,
+                projectId,
+            })
+            return
+        }
+        navigate(`/projects/${projectId}/groups/${groupId}`)
+    }
 
     return (
         <div
@@ -255,27 +272,42 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                             <div className="space-y-4">
                                 {/* Step Information */}
                                 <div className="text-center">
-                                    <div className="text-sm font-medium text-sidebar-foreground mb-2">
-                                        Comparing submissions for step:
-                                    </div>
                                     <Badge
                                         variant="secondary"
                                         className="text-sm px-3 py-1"
                                     >
-                                        {comparisonContext.stepName ||
-                                            'Unknown Step'}
+                                        Step: {comparisonContext.stepName}
                                     </Badge>
                                 </div>
 
                                 {/* Submission 1 */}
                                 <div className="bg-muted rounded p-3">
-                                    <div className="text-sm font-medium text-sidebar-foreground mb-2">
-                                        <Users className="inline h-4 w-4 mr-1" />
-                                        Group:{' '}
-                                        {
-                                            comparisonContext.submission1
-                                                .groupName
-                                        }
+                                    <div className="text-sm font-medium text-sidebar-foreground mb-2 flex items-center justify-between">
+                                        <div className="flex items-center">
+                                            <Users className="inline h-4 w-4 mr-1" />
+                                            Group:{' '}
+                                            {
+                                                comparisonContext.submission1
+                                                    .groupName
+                                            }
+                                        </div>
+                                        {comparisonContext.submission1
+                                            .groupId && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0"
+                                                onClick={() =>
+                                                    handleViewGroup(
+                                                        comparisonContext
+                                                            .submission1.groupId
+                                                    )
+                                                }
+                                                title="View group details"
+                                            >
+                                                <ExternalLink className="h-3 w-3" />
+                                            </Button>
+                                        )}
                                     </div>
                                     {comparisonContext.submission1
                                         .groupMembers &&
@@ -326,13 +358,32 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
 
                                 {/* Submission 2 */}
                                 <div className="bg-muted rounded p-3">
-                                    <div className="text-sm font-medium text-sidebar-foreground mb-2">
-                                        <Users className="inline h-4 w-4 mr-1" />
-                                        Group:{' '}
-                                        {
-                                            comparisonContext.submission2
-                                                .groupName
-                                        }
+                                    <div className="text-sm font-medium text-sidebar-foreground mb-2 flex items-center justify-between">
+                                        <div className="flex items-center">
+                                            <Users className="inline h-4 w-4 mr-1" />
+                                            Group:{' '}
+                                            {
+                                                comparisonContext.submission2
+                                                    .groupName
+                                            }
+                                        </div>
+                                        {comparisonContext.submission2
+                                            .groupId && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0"
+                                                onClick={() =>
+                                                    handleViewGroup(
+                                                        comparisonContext
+                                                            .submission2.groupId
+                                                    )
+                                                }
+                                                title="View group details"
+                                            >
+                                                <ExternalLink className="h-3 w-3" />
+                                            </Button>
+                                        )}
                                     </div>
                                     {comparisonContext.submission2
                                         .groupMembers &&
