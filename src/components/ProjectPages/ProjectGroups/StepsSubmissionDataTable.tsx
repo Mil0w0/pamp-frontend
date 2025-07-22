@@ -4,13 +4,17 @@ import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
 import { SubmissionResponse } from '@/services/SubmissionService/types'
 import { Step } from '@/components/ProjectPages/types'
+import { SimilarityCell } from '@/components/ProjectPages/Steps/SimilarityCell'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/store'
 import {
-    ExternalLink,
-    Clock,
-    CheckCircle,
     AlertTriangle,
-    FileText,
     Calendar,
+    CheckCircle,
+    Clock,
+    ExternalLink,
+    Eye,
+    FileText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,6 +43,7 @@ export type StepSubmissionRow = {
     submissionGrade?: number
     submissionFeedback?: string
     rules: ConformityRules[]
+    submissionId?: string
 }
 
 export const columns: ColumnDef<StepSubmissionRow>[] = [
@@ -294,6 +299,19 @@ export const columns: ColumnDef<StepSubmissionRow>[] = [
         },
     },
     {
+        accessorKey: 'submissionId',
+        header: () => (
+            <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Similarity
+            </div>
+        ),
+        cell: ({ row }) => (
+            <SimilarityCell submissionId={row.original.submissionId} />
+        ),
+        enableSorting: false,
+    },
+    {
         accessorKey: 'rules',
         header: 'Rules',
         cell: ({ row }) => {
@@ -358,6 +376,7 @@ export function StepsSubmissionDataTable({
     submissions: SubmissionResponse[] | null
     steps: Step[]
 }) {
+    const { currentUser } = useSelector((state: RootState) => state.user)
     // Filter steps that require submission
     const rows: StepSubmissionRow[] = steps
         .filter((step) => step.hasMandatorySubmission)
@@ -401,8 +420,18 @@ export function StepsSubmissionDataTable({
                 submissionGrade: undefined,
                 submissionFeedback: undefined,
                 rules: step?.submissionConformityRules || [],
+                submissionId: submission?.id,
             }
         })
+
+    // Filter columns based on user role
+    const filteredColumns =
+        currentUser?.role === 'TEACHER'
+            ? columns
+            : columns.filter((_col, index) => {
+                  // Remove the similarity column (which is the second to last column)
+                  return index !== columns.length - 2
+              })
 
     // Calculate summary statistics
     const totalSteps = rows.length
@@ -446,7 +475,7 @@ export function StepsSubmissionDataTable({
 
             {/* Data Table */}
             <div className="border rounded-lg">
-                <DataTable columns={columns} data={rows} />
+                <DataTable columns={filteredColumns} data={rows} />
             </div>
 
             {/* Legend */}
