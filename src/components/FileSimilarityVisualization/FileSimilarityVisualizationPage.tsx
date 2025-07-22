@@ -617,6 +617,10 @@ const FileSimilarityVisualizationPage: React.FC = () => {
                     currentSimilarityId={currentSimilarityId}
                     onSimilarityChange={switchToSimilarity}
                     comparisonContext={comparisonContext}
+                    projectId={
+                        comparisonContext?.submission1?.projectId ||
+                        comparisonContext?.submission2?.projectId
+                    }
                 />
 
                 {/* Main Content Area */}
