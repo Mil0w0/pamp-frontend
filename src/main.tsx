@@ -144,11 +144,11 @@ createRoot(document.getElementById('root')!).render(
                     />
                     <Route
                         path="/similarity/submission/:submissionId"
-                        element={<FileSimilarityVisualizationPage />}
-                    />
-                    <Route
-                        path="/similarity/test/refactoring"
-                        element={<FileSimilarityVisualizationPage />}
+                        element={
+                            <ProtectedRoute allowedRoles={['TEACHER']}>
+                                <FileSimilarityVisualizationPage />
+                            </ProtectedRoute>
+                        }
                     />
                     <Route path="*" element={<Error404 />} />
                 </Routes>

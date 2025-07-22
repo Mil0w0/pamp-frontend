@@ -7,12 +7,14 @@ import { DateTime } from 'luxon'
 import { DataTable } from '@/components/ui/data-table.tsx'
 import { ProjectGroup } from '@/components/ProjectPages/types.ts'
 import { handleSubmissionDownload } from '@/utils/fileUpload.ts'
+import { SimilarityCell } from './SimilarityCell'
 import {
     Calendar,
     CheckIcon,
     ClockIcon,
     DownloadIcon,
     ExternalLink,
+    Eye,
     FileIcon,
     GithubIcon,
     XIcon,
@@ -134,6 +136,17 @@ export const columns: ColumnDef<SubmissionRow>[] = [
             )
         },
         enableSorting: true,
+    },
+    {
+        accessorKey: 'similarity',
+        header: () => (
+            <div className="flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Similarity
+            </div>
+        ),
+        cell: ({ row }) => <SimilarityCell submissionId={row.original.id} />,
+        enableSorting: false,
     },
     {
         accessorKey: 'link',
