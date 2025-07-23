@@ -106,9 +106,11 @@ const FileSimilarityVisualizationPage: React.FC = () => {
                 overall_similarity: currentSimilarity.overall_similarity,
                 jaccard_similarity: currentSimilarity.jaccard_similarity,
                 type_similarity: currentSimilarity.type_similarity,
-                shared_blocks_count: currentSimilarity.shared_blocks_count,
-                average_shared_similarity:
-                    currentSimilarity.average_shared_similarity,
+                structural_similarity: currentSimilarity.structural_similarity,
+                type_sequence_similarity:
+                    currentSimilarity.type_sequence_similarity,
+                flow_similarity: currentSimilarity.flow_similarity,
+                operation_similarity: currentSimilarity.operation_similarity,
             },
             analysis_metadata: {
                 detection_algorithm: '',
@@ -320,23 +322,78 @@ const FileSimilarityVisualizationPage: React.FC = () => {
     // Error state
     if (error) {
         console.log('Rendering error state:', error)
+        const isProcessing = error.includes('processing')
+        const noSimilarities = error.includes(
+            'No significant similarities found'
+        )
+
         return (
             <div className="h-screen flex items-center justify-center bg-background">
-                <Card className="w-96 p-8 border-destructive">
+                <Card
+                    className={`w-96 p-8 ${
+                        isProcessing
+                            ? 'border-orange-500'
+                            : noSimilarities
+                              ? 'border-blue-500'
+                              : 'border-destructive'
+                    }`}
+                >
                     <CardContent className="text-center space-y-4">
-                        <div className="text-destructive text-6xl">⚠️</div>
-                        <div className="text-xl font-semibold text-foreground">
-                            Connection Error
+                        <div
+                            className={`text-6xl ${
+                                isProcessing
+                                    ? 'text-orange-500'
+                                    : noSimilarities
+                                      ? 'text-blue-500'
+                                      : 'text-destructive'
+                            }`}
+                        >
+                            {isProcessing ? '⏳' : noSimilarities ? '🔍' : '⚠️'}
                         </div>
-                        <div className="text-destructive">{error}</div>
+                        <div className="text-xl font-semibold text-foreground">
+                            {isProcessing
+                                ? 'Analysis In Progress'
+                                : noSimilarities
+                                  ? 'No Similarities Found'
+                                  : 'Connection Error'}
+                        </div>
+                        <div
+                            className={
+                                isProcessing
+                                    ? 'text-orange-600'
+                                    : noSimilarities
+                                      ? 'text-blue-600'
+                                      : 'text-destructive'
+                            }
+                        >
+                            {error}
+                        </div>
                         <div className="text-xs text-muted-foreground">
-                            Check browser console for detailed logs
+                            {isProcessing
+                                ? 'The similarity analysis is being computed. This may take a few minutes.'
+                                : noSimilarities
+                                  ? 'The code in these submissions is sufficiently different that no meaningful similarities were detected for visualization.'
+                                  : 'Check browser console for detailed logs'}
                         </div>
                         <Button
-                            onClick={() => window.location.reload()}
-                            variant="destructive"
+                            onClick={() => {
+                                if (noSimilarities) {
+                                    window.history.back()
+                                } else {
+                                    window.location.reload()
+                                }
+                            }}
+                            variant={
+                                isProcessing || noSimilarities
+                                    ? 'outline'
+                                    : 'destructive'
+                            }
                         >
-                            Retry
+                            {isProcessing
+                                ? 'Refresh'
+                                : noSimilarities
+                                  ? 'Go Back'
+                                  : 'Retry'}
                         </Button>
                     </CardContent>
                 </Card>
@@ -505,10 +562,14 @@ const FileSimilarityVisualizationPage: React.FC = () => {
                                                                     %
                                                                 </div>
                                                                 <div>
-                                                                    Blocks:{' '}
-                                                                    {
-                                                                        currentSim.shared_blocks_count
-                                                                    }
+                                                                    Structural:{' '}
+                                                                    {(
+                                                                        currentSim.structural_similarity *
+                                                                        100
+                                                                    ).toFixed(
+                                                                        1
+                                                                    )}
+                                                                    %
                                                                 </div>
                                                             </>
                                                         ) : null

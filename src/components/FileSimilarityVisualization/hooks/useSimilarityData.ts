@@ -29,12 +29,15 @@ export const useSimilarityData = ({
         submissionId: string,
         similarities: SubmissionSimilarity[]
     ): SimilarityResponse => {
+        // Handle case where analysis is still processing (visualization_data is null)
+        const visualizationData =
+            detailedData.detailed_results?.visualization_data || []
+
         return {
             timestamp: detailedData.analysis_metadata.created_at,
-            total_file_pairs_with_similarity:
-                detailedData.detailed_results.visualization_data.length,
+            total_file_pairs_with_similarity: visualizationData.length,
             layout_used: 'elk_layered',
-            file_pairs: detailedData.detailed_results.visualization_data,
+            file_pairs: visualizationData,
             submission_info: {
                 submission_id: submissionId,
                 similarities: similarities,
@@ -116,6 +119,14 @@ export const useSimilarityData = ({
 
                 setCurrentSimilarityId(targetSimilarity.similarity_id)
 
+                // Check if the similarity is still processing BEFORE trying to fetch detailed data
+                if (targetSimilarity.status === 'processing') {
+                    setError(
+                        'Analysis is still processing. Please wait and try again in a few moments.'
+                    )
+                    return
+                }
+
                 // Step 3: Get detailed similarity data for visualization
                 console.log(
                     'Fetching detailed similarity data for:',
@@ -143,9 +154,38 @@ export const useSimilarityData = ({
                 console.log('Detailed similarity data fetched successfully:', {
                     similarity_id: detailedData.similarity_id,
                     visualization_data_count:
-                        detailedData.detailed_results.visualization_data.length,
+                        detailedData.detailed_results?.visualization_data
+                            ?.length || 0,
                     status: detailedData.analysis_metadata.status,
                 })
+
+                // Check if analysis failed
+                if (detailedData.analysis_metadata.error_message) {
+                    setError(
+                        `Analysis failed: ${detailedData.analysis_metadata.error_message}`
+                    )
+                    return
+                }
+
+                // Check if no similarities found (prioritize this over processing status)
+                if (
+                    !detailedData.detailed_results?.visualization_data ||
+                    detailedData.detailed_results.visualization_data.length ===
+                        0
+                ) {
+                    setError(
+                        'No significant similarities found between these submissions.'
+                    )
+                    return
+                }
+
+                // Check if analysis is still processing (only if we have visualization_data but it's somehow still processing)
+                if (detailedData.analysis_metadata.status === 'processing') {
+                    setError(
+                        'Analysis is still processing. Please wait and try again in a few moments.'
+                    )
+                    return
+                }
 
                 // Step 4: Transform and set the data
                 const transformedData = transformDetailedData(
@@ -192,6 +232,14 @@ export const useSimilarityData = ({
             setError(null)
 
             console.log('Switching to similarity:', similarityId)
+
+            // Check if the target similarity is still processing
+            if (targetSimilarity.status === 'processing') {
+                setError(
+                    'Analysis is still processing. Please wait and try again in a few moments.'
+                )
+                return
+            }
             const detailedResult =
                 await submissionService.getDetailedSimilarity(similarityId)
 
@@ -204,8 +252,37 @@ export const useSimilarityData = ({
                 return
             }
 
+            const detailedData = detailedResult.data
+
+            // Check if analysis failed
+            if (detailedData.analysis_metadata.error_message) {
+                setError(
+                    `Analysis failed: ${detailedData.analysis_metadata.error_message}`
+                )
+                return
+            }
+
+            // Check if no similarities found (prioritize this over processing status)
+            if (
+                !detailedData.detailed_results?.visualization_data ||
+                detailedData.detailed_results.visualization_data.length === 0
+            ) {
+                setError(
+                    'No significant similarities found between these submissions.'
+                )
+                return
+            }
+
+            // Check if analysis is still processing (only if we have visualization_data but it's somehow still processing)
+            if (detailedData.analysis_metadata.status === 'processing') {
+                setError(
+                    'Analysis is still processing. Please wait and try again in a few moments.'
+                )
+                return
+            }
+
             const transformedData = transformDetailedData(
-                detailedResult.data,
+                detailedData,
                 submissionId,
                 similarities
             )

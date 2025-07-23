@@ -71,8 +71,31 @@ export const SimilarityCell: React.FC<SimilarityCellProps> = ({
         )
     }
 
-    // Find the highest similarity score
-    const highestSimilarity = similarities.reduce((prev, current) =>
+    // Check if any similarities are still processing
+    const processingCount = similarities.filter(
+        (s) => s.status === 'processing'
+    ).length
+    const completedSimilarities = similarities.filter(
+        (s) => s.status !== 'processing'
+    )
+
+    // If all similarities are processing
+    if (processingCount === similarities.length) {
+        return (
+            <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
+                <span className="text-sm text-orange-600">Processing...</span>
+            </div>
+        )
+    }
+
+    // If some similarities are processing, show completed ones but indicate processing
+    const hasProcessing = processingCount > 0
+
+    // Find the highest similarity score from completed ones, or any if none completed
+    const similaritiesForDisplay =
+        completedSimilarities.length > 0 ? completedSimilarities : similarities
+    const highestSimilarity = similaritiesForDisplay.reduce((prev, current) =>
         current.overall_similarity > prev.overall_similarity ? current : prev
     )
     const similarityPercentage = (
@@ -99,7 +122,15 @@ export const SimilarityCell: React.FC<SimilarityCellProps> = ({
                     >
                         {similarityPercentage}%
                     </Badge>
-                    {highestSimilarityGroup && (
+                    {hasProcessing && (
+                        <div className="flex items-center gap-1">
+                            <Loader2 className="h-3 w-3 animate-spin text-orange-500" />
+                            <span className="text-xs text-orange-600">
+                                +{processingCount} processing
+                            </span>
+                        </div>
+                    )}
+                    {!hasProcessing && highestSimilarityGroup && (
                         <div className="flex items-center gap-1">
                             <Users className="h-3 w-3 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">
@@ -138,36 +169,59 @@ export const SimilarityCell: React.FC<SimilarityCellProps> = ({
                                     const group = similarityGroups?.get(
                                         similarity.similarity_id
                                     )
+                                    const isProcessing =
+                                        similarity.status === 'processing'
+
                                     return (
                                         <DropdownMenuItem
                                             key={similarity.similarity_id}
                                             className="flex items-center gap-2 cursor-default"
                                         >
-                                            <Badge
-                                                variant={
-                                                    similarity.overall_similarity >
-                                                    0.7
-                                                        ? 'destructive'
-                                                        : similarity.overall_similarity >
-                                                            0.3
-                                                          ? 'secondary'
-                                                          : 'outline'
-                                                }
-                                                className="text-xs"
-                                            >
-                                                {(
-                                                    similarity.overall_similarity *
-                                                    100
-                                                ).toFixed(1)}
-                                                %
-                                            </Badge>
-                                            <div className="flex items-center gap-1">
-                                                <Users className="h-3 w-3 text-muted-foreground" />
-                                                <span className="text-sm">
-                                                    {group?.name ||
-                                                        'Loading...'}
-                                                </span>
-                                            </div>
+                                            {isProcessing ? (
+                                                <>
+                                                    <div className="flex items-center gap-1">
+                                                        <Loader2 className="h-3 w-3 animate-spin text-orange-500" />
+                                                        <span className="text-xs text-orange-600">
+                                                            Processing...
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Users className="h-3 w-3 text-muted-foreground" />
+                                                        <span className="text-sm">
+                                                            {group?.name ||
+                                                                'Loading...'}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Badge
+                                                        variant={
+                                                            similarity.overall_similarity >
+                                                            0.7
+                                                                ? 'destructive'
+                                                                : similarity.overall_similarity >
+                                                                    0.3
+                                                                  ? 'secondary'
+                                                                  : 'outline'
+                                                        }
+                                                        className="text-xs"
+                                                    >
+                                                        {(
+                                                            similarity.overall_similarity *
+                                                            100
+                                                        ).toFixed(1)}
+                                                        %
+                                                    </Badge>
+                                                    <div className="flex items-center gap-1">
+                                                        <Users className="h-3 w-3 text-muted-foreground" />
+                                                        <span className="text-sm">
+                                                            {group?.name ||
+                                                                'Loading...'}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
                                         </DropdownMenuItem>
                                     )
                                 })}

@@ -8,8 +8,10 @@ export interface SubmissionSimilarity {
     overall_similarity: number
     jaccard_similarity: number
     type_similarity: number
-    shared_blocks_count: number
-    average_shared_similarity: number
+    structural_similarity: number
+    type_sequence_similarity: number
+    flow_similarity: number
+    operation_similarity: number
     status: string
     created_at: string
     processing_time_seconds: number
@@ -35,8 +37,10 @@ export interface DetailedSimilarityMetrics {
     overall_similarity: number
     jaccard_similarity: number
     type_similarity: number
-    shared_blocks_count: number
-    average_shared_similarity: number
+    structural_similarity: number
+    type_sequence_similarity: number
+    flow_similarity: number
+    operation_similarity: number
 }
 
 export interface DetailedSimilarityAnalysis {
@@ -83,9 +87,9 @@ export interface DetailedSimilarityResponse {
     similarity_metrics: DetailedSimilarityMetrics
     analysis_metadata: DetailedSimilarityAnalysis
     detailed_results: {
-        similarity_details: DetailedSimilarityDetails
+        similarity_details: DetailedSimilarityDetails | null
         shared_blocks: SharedBlock[] | null
-        visualization_data: FilePair[]
+        visualization_data: FilePair[] | null
     }
 }
 

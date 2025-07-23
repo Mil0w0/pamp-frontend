@@ -353,7 +353,7 @@ export const submissionService = {
             console.log('Detailed similarity fetched successfully:', {
                 similarity_id: data.similarity_id,
                 visualization_data_count:
-                    data.detailed_results.visualization_data.length,
+                    data.detailed_results.visualization_data?.length || 0,
                 status: data.analysis_metadata.status,
             })
 
