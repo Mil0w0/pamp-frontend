@@ -37,10 +37,13 @@ export const useSimilarityData = (
                     await submissionService.getOneById(comparedSubmissionId)
                 if (submissionResult.success && submissionResult.data) {
                     // The API returns a nested structure, need to access the actual submission data
-                    const submissionData = submissionResult.data as any
+                    const submissionData = submissionResult.data as
+                        | SubmissionResponse
+                        | { data: SubmissionResponse }
                     const submission =
-                        submissionData.data ||
-                        (submissionData as SubmissionResponse)
+                        'data' in submissionData
+                            ? submissionData.data
+                            : submissionData
 
                     if (submission.group_uuid) {
                         // Then get the group information

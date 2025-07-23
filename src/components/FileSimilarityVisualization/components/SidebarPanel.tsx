@@ -166,6 +166,10 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                                                                         sim.similarity_id
                                                                     }
                                                                     className="text-xs"
+                                                                    disabled={
+                                                                        sim.status ===
+                                                                        'processing'
+                                                                    }
                                                                 >
                                                                     <div className="flex items-center justify-between w-full">
                                                                         <span>
@@ -173,26 +177,37 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                                                                             {index +
                                                                                 1}
                                                                         </span>
-                                                                        <Badge
-                                                                            variant={
-                                                                                sim.overall_similarity >
-                                                                                0.7
-                                                                                    ? 'destructive'
-                                                                                    : sim.overall_similarity >
-                                                                                        0.3
-                                                                                      ? 'secondary'
-                                                                                      : 'outline'
-                                                                            }
-                                                                            className="text-xs ml-2"
-                                                                        >
-                                                                            {(
-                                                                                sim.overall_similarity *
-                                                                                100
-                                                                            ).toFixed(
-                                                                                1
-                                                                            )}
-                                                                            %
-                                                                        </Badge>
+                                                                        {sim.status ===
+                                                                        'processing' ? (
+                                                                            <div className="flex items-center gap-1 ml-2">
+                                                                                <div className="h-3 w-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                                                                                <span className="text-xs text-orange-600">
+                                                                                    Processing
+                                                                                </span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <Badge
+                                                                                variant={
+                                                                                    sim.overall_similarity >
+                                                                                    0.7
+                                                                                        ? 'destructive'
+                                                                                        : sim.overall_similarity >
+                                                                                            0.3
+                                                                                          ? 'secondary'
+                                                                                          : 'outline'
+                                                                                }
+                                                                                className="text-xs ml-2"
+                                                                            >
+                                                                                {(
+                                                                                    sim.overall_similarity *
+                                                                                    100
+                                                                                ).toFixed(
+                                                                                    1
+                                                                                )}
+
+                                                                                %
+                                                                            </Badge>
+                                                                        )}
                                                                     </div>
                                                                 </SelectItem>
                                                             )
@@ -244,10 +259,14 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                                                                     %
                                                                 </div>
                                                                 <div>
-                                                                    Blocks:{' '}
-                                                                    {
-                                                                        currentSim.shared_blocks_count
-                                                                    }
+                                                                    Flow:{' '}
+                                                                    {(
+                                                                        currentSim.flow_similarity *
+                                                                        100
+                                                                    ).toFixed(
+                                                                        1
+                                                                    )}
+                                                                    %
                                                                 </div>
                                                             </>
                                                         ) : null
