@@ -302,7 +302,7 @@ export const generateAttendanceSheet = async (
         )
 
         // Add a page
-        const page = pdfDoc.addPage([595.28, 841.89]) // A4 size
+        let page = pdfDoc.addPage([595.28, 841.89]) // A4 size
         const { width, height } = page.getSize()
 
         // Colors
@@ -542,8 +542,8 @@ export const generateAttendanceSheet = async (
 
                     // Check if we need a new page
                     if (currentY < 100 && index < allStudents.length - 1) {
-                        const newPage = pdfDoc.addPage([595.28, 841.89])
-                        currentY = newPage.getSize().height - 60
+                        page = pdfDoc.addPage([595.28, 841.89])
+                        currentY = page.getSize().height - 60
                     }
                 }
             )
@@ -619,8 +619,8 @@ export const generateAttendanceSheet = async (
 
                     // Check if we need a new page
                     if (currentY < 100 && index < sortedPlanning.length - 1) {
-                        const newPage = pdfDoc.addPage([595.28, 841.89])
-                        currentY = newPage.getSize().height - 60
+                        page = pdfDoc.addPage([595.28, 841.89])
+                        currentY = page.getSize().height - 60
                         // You could continue the table on the new page here
                     }
                 })
