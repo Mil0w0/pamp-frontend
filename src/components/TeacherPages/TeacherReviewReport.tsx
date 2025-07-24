@@ -1,19 +1,20 @@
 import { useMemo } from 'react'
-import { useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { useTheme } from '@/components/ui/theme-provider'
 import { BlockNoteEditor } from '@blocknote/core'
 import {
-    useCreateBlockNoteWithLiveblocks,
     FloatingComposer,
     FloatingThreads,
+    useCreateBlockNoteWithLiveblocks,
 } from '@liveblocks/react-blocknote'
 import { BlockNoteView } from '@blocknote/mantine'
 import '@blocknote/core/fonts/inter.css'
 import '@blocknote/mantine/style.css'
-import { MessageSquare, User } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MessageSquare, User } from 'lucide-react'
 import { ClientSideSuspense, useThreads } from '@liveblocks/react/suspense'
 import { RoomProvider as CustomRoomProvider } from '@/lib/liveblocks'
 import '@liveblocks/react-ui/styles.css'
+import { cn } from '@/lib/utils'
 
 // UI Components
 import {
@@ -34,6 +35,13 @@ import {
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import SplitCollapsibleRightLayout from '@/components/layout/SplitCollapsibleRightLayout.tsx'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 
 // Utils and Services
 import { createS3UploadForReports } from '@/utils/fileUpload.ts'
@@ -42,9 +50,9 @@ import { createS3UploadForReports } from '@/utils/fileUpload.ts'
 import { useTeacherReportData, useTeacherReportSync } from './hooks'
 import {
     CustomCommentToolbar,
+    GradingRubricCard,
     TeacherQuestionReview,
     TeacherThreadsPanel,
-    GradingRubricCard,
 } from './components'
 import { TeacherReviewReportContentProps } from './types'
 
@@ -77,6 +85,7 @@ function TeacherReviewReportContent({
     groupId,
 }: TeacherReviewReportContentProps) {
     const { theme } = useTheme()
+    const navigate = useNavigate()
 
     // Custom hooks
     const { project, group, reportDefinition, isLoading } =
@@ -107,6 +116,15 @@ function TeacherReviewReportContent({
         }
         return theme === 'dark'
     }, [theme])
+
+    // Group switcher logic
+    const groupOptions = project?.groups || []
+    const currentIndex = groupOptions.findIndex((g) => g.id === groupId)
+    const prevGroup = currentIndex > 0 ? groupOptions[currentIndex - 1] : null
+    const nextGroup =
+        currentIndex < groupOptions.length - 1
+            ? groupOptions[currentIndex + 1]
+            : null
 
     return (
         <div className="min-h-screen bg-background">
@@ -142,7 +160,7 @@ function TeacherReviewReportContent({
             {/* Main Content */}
             <div className="flex flex-1 flex-col gap-6 p-6">
                 {/* Student Info */}
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center justify-between gap-4 mb-4">
                     <div className="flex-1 min-w-0">
                         <h1 className="text-3xl font-bold tracking-tight">
                             Review Student Report
@@ -194,6 +212,109 @@ function TeacherReviewReportContent({
                                             <CardTitle className="text-lg">
                                                 Student Report
                                             </CardTitle>
+                                            {/* Group Switcher - in card header */}
+                                            {groupOptions.length > 1 && (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        className="rounded-md p-1 hover:bg-muted disabled:opacity-50"
+                                                        onClick={() =>
+                                                            prevGroup &&
+                                                            navigate(
+                                                                `/teacher/review/${projectId}/${prevGroup.id}`
+                                                            )
+                                                        }
+                                                        disabled={!prevGroup}
+                                                        title="Previous group"
+                                                        type="button"
+                                                    >
+                                                        <ChevronLeft className="w-4 h-4" />
+                                                    </button>
+                                                    <Select
+                                                        value={groupId}
+                                                        onValueChange={(
+                                                            val
+                                                        ) => {
+                                                            if (
+                                                                val !== groupId
+                                                            ) {
+                                                                navigate(
+                                                                    `/teacher/review/${projectId}/${val}`
+                                                                )
+                                                            }
+                                                        }}
+                                                    >
+                                                        <SelectTrigger className="w-48 h-8">
+                                                            <SelectValue placeholder="Select group..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {groupOptions.map(
+                                                                (g) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            g.id
+                                                                        }
+                                                                        value={
+                                                                            g.id
+                                                                        }
+                                                                    >
+                                                                        <div className="flex items-center justify-between w-full">
+                                                                            <span className="flex items-center gap-2">
+                                                                                {
+                                                                                    g.name
+                                                                                }
+                                                                                {g.reportSubmitted ? (
+                                                                                    <span
+                                                                                        className={cn(
+                                                                                            'px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-200'
+                                                                                        )}
+                                                                                    >
+                                                                                        Submitted
+                                                                                    </span>
+                                                                                ) : (
+                                                                                    <span
+                                                                                        className={cn(
+                                                                                            'px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200'
+                                                                                        )}
+                                                                                    >
+                                                                                        Draft
+                                                                                    </span>
+                                                                                )}
+                                                                            </span>
+                                                                            <span className="text-xs text-muted-foreground ml-2">
+                                                                                {g.studentsIds
+                                                                                    ? g.studentsIds
+                                                                                          .split(
+                                                                                              ','
+                                                                                          )
+                                                                                          .filter(
+                                                                                              Boolean
+                                                                                          )
+                                                                                          .length
+                                                                                    : 0}{' '}
+                                                                                students
+                                                                            </span>
+                                                                        </div>
+                                                                    </SelectItem>
+                                                                )
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <button
+                                                        className="rounded-md p-1 hover:bg-muted disabled:opacity-50"
+                                                        onClick={() =>
+                                                            nextGroup &&
+                                                            navigate(
+                                                                `/teacher/review/${projectId}/${nextGroup.id}`
+                                                            )
+                                                        }
+                                                        disabled={!nextGroup}
+                                                        title="Next group"
+                                                        type="button"
+                                                    >
+                                                        <ChevronRight className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )}
                                             <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
                                                 <MessageSquare className="w-3 h-3 mr-1" />
                                                 {threads.length} Comments
