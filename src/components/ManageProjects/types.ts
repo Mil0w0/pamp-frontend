@@ -5,6 +5,7 @@ export type Project = {
     id: string
     name: string
     description: string
+    syllabusUrl: string
     isPublished: boolean
     createdAt: string
     studentBatch: StudentBatch
@@ -29,6 +30,7 @@ export type CreateProjectDto = {
 export type EditProjectDto = {
     name?: string
     description?: string
+    syllabusUrl?: string
     isPublished?: boolean
     maxGroups?: number | null
     maxPerGroup?: number | null

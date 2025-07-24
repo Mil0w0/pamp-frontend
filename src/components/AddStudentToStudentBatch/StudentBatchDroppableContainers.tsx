@@ -54,8 +54,6 @@ export default function StudentBatchDroppableContainers({
         setSelectedStudents([])
     }
 
-    const handleFilterStudents = () => {}
-
     const getAllStudents = async () => {
         try {
             const response = await authService.getStudents()
@@ -113,13 +111,6 @@ export default function StudentBatchDroppableContainers({
 
                             <Button variant="outline" onClick={handleRemoveAll}>
                                 Remove all
-                            </Button>
-
-                            <Button
-                                variant="outline"
-                                onClick={handleFilterStudents}
-                            >
-                                Filter
                             </Button>
                         </div>
                     </div>
