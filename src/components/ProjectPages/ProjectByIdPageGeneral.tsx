@@ -34,6 +34,11 @@ function ProjectByIdPageGeneral() {
     const { currentProject } = useSelector((state: RootState) => state.project)
     const { currentUser } = useSelector((state: RootState) => state.user)
     const [file, setFile] = useState<File | null>(null)
+    // New state for editing title/description
+    const [editMode, setEditMode] = useState(false)
+    const [title, setTitle] = useState('')
+    const [description, setDescription] = useState('')
+    const [isSaving, setIsSaving] = useState(false)
 
     useEffect(() => {
         if (projectId) {
@@ -43,6 +48,14 @@ function ProjectByIdPageGeneral() {
             dispatch(fetchAllProjects(currentUser.user_id))
         }
     }, [dispatch, projectId, currentUser])
+
+    // Sync local state with project
+    useEffect(() => {
+        if (currentProject) {
+            setTitle(currentProject.name || '')
+            setDescription(currentProject.description || '')
+        }
+    }, [currentProject])
 
     if (!currentProject) {
         return <Skeleton />
@@ -123,6 +136,33 @@ function ProjectByIdPageGeneral() {
         }
     }
 
+    // Add save handler for title/description
+    const handleSaveTitleDescription = async () => {
+        if (!currentProject) return
+        setIsSaving(true)
+        try {
+            const response = await projectService.editProject(
+                currentProject.id,
+                {
+                    name: title,
+                    description: description,
+                }
+            )
+            if (response.success) {
+                toast.success('Project updated successfully')
+                setEditMode(false)
+                dispatch(fetchProjectById(currentProject.id))
+            } else {
+                toast.error(response.error)
+            }
+        } catch (error) {
+            toast.error('An error occurred while updating the project')
+            console.error('Error updating project:', error)
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
     return (
         <div>
             <div className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -156,27 +196,109 @@ function ProjectByIdPageGeneral() {
             </div>
 
             <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                <h1 className="text-2xl">Title: {currentProject.name}</h1>
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div>
-                        <h2 className="text-lg font-semibold">Description</h2>
-                        <p className="text-sm">{currentProject.description}</p>
+                {/* Editable Title/Description Section */}
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-8">
+                    <div className="flex-1">
+                        <Label
+                            htmlFor="project-title"
+                            className="text-lg font-semibold"
+                        >
+                            Title
+                        </Label>
+                        {editMode ? (
+                            <Input
+                                id="project-title"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                className="mt-1 mb-2 max-w-md"
+                                disabled={isSaving}
+                                maxLength={100}
+                            />
+                        ) : (
+                            <h1 className="text-2xl">{currentProject.name}</h1>
+                        )}
                     </div>
+                    <div className="flex-1">
+                        <Label
+                            htmlFor="project-description"
+                            className="text-lg font-semibold"
+                        >
+                            Description
+                        </Label>
+                        {editMode ? (
+                            <Input
+                                id="project-description"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                className="mt-1 mb-2 max-w-xl"
+                                disabled={isSaving}
+                                maxLength={300}
+                            />
+                        ) : (
+                            <p className="text-sm">
+                                {currentProject.description}
+                            </p>
+                        )}
+                    </div>
+                    {currentUser?.role === 'TEACHER' && (
+                        <div className="flex flex-col gap-2 min-w-[120px]">
+                            {editMode ? (
+                                <>
+                                    <Button
+                                        onClick={handleSaveTitleDescription}
+                                        disabled={
+                                            isSaving ||
+                                            !title.trim() ||
+                                            !description.trim() ||
+                                            (title === currentProject.name &&
+                                                description ===
+                                                    currentProject.description)
+                                        }
+                                        className="mb-1"
+                                    >
+                                        {isSaving ? 'Saving...' : 'Save'}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setEditMode(false)
+                                            setTitle(currentProject.name || '')
+                                            setDescription(
+                                                currentProject.description || ''
+                                            )
+                                        }}
+                                        disabled={isSaving}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button
+                                    onClick={() => setEditMode(true)}
+                                    variant="outline"
+                                >
+                                    Edit
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+                {/* End Editable Title/Description Section */}
 
-                    <div>
-                        <h2 className="text-lg font-semibold">
-                            From student batch
-                        </h2>
-                        <StudentBatchAssignementSelector
-                            project={currentProject}
-                            userIsStudent={currentUser?.role === 'STUDENT'}
-                            onSuccess={() => {
-                                if (projectId) {
-                                    dispatch(fetchProjectById(projectId))
-                                }
-                            }}
-                        />
-                    </div>
+                {/* Student Batch Assignment Section */}
+                <div className="mt-4">
+                    <h2 className="text-lg font-semibold mb-2">
+                        Student Batch Assignment
+                    </h2>
+                    <StudentBatchAssignementSelector
+                        project={currentProject}
+                        userIsStudent={currentUser?.role === 'STUDENT'}
+                        onSuccess={() => {
+                            if (projectId) {
+                                dispatch(fetchProjectById(projectId))
+                            }
+                        }}
+                    />
                 </div>
 
                 <Separator className="my-4" />
