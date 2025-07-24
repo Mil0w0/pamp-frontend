@@ -10,7 +10,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
 import { useEffect, useState } from 'react'
 import { fetchGroupById, fetchProjectById } from '@/store/project.slice.ts'
-import { Link, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
 import {
     AlertCircle,
@@ -41,19 +41,26 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { DateTime } from 'luxon'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { formatToShortDateAndTime } from '@/utils/dateFormatter.ts'
+import { reportDefinitionService } from '@/services/ProjectService/project-api-client.ts'
+import { ReportDefinition } from '@/services/ProjectService/types.ts'
 
 export default function ProjectGroupsById() {
     const { projectId, groupId } = useParams()
     const dispatch = useDispatch<AppDispatch>()
+    const navigate = useNavigate()
     const { currentProject, currentGroup } = useSelector(
         (state: RootState) => state.project
     )
+    const { currentUser } = useSelector((state: RootState) => state.user)
     const [allStudents, setAllStudents] = useState<Student[]>([])
     const [groupsStudents, setGroupsStudents] = useState<Student[]>([])
     const [submissions, setSubmissions] = useState<SubmissionResponse[] | null>(
         null
     )
     const [isLoading, setIsLoading] = useState(true)
+    const [reportDefinition, setReportDefinition] =
+        useState<ReportDefinition | null>(null)
+    const [isReportLoading, setIsReportLoading] = useState(false)
 
     const getStudentsForGroup = (
         group: ProjectGroup,
@@ -151,6 +158,23 @@ export default function ProjectGroupsById() {
             loadAllGroupsSubmissions().finally(() => setIsLoading(false))
         }
     }, [currentGroup, allStudents])
+
+    // Fetch report definition for the project
+    useEffect(() => {
+        if (!projectId) return
+        setIsReportLoading(true)
+        reportDefinitionService
+            .getReportDefinition(projectId)
+            .then((res) => {
+                if (res.success && res.data && res.data.isActive) {
+                    setReportDefinition(res.data)
+                } else {
+                    setReportDefinition(null)
+                }
+            })
+            .catch(() => setReportDefinition(null))
+            .finally(() => setIsReportLoading(false))
+    }, [projectId])
 
     if (!currentProject || !currentGroup) {
         return (
@@ -438,68 +462,104 @@ export default function ProjectGroupsById() {
                         </Card>
 
                         {/* Project Report */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <FileText className="h-5 w-5" />
-                                    Project Report
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {currentGroup.reportSubmitted ? (
-                                    <div className="space-y-3">
-                                        <StatusIndicator
-                                            type="success"
-                                            icon="check"
-                                            text="Report submitted"
-                                            description={
-                                                currentGroup.reportSubmittedDate
-                                                    ? `Submitted on ${DateTime.fromISO(currentGroup.reportSubmittedDate).toFormat('dd/MM/yyyy HH:mm')}`
-                                                    : undefined
-                                            }
-                                        />
-
-                                        <Button asChild className="w-full">
-                                            <Link
-                                                to={{
-                                                    pathname: '/',
+                        {isReportLoading ? (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <FileText className="h-5 w-5" />
+                                        Project Report
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Skeleton className="h-12 w-full" />
+                                </CardContent>
+                            </Card>
+                        ) : reportDefinition ? (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <FileText className="h-5 w-5" />
+                                        Project Report
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {currentGroup?.reportSubmitted ? (
+                                        <div className="space-y-3">
+                                            <StatusIndicator
+                                                type="success"
+                                                icon="check"
+                                                text="Report submitted"
+                                                description={
+                                                    currentGroup.reportSubmittedDate
+                                                        ? `Submitted on ${DateTime.fromISO(currentGroup.reportSubmittedDate).toFormat('dd/MM/yyyy HH:mm')}`
+                                                        : undefined
+                                                }
+                                            />
+                                            <Button
+                                                className="w-full"
+                                                onClick={() => {
+                                                    if (!projectId || !groupId)
+                                                        return
+                                                    if (
+                                                        currentUser?.role ===
+                                                        'STUDENT'
+                                                    ) {
+                                                        navigate(
+                                                            `/student/report/${projectId}/${groupId}`
+                                                        )
+                                                    } else if (
+                                                        currentUser?.role ===
+                                                        'TEACHER'
+                                                    ) {
+                                                        navigate(
+                                                            `/teacher/review/${projectId}/${groupId}`
+                                                        )
+                                                    }
                                                 }}
-                                                className="flex items-center gap-2"
                                             >
                                                 View Report
-                                                <SquareArrowOutUpRight className="h-4 w-4" />
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        <StatusIndicator
-                                            type="pending"
-                                            icon="clock"
-                                            text="Report not submitted"
-                                            description="Group hasn't submitted their final report yet"
-                                        />
-
-                                        <Button
-                                            asChild
-                                            variant="outline"
-                                            className="w-full"
-                                        >
-                                            <Link
-                                                to={{
-                                                    pathname: '/',
+                                                <SquareArrowOutUpRight className="h-4 w-4 ml-2" />
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <StatusIndicator
+                                                type="pending"
+                                                icon="clock"
+                                                text="Report not submitted"
+                                                description="Group hasn't submitted their final report yet"
+                                            />
+                                            <Button
+                                                variant="outline"
+                                                className="w-full"
+                                                onClick={() => {
+                                                    if (!projectId || !groupId)
+                                                        return
+                                                    if (
+                                                        currentUser?.role ===
+                                                        'STUDENT'
+                                                    ) {
+                                                        navigate(
+                                                            `/student/report/${projectId}/${groupId}`
+                                                        )
+                                                    } else if (
+                                                        currentUser?.role ===
+                                                        'TEACHER'
+                                                    ) {
+                                                        navigate(
+                                                            `/teacher/review/${projectId}/${groupId}`
+                                                        )
+                                                    }
                                                 }}
-                                                className="flex items-center gap-2"
                                             >
                                                 Access Editor
-                                                <SquareArrowOutUpRight className="h-4 w-4" />
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-
+                                                <SquareArrowOutUpRight className="h-4 w-4 ml-2" />
+                                            </Button>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        ) : null}
                         {/* Group Statistics */}
                         <Card>
                             <CardHeader>

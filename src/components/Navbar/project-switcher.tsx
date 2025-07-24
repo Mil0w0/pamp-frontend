@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useEffect } from 'react'
 import { ChevronsUpDown } from 'lucide-react'
 
 import {
@@ -15,9 +16,10 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar.tsx'
 import { Project } from '@/components/ManageProjects/types.ts'
-import { useEffect } from 'react'
 import { Skeleton } from '@/components/ui/skeleton.tsx'
 import { useNavigate } from 'react-router'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/store'
 
 export function ProjectSwitcher({
     projects,
@@ -29,6 +31,7 @@ export function ProjectSwitcher({
     const { isMobile } = useSidebar()
     const [project, setActiveProject] = React.useState(currentProject)
     const navigate = useNavigate()
+    const { currentUser } = useSelector((state: RootState) => state.user)
 
     useEffect(() => {
         setActiveProject(currentProject)
@@ -70,21 +73,43 @@ export function ProjectSwitcher({
                         <DropdownMenuLabel className="text-muted-foreground text-xs">
                             All projects
                         </DropdownMenuLabel>
-                        {projects.map((project) => (
+                        {projects.map((proj) => (
                             <DropdownMenuItem
-                                key={project.name}
+                                key={proj.name}
                                 onClick={() => {
-                                    setActiveProject(project)
-                                    navigate(
-                                        '/projects/' + project.id + '/settings'
-                                    )
+                                    setActiveProject(proj)
+                                    if (currentUser?.role === 'STUDENT') {
+                                        // Find the group the student is in for this project
+                                        const studentGroup = proj.groups?.find(
+                                            (group) =>
+                                                group.studentsIds &&
+                                                group.studentsIds
+                                                    .split(',')
+                                                    .includes(
+                                                        currentUser.user_id
+                                                    )
+                                        )
+                                        if (studentGroup) {
+                                            navigate(
+                                                `/projects/${proj.id}/groups/${studentGroup.id}`
+                                            )
+                                        } else {
+                                            navigate(
+                                                `/projects/${proj.id}/groups`
+                                            )
+                                        }
+                                    } else {
+                                        navigate(
+                                            `/projects/${proj.id}/settings`
+                                        )
+                                    }
                                 }}
                                 className="gap-2 p-2"
                             >
                                 <div className="flex size-6 items-center justify-center rounded-md border">
-                                    {project.name[0]}
+                                    {proj.name[0]}
                                 </div>
-                                {project.name}
+                                {proj.name}
                             </DropdownMenuItem>
                         ))}
                     </DropdownMenuContent>

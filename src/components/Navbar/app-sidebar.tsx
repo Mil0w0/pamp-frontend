@@ -21,7 +21,10 @@ import { Project } from '@/components/ManageProjects/types.ts'
 import { useDispatch, useSelector } from 'react-redux'
 import { AppDispatch, RootState } from '@/store'
 import { Button } from '@/components/ui/button.tsx'
-import { projectService } from '@/services/ProjectService/project-api-client.ts'
+import {
+    projectService,
+    reportDefinitionService,
+} from '@/services/ProjectService/project-api-client.ts'
 import { toast } from 'sonner'
 import { fetchProjectById } from '@/store/project.slice.ts'
 
@@ -82,6 +85,31 @@ export function AppSidebar({
     const dispatch = useDispatch<AppDispatch>()
 
     const [navLinks, setNavLinks] = React.useState<NavItem[]>(navMain)
+    const [studentReportActive, setStudentReportActive] = React.useState(false)
+
+    useEffect(() => {
+        let isMounted = true
+
+        async function fetchReportDef() {
+            if (currentUser?.role === 'STUDENT' && currentProject?.id) {
+                const res = await reportDefinitionService.getReportDefinition(
+                    currentProject.id
+                )
+                if (isMounted) {
+                    setStudentReportActive(
+                        !!(res.success && res.data && res.data.isActive)
+                    )
+                }
+            } else {
+                setStudentReportActive(false)
+            }
+        }
+
+        fetchReportDef()
+        return () => {
+            isMounted = false
+        }
+    }, [currentUser, currentProject])
 
     useEffect(() => {
         if (!currentProject) return
@@ -122,13 +150,10 @@ export function AppSidebar({
                 group.studentsIds.split(',').includes(currentUser?.user_id)
         )
 
-        //Show the config page only if user is a teacher
         setNavLinks([
-            // For students in student group creation mode, show different navigation
             ...(isStudent
                 ? studentGroup
                     ? [
-                          // Student is in a group - show both "My Group" and "View Groups"
                           {
                               title: 'Groups',
                               url: `/projects/${currentProject.id}/groups`,
@@ -148,7 +173,6 @@ export function AppSidebar({
                       ]
                     : currentProject.groupsCreator === 'STUDENT'
                       ? [
-                            // Student is not in a group - show "Join Groups"
                             {
                                 title: 'Join Groups',
                                 url: `/projects/${currentProject.id}/groups`,
@@ -200,22 +224,23 @@ export function AppSidebar({
                           url: `/projects/${currentProject.id}/settings`,
                           icon: Settings2,
                       },
-
                       {
                           title: 'Report settings',
                           url: `/projects/${currentProject?.id}/report-definition`,
                           icon: BookOpen,
                       },
                   ]
-                : [
-                      {
-                          title: 'Go to report',
-                          url: `/student/report/${currentProject?.id}/${currentProject.groups.find((group) => group && group.studentsIds && group.studentsIds.split(',').includes(currentUser?.user_id))?.id}`,
-                          icon: BookOpen,
-                      },
-                  ]),
+                : studentReportActive && studentGroup
+                  ? [
+                        {
+                            title: 'Go to report',
+                            url: `/student/report/${currentProject?.id}/${studentGroup.id}`,
+                            icon: BookOpen,
+                        },
+                    ]
+                  : []),
         ])
-    }, [currentProject, currentUser])
+    }, [currentProject, currentUser, studentReportActive])
 
     const publishProject = async () => {
         if (!currentProject) return

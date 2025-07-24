@@ -19,8 +19,9 @@ import { Button } from '@/components/ui/button.tsx'
 import { toast } from 'sonner'
 import { projectService } from '@/services/ProjectService/project-api-client.ts'
 import StudentBatchAssignementSelector from '@/components/ManageProjects/StudentBatchAssignementSelector.tsx'
+import ProtectedRoute from '@/components/Routes/ProtectedRoutes.tsx'
 
-export default function ProjectByIdPageGeneral() {
+function ProjectByIdPageGeneral() {
     const { projectId } = useParams()
     const dispatch = useDispatch<AppDispatch>()
     const { currentProject } = useSelector((state: RootState) => state.project)
@@ -140,5 +141,13 @@ export default function ProjectByIdPageGeneral() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function ProtectedProjectByIdPageGeneralWrapper() {
+    return (
+        <ProtectedRoute allowedRoles={['TEACHER']}>
+            <ProjectByIdPageGeneral />
+        </ProtectedRoute>
     )
 }
