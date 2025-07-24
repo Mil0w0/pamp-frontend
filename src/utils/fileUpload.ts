@@ -216,7 +216,7 @@ export const createS3UploadForReports = () => {
 }
 
 export const createS3UploadForSyllabus = (projectId: string) => {
-    return createS3PublicUploadFunction({
+    return createS3UploadFunction({
         maxFileSize: 15 * 1024 * 1024, // 15MB for reports images
         bucketName: 'pamp-project-silabus',
         allowedFileTypes: ['application/pdf'],
