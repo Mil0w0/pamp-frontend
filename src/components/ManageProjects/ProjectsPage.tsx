@@ -27,6 +27,8 @@ import StudentBatchAssignementSelector from '@/components/ManageProjects/Student
 import { useSelector } from 'react-redux'
 import { RootState } from '@/store'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.tsx'
+import { DownloadIcon } from 'lucide-react'
+import { downloadS3File } from '@/utils/fileUpload.ts'
 
 export default function ProjectsPage() {
     const navigate = useNavigate()
@@ -110,6 +112,20 @@ export default function ProjectsPage() {
         }
     }
 
+    const downloadSyllabus = async (project: Project) => {
+        if (!project) return
+        try {
+            await downloadS3File(
+                project.syllabusUrl,
+                `syllabus-project-${project.name}`
+            )
+            toast.success('Syllabus download started')
+        } catch (error) {
+            console.error(error)
+            toast.error("Couldn't download syllabus")
+        }
+    }
+
     if (!currentUser || !projects) {
         return (
             <LoadingSpinner
@@ -132,7 +148,7 @@ export default function ProjectsPage() {
                         <TableHead>Attached to</TableHead>
                         <TableHead>Created at</TableHead>
                         {currentUser.role === 'STUDENT' ? (
-                            ''
+                            <TableHead>Download syllabus</TableHead>
                         ) : (
                             <TableHead>Actions</TableHead>
                         )}
@@ -180,7 +196,18 @@ export default function ProjectsPage() {
                                     {formatToShortDate(project.createdAt)}
                                 </TableCell>
                                 {currentUser.role === 'STUDENT' ? (
-                                    ''
+                                    <TableCell>
+                                        {project.syllabusUrl ? (
+                                            <DownloadIcon
+                                                className="ml-3"
+                                                onClick={() =>
+                                                    downloadSyllabus(project)
+                                                }
+                                            />
+                                        ) : (
+                                            '-'
+                                        )}
+                                    </TableCell>
                                 ) : (
                                     <TableCell>
                                         <DropdownMenu>

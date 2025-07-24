@@ -111,7 +111,6 @@ function ProjectByIdPageGeneral() {
 
     const downloadSyllabus = async () => {
         if (!currentProject) return
-        console.log(currentProject) //FIXME : URL DOESNT START WITH S3://
         try {
             await downloadS3File(
                 currentProject.syllabusUrl,
