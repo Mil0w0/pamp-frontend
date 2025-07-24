@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import { Badge } from '@/components/ui/badge.tsx'
 import { useNavigate } from 'react-router'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/store'
 
 const randomSeed = () => Math.random().toString(36).substring(2, 10)
 
@@ -14,6 +16,7 @@ export default function HomePage({ isTeacher }: { isTeacher?: number }) {
         randomSeed(),
     ])
     const navigate = useNavigate()
+    const { currentUser } = useSelector((state: RootState) => state.user)
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -24,6 +27,37 @@ export default function HomePage({ isTeacher }: { isTeacher?: number }) {
 
     const avatarUrl = (seed: string) =>
         `https://api.dicebear.com/7.x/thumbs/svg?seed=${seed}`
+
+    const getButtonConfig = () => {
+        if (!currentUser) {
+            return {
+                text: 'Get Started',
+                onClick: () => navigate('/login'),
+            }
+        }
+
+        if (currentUser.role === 'STUDENT') {
+            return {
+                text: 'Go to Dashboard',
+                onClick: () => navigate('/test/student-dashboard'),
+            }
+        }
+
+        if (currentUser.role === 'TEACHER') {
+            return {
+                text: 'Manage My Projects',
+                onClick: () => navigate('/projects'),
+            }
+        }
+
+        // Fallback
+        return {
+            text: 'Get Started',
+            onClick: () => navigate('/login'),
+        }
+    }
+
+    const buttonConfig = getButtonConfig()
 
     return (
         <div className="flex flex-col md:flex-row min-h-screen items-center justify-center px-6 md:px-12 gap-24">
@@ -58,22 +92,26 @@ export default function HomePage({ isTeacher }: { isTeacher?: number }) {
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
                         Welcome to PAMP
                     </h1>
-                    {isTeacher !== -1 && (
+                    {(isTeacher !== -1 || currentUser) && (
                         <Badge variant="default">
-                            {isTeacher === 1 ? 'Teacher' : 'Student'}
+                            {currentUser?.role === 'TEACHER' || isTeacher === 1
+                                ? 'Teacher'
+                                : 'Student'}
                         </Badge>
                     )}
                 </div>
 
                 <p className="text-lg text-muted-foreground">
-                    Manage all your students and projects with our app !
+                    {currentUser
+                        ? `Welcome back, ${currentUser.first_name}! Ready to continue your work?`
+                        : 'Manage all your students and projects with our app !'}
                 </p>
                 <Button
                     size="lg"
                     className="mt-4"
-                    onClick={() => navigate('/login')}
+                    onClick={buttonConfig.onClick}
                 >
-                    Get Started
+                    {buttonConfig.text}
                 </Button>
             </div>
         </div>
