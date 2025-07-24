@@ -31,5 +31,5 @@ Then open a PR to merge your new branch on main
 ### Authors:
 - Loriane HILDERAL
 - Clarence HIRSCH
-- Malik LAFIA
+- Malik LAFIA 
 
