@@ -15,6 +15,7 @@ export async function makeStudentsFromFile(
                 const sheet = workbook.Sheets[sheetName]
 
                 const studentsParsed: Student[] = utils.sheet_to_json(sheet)
+                console.log(studentsParsed)
                 const students: Student[] = []
                 console.log(students)
                 let index = 0
